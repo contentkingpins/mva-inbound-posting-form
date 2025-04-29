@@ -1,0 +1,111 @@
+service: lead-management-api
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  region: us-east-1
+  environment:
+    VENDORS_TABLE: Vendors
+    LEADS_TABLE: Leads
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+      Resource: 
+        - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.VENDORS_TABLE}"
+        - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.LEADS_TABLE}"
+    # Add CloudWatch logs permissions
+    - Effect: Allow
+      Action:
+        - logs:CreateLogGroup
+        - logs:CreateLogStream
+        - logs:PutLogEvents
+      Resource: arn:aws:logs:${self:provider.region}:*:*
+  # Configure API Gateway access logs
+  apiGateway:
+    restApiId: !Ref ApiGateway
+    metrics: true
+    usagePlan:
+      - apiKeys:
+          - name: leads-api-key
+            description: API key for leads management
+        throttle:
+          burstLimit: 10
+          rateLimit: 5
+    # Enable logging to CloudWatch
+    accessLogging: true
+    executionLogging: true
+    dataTracing: true
+
+functions:
+  api:
+    handler: index.handler
+    events:
+      - http:
+          path: /leads
+          method: post
+          cors: true
+          private: true # Require API key
+      - http:
+          path: /leads
+          method: get
+          cors: true
+
+resources:
+  Resources:
+    VendorsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.VENDORS_TABLE}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: vendor_code
+            AttributeType: S
+        KeySchema:
+          - AttributeName: vendor_code
+            KeyType: HASH
+    
+    LeadsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.LEADS_TABLE}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: lead_id
+            AttributeType: S
+          - AttributeName: vendor_code
+            AttributeType: S
+          - AttributeName: timestamp
+            AttributeType: S
+        KeySchema:
+          - AttributeName: lead_id
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: VendorTimestampIndex
+            KeySchema:
+              - AttributeName: vendor_code
+                KeyType: HASH
+              - AttributeName: timestamp
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+              
+    # Define API Gateway resource
+    ApiGateway:
+      Type: AWS::ApiGateway::RestApi
+      Properties:
+        Name: leads-api
+        Description: REST API for lead management
+        EndpointConfiguration:
+          Types:
+            - REGIONAL
+            
+    # CloudWatch Log Group
+    ApiGatewayLogGroup:
+      Type: AWS::Logs::LogGroup
+      Properties:
+        LogGroupName: /aws/apigateway/leads-api
+        RetentionInDays: 7 

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lead Management Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Lead Management Dashboard</h1>
+            <div class="controls">
+                <div class="filter-group">
+                    <label for="vendor-filter">Filter by Vendor:</label>
+                    <select id="vendor-filter">
+                        <option value="">All Vendors</option>
+                        <!-- Vendor options will be populated by JavaScript -->
+                    </select>
+                </div>
+                <button id="refresh-btn" class="btn">Refresh Data</button>
+                <div class="auto-refresh">
+                    <input type="checkbox" id="auto-refresh">
+                    <label for="auto-refresh">Auto-refresh (10s)</label>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div id="loading" class="loading">Loading...</div>
+            <div id="error" class="error"></div>
+            <table id="leads-table">
+                <thead>
+                    <tr>
+                        <th>First Name</th>
+                        <th>Last Name</th>
+                        <th>Phone</th>
+                        <th>Email</th>
+                        <th>Zip/State</th>
+                        <th>Vendor Code</th>
+                        <th>Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody id="leads-body">
+                    <!-- Table rows will be populated by JavaScript -->
+                </tbody>
+            </table>
+            <div id="no-data" class="no-data">No leads found</div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html> 
