@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vendor Management Dashboard</title>
     <link rel="stylesheet" href="styles.css">
+    <!-- Add jsPDF library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         /* Additional vendor dashboard styles */
         .vendor-form {
@@ -233,6 +235,7 @@
                     <div id="instructions-content" class="vendor-content" style="white-space: pre-wrap; background: #f5f7fa; padding: 20px; border-radius: 4px; margin-top: 20px; font-family: monospace; overflow: auto;"></div>
                     <div class="btn-group" style="margin-top: 20px;">
                         <button id="copy-instructions" class="btn">Copy to Clipboard</button>
+                        <button id="download-pdf" class="btn">Download as PDF</button>
                         <button id="close-instructions" class="btn btn-secondary">Close</button>
                     </div>
                 </div>
@@ -393,6 +396,7 @@ Success Response (200):
         const instructionsVendorName = document.getElementById('instructions-vendor-name');
         const instructionsContent = document.getElementById('instructions-content');
         const copyInstructionsBtn = document.getElementById('copy-instructions');
+        const downloadPdfBtn = document.getElementById('download-pdf');
         const closeInstructionsBtn = document.getElementById('close-instructions');
 
         // Load vendors on page load
@@ -402,6 +406,7 @@ Success Response (200):
             // Set up event listeners
             vendorForm.addEventListener('submit', handleVendorFormSubmit);
             copyInstructionsBtn.addEventListener('click', copyInstructions);
+            downloadPdfBtn.addEventListener('click', downloadInstructionsAsPdf);
             closeInstructionsBtn.addEventListener('click', () => {
                 instructionsSection.style.display = 'none';
             });
@@ -591,6 +596,50 @@ Success Response (200):
             }).catch(err => {
                 console.error('Failed to copy: ', err);
             });
+        }
+        
+        // Download instructions as PDF
+        function downloadInstructionsAsPdf() {
+            const { jsPDF } = window.jspdf;
+            const vendorName = instructionsVendorName.textContent;
+            const text = instructionsContent.textContent;
+            
+            try {
+                // Create a new PDF document
+                const doc = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4'
+                });
+                
+                // Add title
+                doc.setFontSize(16);
+                doc.text(`API Integration Instructions for ${vendorName}`, 20, 20);
+                
+                // Add content
+                doc.setFontSize(10);
+                
+                // Split the text into lines to fit the page
+                const textLines = doc.splitTextToSize(text, 170);
+                doc.text(textLines, 20, 30);
+                
+                // Generate the PDF filename
+                const filename = `${vendorName.replace(/[^a-zA-Z0-9]/g, '_')}_API_Instructions.pdf`;
+                
+                // Save the PDF
+                doc.save(filename);
+                
+                // Provide feedback
+                const originalText = downloadPdfBtn.textContent;
+                downloadPdfBtn.textContent = 'Downloaded!';
+                setTimeout(() => {
+                    downloadPdfBtn.textContent = originalText;
+                }, 2000);
+                
+            } catch (err) {
+                console.error('Failed to generate PDF: ', err);
+                alert('Failed to generate PDF. Please try again.');
+            }
         }
 
         // View leads for a specific vendor
