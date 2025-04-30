@@ -481,8 +481,16 @@ Success Response (200):
         async function handleVendorFormSubmit(event) {
             event.preventDefault();
             
+            const vendorName = document.getElementById('vendor-name').value;
+            // Generate a simple vendor code from the name
+            const vendorCode = vendorName
+                .replace(/[^a-zA-Z0-9]/g, '')
+                .substring(0, 3)
+                .toUpperCase() + Math.floor(Date.now() % 10000);
+                
             const vendorData = {
-                name: document.getElementById('vendor-name').value,
+                name: vendorName,
+                vendor_code: vendorCode,
                 contact_email: document.getElementById('vendor-email').value,
                 contact_phone: document.getElementById('vendor-phone').value,
                 website: document.getElementById('vendor-website').value,
