@@ -61,20 +61,24 @@ exports.handler = async (event) => {
       } else if (httpMethod === 'GET') {
         return await handleGetLead(leadId, event.vendor);
       }
-    }
-    // Handle vendor routes
-    else if (path === '/vendors') {
+    } else if (path === '/stats') {
+      if (httpMethod === 'GET') {
+        return await handleGetLeadStats(queryStringParameters);
+      }
+    } else if (path === '/export') {
+      if (httpMethod === 'GET') {
+        return await handleExportLeads(queryStringParameters);
+      }
+    } else if (path === '/vendors') {
       if (httpMethod === 'GET') {
         return await handleGetVendors();
       } else if (httpMethod === 'POST') {
         return await handleCreateVendor(JSON.parse(body));
       }
-    } 
-    // Handle vendor key regeneration
-    else if (path.match(/^\/vendors\/[^\/]+\/regenerate-key$/)) {
+    } else if (path.match(/^\/vendors\/[^\/]+\/regenerate-key$/)) {
       if (httpMethod === 'POST') {
         const vendorCode = pathParameters.vendor_code;
-        return await handleRegenerateVendorKey(vendorCode);
+        return await handleRegenerateApiKey(vendorCode);
       }
     }
     
@@ -409,6 +413,242 @@ async function handleGetLeads(queryParams, vendor) {
   }
 }
 
+// Handler for GET /stats - Aggregated lead statistics
+async function handleGetLeadStats(queryParams) {
+  try {
+    // Default to all time periods if not specified
+    const period = queryParams?.period || 'all';
+    const vendorCode = queryParams?.vendor_code || null;
+    
+    // Get all leads
+    let leads;
+    if (vendorCode) {
+      // Query by vendor_code using GSI
+      const result = await dynamoDB.send(
+        new QueryCommand({
+          TableName: LEADS_TABLE,
+          IndexName: 'VendorTimestampIndex',
+          KeyConditionExpression: 'vendor_code = :vendor_code',
+          ExpressionAttributeValues: {
+            ':vendor_code': vendorCode
+          }
+        })
+      );
+      leads = result.Items;
+    } else {
+      // Get all leads
+      const result = await dynamoDB.send(
+        new ScanCommand({
+          TableName: LEADS_TABLE
+        })
+      );
+      leads = result.Items;
+    }
+    
+    // Calculate current date and relevant cutoff dates
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay()); // Sunday as the first day of the week
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    // Convert to ISO string for comparison
+    const todayIso = today.toISOString();
+    const startOfWeekIso = startOfWeek.toISOString();
+    const startOfMonthIso = startOfMonth.toISOString();
+    
+    // Initialize stats object
+    const stats = {
+      daily: {},
+      weekly: {},
+      monthly: {},
+      all_time: {}
+    };
+    
+    // Group leads by vendor and time period
+    leads.forEach(lead => {
+      const vendor = lead.vendor_code;
+      const timestamp = lead.timestamp;
+      
+      // Skip if no vendor code or timestamp
+      if (!vendor || !timestamp) return;
+      
+      // Initialize counters for this vendor if they don't exist
+      if (!stats.daily[vendor]) stats.daily[vendor] = 0;
+      if (!stats.weekly[vendor]) stats.weekly[vendor] = 0;
+      if (!stats.monthly[vendor]) stats.monthly[vendor] = 0;
+      if (!stats.all_time[vendor]) stats.all_time[vendor] = 0;
+      
+      // Increment counts based on time period
+      if (timestamp >= todayIso) {
+        stats.daily[vendor]++;
+      }
+      
+      if (timestamp >= startOfWeekIso) {
+        stats.weekly[vendor]++;
+      }
+      
+      if (timestamp >= startOfMonthIso) {
+        stats.monthly[vendor]++;
+      }
+      
+      // Always increment all-time count
+      stats.all_time[vendor]++;
+    });
+    
+    // Prepare response based on requested period
+    let responseData;
+    
+    switch (period) {
+      case 'daily':
+        responseData = stats.daily;
+        break;
+      case 'weekly':
+        responseData = stats.weekly;
+        break;
+      case 'monthly':
+        responseData = stats.monthly;
+        break;
+      case 'all':
+      default:
+        responseData = stats;
+        break;
+    }
+    
+    // Format into an array for easier consumption by frontend
+    const formattedStats = Object.entries(responseData).map(([vendor, count]) => ({
+      vendor_code: vendor,
+      count
+    }));
+    
+    // If period is 'all', we need a different structure
+    const finalResponse = period === 'all' 
+      ? {
+        daily: Object.entries(stats.daily).map(([vendor, count]) => ({ vendor_code: vendor, count })),
+        weekly: Object.entries(stats.weekly).map(([vendor, count]) => ({ vendor_code: vendor, count })),
+        monthly: Object.entries(stats.monthly).map(([vendor, count]) => ({ vendor_code: vendor, count })),
+        all_time: Object.entries(stats.all_time).map(([vendor, count]) => ({ vendor_code: vendor, count }))
+      } 
+      : formattedStats;
+    
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify(finalResponse)
+    };
+  } catch (error) {
+    console.error('Get lead stats error:', error);
+    return {
+      statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ status: 'error', message: 'Error retrieving lead statistics' })
+    };
+  }
+}
+
+// Handler for GET /export - Export leads with filtering
+async function handleExportLeads(queryParams) {
+  try {
+    const vendor_code = queryParams?.vendor_code || null;
+    const start_date = queryParams?.start_date || null;
+    const end_date = queryParams?.end_date || null;
+    
+    // Build filter expression parts
+    let filterExpressionParts = [];
+    let expressionAttributeValues = {};
+    
+    // Start with vendor code filter if provided
+    if (vendor_code) {
+      // Query using GSI if we're only filtering by vendor
+      if (!start_date && !end_date) {
+        const result = await dynamoDB.send(
+          new QueryCommand({
+            TableName: LEADS_TABLE,
+            IndexName: 'VendorTimestampIndex',
+            KeyConditionExpression: 'vendor_code = :vendor_code',
+            ExpressionAttributeValues: {
+              ':vendor_code': vendor_code
+            }
+          })
+        );
+        
+        return {
+          statusCode: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          },
+          body: JSON.stringify(result.Items)
+        };
+      }
+      
+      // Add to filter parts for scan operation
+      filterExpressionParts.push('vendor_code = :vendor_code');
+      expressionAttributeValues[':vendor_code'] = vendor_code;
+    }
+    
+    // Add date range filters if provided
+    if (start_date && end_date) {
+      filterExpressionParts.push('timestamp BETWEEN :start_date AND :end_date');
+      expressionAttributeValues[':start_date'] = start_date;
+      expressionAttributeValues[':end_date'] = end_date;
+    } else if (start_date) {
+      filterExpressionParts.push('timestamp >= :start_date');
+      expressionAttributeValues[':start_date'] = start_date;
+    } else if (end_date) {
+      filterExpressionParts.push('timestamp <= :end_date');
+      expressionAttributeValues[':end_date'] = end_date;
+    }
+    
+    // Build params for the query
+    const params = {
+      TableName: LEADS_TABLE
+    };
+    
+    // Add filter expression if we have any filters
+    if (filterExpressionParts.length > 0) {
+      params.FilterExpression = filterExpressionParts.join(' AND ');
+      params.ExpressionAttributeValues = expressionAttributeValues;
+    }
+    
+    // Execute the scan operation
+    const result = await dynamoDB.send(
+      new ScanCommand(params)
+    );
+    
+    // Sort by timestamp (newest first)
+    const sortedItems = result.Items.sort((a, b) => 
+      new Date(b.timestamp) - new Date(a.timestamp)
+    );
+    
+    // Return the results
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify(sortedItems)
+    };
+  } catch (error) {
+    console.error('Export leads error:', error);
+    return {
+      statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ status: 'error', message: 'Error exporting leads' })
+    };
+  }
+}
+
 // Handler for GET /vendors
 async function handleGetVendors() {
   try {
@@ -534,8 +774,22 @@ async function handleCreateVendor(data) {
   }
 }
 
+// Generate a unique vendor code
+function generateVendorCode(vendorName) {
+  // Create a code based on vendor name (first 3 chars) + random string
+  const prefix = vendorName
+    .replace(/[^a-zA-Z0-9]/g, '') // Remove special characters
+    .substring(0, 3)
+    .toUpperCase();
+  
+  // Add random 5 character string
+  const randomString = crypto.randomBytes(3).toString('hex').toUpperCase();
+  
+  return `${prefix}${randomString}`;
+}
+
 // Handler for POST /vendors/{vendor_code}/regenerate-key
-async function handleRegenerateVendorKey(vendorCode) {
+async function handleRegenerateApiKey(vendorCode) {
   // Check if vendor exists
   try {
     const existingVendor = await dynamoDB.send(
@@ -567,9 +821,10 @@ async function handleRegenerateVendorKey(vendorCode) {
       new UpdateCommand({
         TableName: VENDORS_TABLE,
         Key: { vendor_code: vendorCode },
-        UpdateExpression: 'set api_key = :apiKey',
+        UpdateExpression: 'set api_key = :apiKey, updated_at = :updated_at',
         ExpressionAttributeValues: {
-          ':apiKey': newApiKey
+          ':apiKey': newApiKey,
+          ':updated_at': new Date().toISOString()
         },
         ReturnValues: 'ALL_NEW'
       })

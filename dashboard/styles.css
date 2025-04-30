@@ -159,6 +159,14 @@ tr.detail-row td {
     display: none;
 }
 
+/* Special styling for duplicate lead errors */
+.duplicate-error {
+    background-color: #fef3c7;
+    color: #92400e;
+    border-left: 4px solid #f59e0b;
+    font-weight: 500;
+}
+
 .no-data {
     background-color: #f7fafc;
     color: #718096;
@@ -179,4 +187,242 @@ tr.detail-row td {
     .detail-content {
         grid-template-columns: 1fr;
     }
+}
+
+/* Add styles for the textarea element */
+textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid #cbd5e0;
+    font-family: inherit;
+    font-size: 14px;
+    resize: vertical;
+}
+
+/* Add disposition-specific styles */
+.disposition-value {
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.disposition-value.new {
+    background-color: #e2e8f0;
+    color: #4a5568;
+}
+
+.disposition-value.contacted {
+    background-color: #bee3f8;
+    color: #2b6cb0;
+}
+
+.disposition-value.qualified {
+    background-color: #c6f6d5;
+    color: #2f855a;
+}
+
+.disposition-value.proposal {
+    background-color: #feebc8;
+    color: #c05621;
+}
+
+.disposition-value.sold {
+    background-color: #9ae6b4;
+    color: #276749;
+}
+
+.disposition-value.closed {
+    background-color: #b2f5ea;
+    color: #285e61;
+}
+
+.disposition-value.lost {
+    background-color: #fed7d7;
+    color: #c53030;
+}
+
+.disposition-value.junk {
+    background-color: #e2e8f0;
+    color: #718096;
+}
+
+/* Button Styles */
+.btn-sm {
+    padding: 4px 8px;
+    font-size: 12px;
+}
+
+.detail-notes .detail-value {
+    white-space: pre-wrap;
+    max-height: 100px;
+    overflow-y: auto;
+    background-color: #f8fafc;
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #e2e8f0;
+    font-size: 13px;
+}
+
+/* Add disposition tag styles */
+.disposition-tag {
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    font-size: 13px;
+    text-align: center;
+}
+
+.disposition-tag.new {
+    background-color: #e2e8f0;
+    color: #4a5568;
+}
+
+.disposition-tag.retained-for-firm {
+    background-color: #c6f6d5;
+    color: #276749;
+}
+
+.disposition-tag.docs-sent {
+    background-color: #bee3f8;
+    color: #2b6cb0;
+}
+
+.disposition-tag.awaiting-proof-of-claim {
+    background-color: #feebc8;
+    color: #c05621;
+}
+
+.disposition-tag.not-interested {
+    background-color: #fed7d7;
+    color: #c53030;
+}
+
+.disposition-tag.not-qualified-lead {
+    background-color: #e2e8f0;
+    color: #718096;
+}
+
+/* Lead info columns in expanded view */
+.lead-info-column, .qualification-column {
+    padding: 15px;
+    background-color: white;
+    border-radius: 6px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.detail-disposition-section {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.disposition-select-container {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 8px;
+}
+
+.disposition-select {
+    flex-grow: 1;
+}
+
+/* Qualification form styling */
+.qualification-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.qualification-item {
+    margin-bottom: 5px;
+}
+
+.qualification-item label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 5px;
+    color: #4a5568;
+}
+
+.qualification-item input[type="text"],
+.qualification-item input[type="date"] {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid #cbd5e0;
+}
+
+.yes-no-options {
+    display: flex;
+    gap: 15px;
+}
+
+.yes-no-label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: normal;
+    cursor: pointer;
+}
+
+.save-qualification-btn {
+    margin-top: 15px;
+    align-self: flex-start;
+}
+
+/* Notes section styling */
+.notes-section {
+    margin-top: 20px;
+}
+
+.lead-notes {
+    margin-top: 8px;
+    margin-bottom: 8px;
+}
+
+/* Success toast notification */
+.success-toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: #48bb78;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s, transform 0.3s;
+    z-index: 1000;
+    font-weight: 500;
+}
+
+.success-toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Deadline warning styles */
+.deadline-warning {
+    margin-top: 5px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.deadline-warning.expired {
+    background-color: #fed7d7;
+    color: #c53030;
+    border-left: 4px solid #e53e3e;
+}
+
+.deadline-warning.urgent {
+    background-color: #feebc8;
+    color: #c05621;
+    border-left: 4px solid #dd6b20;
 } 

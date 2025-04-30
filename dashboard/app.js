@@ -1,6 +1,8 @@
 // Configuration
 const API_ENDPOINT = 'https://nv01uveape.execute-api.us-east-1.amazonaws.com/prod/leads';
+const EXPORT_ENDPOINT = 'https://nv01uveape.execute-api.us-east-1.amazonaws.com/prod/export';
 const REFRESH_INTERVAL = 10000; // 10 seconds
+const API_KEY = 'fpoI4Uwleh63QVGGsnAUG49W7B8k67g21Gc8glIl'; // API key for auth
 
 // DOM Elements
 const vendorFilter = document.getElementById('vendor-filter');
@@ -12,11 +14,22 @@ const loadingEl = document.getElementById('loading');
 const errorEl = document.getElementById('error');
 const noDataEl = document.getElementById('no-data');
 
+// Export Modal Elements
+const exportBtn = document.getElementById('export-btn');
+const exportModalOverlay = document.getElementById('export-modal-overlay');
+const exportModalClose = document.getElementById('export-modal-close');
+const exportVendorSelect = document.getElementById('export-vendor');
+const exportStartDate = document.getElementById('export-start-date');
+const exportEndDate = document.getElementById('export-end-date');
+const exportCancelBtn = document.getElementById('export-cancel');
+const exportDownloadBtn = document.getElementById('export-download');
+
 // State
 let leads = [];
 let vendorCodes = new Set();
 let refreshTimer = null;
 let expandedLeadId = null;
+let allLeads = []; // For export functionality - store all leads
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -26,6 +39,20 @@ document.addEventListener('DOMContentLoaded', () => {
     refreshBtn.addEventListener('click', fetchLeads);
     vendorFilter.addEventListener('change', filterLeads);
     autoRefreshCb.addEventListener('change', toggleAutoRefresh);
+    
+    // Export Modal Listeners
+    exportBtn.addEventListener('click', openExportModal);
+    exportModalClose.addEventListener('click', closeExportModal);
+    exportCancelBtn.addEventListener('click', closeExportModal);
+    exportDownloadBtn.addEventListener('click', exportLeadsToCsv);
+    
+    // Set default date values for export
+    const today = new Date();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+    
+    exportEndDate.valueAsDate = today;
+    exportStartDate.valueAsDate = thirtyDaysAgo;
 });
 
 // Toggle auto-refresh functionality
@@ -68,7 +95,51 @@ async function fetchLeads() {
             throw new Error(`HTTP error ${response.status}`);
         }
         
-        leads = await response.json();
+        // Get existing leads from localStorage to preserve disposition and notes
+        const existingLeads = JSON.parse(localStorage.getItem('leads') || '[]');
+        const existingLeadsMap = new Map();
+        
+        // Create a map for quick lookup
+        existingLeads.forEach(lead => {
+            existingLeadsMap.set(lead.lead_id, {
+                disposition: lead.disposition,
+                notes: lead.notes,
+                updated_at: lead.updated_at
+            });
+        });
+        
+        // Get new leads from API
+        const newLeads = await response.json();
+        
+        // Merge new leads with existing disposition/notes data
+        leads = newLeads.map(lead => {
+            const existingData = existingLeadsMap.get(lead.lead_id);
+            
+            if (existingData) {
+                return {
+                    ...lead,
+                    disposition: existingData.disposition || lead.disposition || 'New',
+                    notes: existingData.notes || lead.notes || '',
+                    updated_at: existingData.updated_at || lead.updated_at || lead.timestamp
+                };
+            }
+            
+            return {
+                ...lead,
+                disposition: lead.disposition || 'New',
+                notes: lead.notes || ''
+            };
+        });
+        
+        // Store updated leads in localStorage
+        localStorage.setItem('leads', JSON.stringify(leads));
+        
+        // Store all leads for export functionality
+        // In a real app, this might not be efficient for large datasets
+        // You might want to fetch data specifically for export instead
+        if (!vendorCode) {
+            allLeads = [...leads];
+        }
         
         // Update vendor dropdown options
         updateVendorOptions();
@@ -82,6 +153,205 @@ async function fetchLeads() {
     } finally {
         showLoading(false);
     }
+}
+
+// Open export modal
+function openExportModal() {
+    // Populate vendor dropdown with all available vendors
+    populateExportVendorSelect();
+    
+    // Show the modal
+    exportModalOverlay.style.display = 'flex';
+}
+
+// Close export modal
+function closeExportModal() {
+    exportModalOverlay.style.display = 'none';
+}
+
+// Populate the export vendor select dropdown
+function populateExportVendorSelect() {
+    // Clear existing options except the first one
+    while (exportVendorSelect.options.length > 1) {
+        exportVendorSelect.remove(1);
+    }
+    
+    // Add vendor options
+    Array.from(vendorCodes).sort().forEach(code => {
+        const option = document.createElement('option');
+        option.value = code;
+        option.textContent = code;
+        exportVendorSelect.appendChild(option);
+    });
+}
+
+// Export leads to CSV file
+async function exportLeadsToCsv() {
+    try {
+        showLoading(true);
+        
+        // Get filter values
+        const vendorFilter = exportVendorSelect.value;
+        const startDate = exportStartDate.value ? new Date(exportStartDate.value) : null;
+        const endDate = exportEndDate.value ? new Date(exportEndDate.value) : null;
+        
+        // Set end date to end of day
+        if (endDate) {
+            endDate.setHours(23, 59, 59, 999);
+        }
+        
+        // Build export URL with query parameters
+        let url = EXPORT_ENDPOINT;
+        const queryParams = [];
+        
+        if (vendorFilter) {
+            queryParams.push(`vendor_code=${encodeURIComponent(vendorFilter)}`);
+        }
+        
+        if (startDate) {
+            queryParams.push(`start_date=${encodeURIComponent(startDate.toISOString())}`);
+        }
+        
+        if (endDate) {
+            queryParams.push(`end_date=${encodeURIComponent(endDate.toISOString())}`);
+        }
+        
+        if (queryParams.length > 0) {
+            url += '?' + queryParams.join('&');
+        }
+        
+        // Fetch the leads for export
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            mode: 'cors'
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error ${response.status}`);
+        }
+        
+        const filteredLeads = await response.json();
+        
+        // Check if we have leads to export
+        if (filteredLeads.length === 0) {
+            alert('No leads match the selected criteria.');
+            return;
+        }
+        
+        // Generate CSV content
+        const csvContent = generateCsvContent(filteredLeads);
+        
+        // Create a download link
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        
+        // Create file name with timestamp and filters
+        let fileName = 'leads_export';
+        
+        if (vendorFilter) {
+            fileName += `_${vendorFilter}`;
+        }
+        
+        if (startDate) {
+            fileName += `_from_${startDate.toISOString().split('T')[0]}`;
+        }
+        
+        if (endDate) {
+            fileName += `_to_${endDate.toISOString().split('T')[0]}`;
+        }
+        
+        fileName += '.csv';
+        
+        // Set up download link
+        link.setAttribute('href', blobUrl);
+        link.setAttribute('download', fileName);
+        link.style.display = 'none';
+        
+        // Add to DOM, click and remove
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Revoke the blob URL to free memory
+        setTimeout(() => {
+            URL.revokeObjectURL(blobUrl);
+        }, 100);
+        
+        // Close the modal
+        closeExportModal();
+        
+    } catch (error) {
+        console.error('Error exporting leads:', error);
+        alert('Failed to export leads. Please try again.');
+    } finally {
+        showLoading(false);
+    }
+}
+
+// Generate CSV content from leads data
+function generateCsvContent(leadsData) {
+    if (!leadsData || leadsData.length === 0) {
+        return '';
+    }
+    
+    // Define CSV headers - customize these based on your needs
+    const headers = [
+        'Lead ID',
+        'First Name',
+        'Last Name',
+        'Phone',
+        'Email',
+        'Zip Code',
+        'State',
+        'Vendor Code',
+        'Timestamp'
+    ];
+    
+    // Create header row
+    let csvContent = headers.join(',') + '\n';
+    
+    // Add data rows
+    leadsData.forEach(lead => {
+        const row = [
+            escapeCsvValue(lead.lead_id || ''),
+            escapeCsvValue(lead.first_name || ''),
+            escapeCsvValue(lead.last_name || ''),
+            escapeCsvValue(lead.phone_home || ''),
+            escapeCsvValue(lead.email || ''),
+            escapeCsvValue(lead.zip_code || ''),
+            escapeCsvValue(lead.state || ''),
+            escapeCsvValue(lead.vendor_code || ''),
+            escapeCsvValue(lead.timestamp || '')
+        ];
+        
+        csvContent += row.join(',') + '\n';
+    });
+    
+    return csvContent;
+}
+
+// Escape CSV value to handle commas, quotes, etc.
+function escapeCsvValue(value) {
+    if (value === null || value === undefined) {
+        return '';
+    }
+    
+    value = String(value);
+    
+    // If the value contains commas, quotes, or newlines, wrap it in quotes
+    if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+        // Double up any quotes
+        value = value.replace(/"/g, '""');
+        // Wrap in quotes
+        value = `"${value}"`;
+    }
+    
+    return value;
 }
 
 // Update vendor filter options
@@ -154,12 +424,23 @@ function renderLeads() {
             row.classList.add('expanded');
         }
         
+        // Get disposition display
+        const disposition = lead.disposition || 'New';
+        const dispositionClass = disposition.toLowerCase().replace(/\s+/g, '-');
+        
         // Add cells for each column
         row.innerHTML = `
-            <td>${escapeHtml(lead.first_name || '')}</td>
-            <td>${escapeHtml(lead.last_name || '')}</td>
-            <td>${escapeHtml(lead.phone_home || '')}</td>
-            <td>${escapeHtml(lead.email || '')}</td>
+            <td>${escapeHtml(lead.first_name || '')} ${escapeHtml(lead.last_name || '')}</td>
+            <td>
+                <div class="contact-info">
+                    <div>${escapeHtml(lead.phone_home || '')}</div>
+                    <div>${escapeHtml(lead.email || '')}</div>
+                </div>
+            </td>
+            <td>${escapeHtml(lead.accident_date || 'Not specified')}</td>
+            <td>
+                <span class="disposition-tag ${dispositionClass}">${escapeHtml(disposition)}</span>
+            </td>
             <td>${escapeHtml(getLocationDisplay(lead) || '')}</td>
             <td>${escapeHtml(lead.vendor_code || '')}</td>
             <td>${formatDate(lead.timestamp)}</td>
@@ -186,21 +467,46 @@ function addDetailRow(lead) {
     const detailCell = document.createElement('td');
     detailCell.colSpan = 7;
     
+    // Create two column layout for details
     const detailContent = document.createElement('div');
     detailContent.className = 'detail-content';
     
-    // Add all lead details
+    // Left column with lead info
+    const leadInfoColumn = document.createElement('div');
+    leadInfoColumn.className = 'lead-info-column';
+    
+    // Add disposition display in detail view
+    const currentDisposition = document.createElement('div');
+    currentDisposition.className = 'detail-disposition-section';
+    currentDisposition.innerHTML = `
+        <h4>Current Disposition</h4>
+        <div class="disposition-select-container">
+            <select id="disposition-select-${lead.lead_id}" class="disposition-select">
+                <option value="New" ${(lead.disposition || 'New') === 'New' ? 'selected' : ''}>New</option>
+                <option value="Retained for Firm" ${lead.disposition === 'Retained for Firm' ? 'selected' : ''}>Retained for Firm</option>
+                <option value="Docs Sent" ${lead.disposition === 'Docs Sent' ? 'selected' : ''}>Docs Sent</option>
+                <option value="Awaiting Proof of Claim" ${lead.disposition === 'Awaiting Proof of Claim' ? 'selected' : ''}>Awaiting Proof of Claim</option>
+                <option value="Not Interested" ${lead.disposition === 'Not Interested' ? 'selected' : ''}>Not Interested</option>
+                <option value="Not Qualified Lead" ${lead.disposition === 'Not Qualified Lead' ? 'selected' : ''}>Not Qualified Lead</option>
+            </select>
+            <button id="save-disposition-${lead.lead_id}" class="btn btn-sm">Update</button>
+        </div>
+    `;
+    
+    leadInfoColumn.appendChild(currentDisposition);
+    
+    // Add basic lead details
+    const leadDetails = document.createElement('div');
+    leadDetails.className = 'lead-basic-details';
+    
     const fields = [
         { label: 'Lead ID', value: lead.lead_id },
-        { label: 'First Name', value: lead.first_name },
-        { label: 'Last Name', value: lead.last_name },
-        { label: 'Phone Home', value: lead.phone_home },
-        { label: 'LP Caller ID', value: lead.lp_caller_id },
+        { label: 'Full Name', value: `${lead.first_name || ''} ${lead.last_name || ''}` },
+        { label: 'Phone', value: lead.phone_home },
         { label: 'Email', value: lead.email },
-        { label: 'Zip Code', value: lead.zip_code || 'N/A' },
-        { label: 'State', value: lead.state || 'N/A' },
-        { label: 'Vendor Code', value: lead.vendor_code },
-        { label: 'Timestamp', value: formatDate(lead.timestamp, true) }
+        { label: 'Location', value: getLocationDisplay(lead) },
+        { label: 'Vendor', value: lead.vendor_code },
+        { label: 'Received', value: formatDate(lead.timestamp, true) }
     ];
     
     fields.forEach(field => {
@@ -209,11 +515,168 @@ function addDetailRow(lead) {
         
         detailItem.innerHTML = `
             <div class="detail-label">${field.label}</div>
-            <div class="detail-value">${escapeHtml(field.value)}</div>
+            <div class="detail-value">${escapeHtml(field.value || '')}</div>
         `;
         
-        detailContent.appendChild(detailItem);
+        leadDetails.appendChild(detailItem);
     });
+    
+    leadInfoColumn.appendChild(leadDetails);
+    
+    // Notes section
+    const notesSection = document.createElement('div');
+    notesSection.className = 'notes-section';
+    notesSection.innerHTML = `
+        <h4>Notes</h4>
+        <textarea id="lead-notes-${lead.lead_id}" class="lead-notes" rows="4">${escapeHtml(lead.notes || '')}</textarea>
+        <button id="save-notes-${lead.lead_id}" class="btn btn-sm">Save Notes</button>
+    `;
+    
+    leadInfoColumn.appendChild(notesSection);
+    
+    // Right column with qualification checklist
+    const qualificationColumn = document.createElement('div');
+    qualificationColumn.className = 'qualification-column';
+    
+    qualificationColumn.innerHTML = `
+        <h4>Qualification Checklist</h4>
+        <div class="qualification-form" id="qualification-form-${lead.lead_id}">
+            <div class="qualification-item">
+                <label>Where did the accident happen?</label>
+                <input type="text" id="accident-location-${lead.lead_id}" value="${escapeHtml(lead.accident_location || '')}">
+            </div>
+            
+            <div class="qualification-item">
+                <label>What was the date of the accident?</label>
+                <input type="date" id="accident-date-${lead.lead_id}" value="${lead.accident_date || ''}" onchange="checkDeadline('${lead.lead_id}')">
+                <div id="deadline-warning-${lead.lead_id}" class="deadline-warning" style="display: none;">
+                    Warning: This accident occurred more than 2 years ago. The statute of limitations has likely expired.
+                </div>
+            </div>
+            
+            <div class="qualification-item" style="display: none;">
+                <input type="hidden" id="deadline-60-days-${lead.lead_id}" value="${lead.deadline_60_days || ''}">
+            </div>
+            
+            <div class="qualification-item">
+                <label>Was the caller at fault?</label>
+                <div class="yes-no-options">
+                    <label class="yes-no-label">
+                        <input type="radio" name="at-fault-${lead.lead_id}" value="yes" ${lead.caller_at_fault === 'yes' ? 'checked' : ''}>
+                        Yes
+                    </label>
+                    <label class="yes-no-label">
+                        <input type="radio" name="at-fault-${lead.lead_id}" value="no" ${lead.caller_at_fault === 'no' ? 'checked' : ''}>
+                        No
+                    </label>
+                </div>
+            </div>
+            
+            <div class="qualification-item">
+                <label>Does the caller already have an attorney?</label>
+                <div class="yes-no-options">
+                    <label class="yes-no-label">
+                        <input type="radio" name="has-attorney-${lead.lead_id}" value="yes" ${lead.has_attorney === 'yes' ? 'checked' : ''}>
+                        Yes
+                    </label>
+                    <label class="yes-no-label">
+                        <input type="radio" name="has-attorney-${lead.lead_id}" value="no" ${lead.has_attorney === 'no' ? 'checked' : ''}>
+                        No
+                    </label>
+                </div>
+            </div>
+            
+            <div class="qualification-item">
+                <label>Was the caller injured?</label>
+                <div class="yes-no-options">
+                    <label class="yes-no-label">
+                        <input type="radio" name="injured-${lead.lead_id}" value="yes" ${lead.was_injured === 'yes' ? 'checked' : ''}>
+                        Yes
+                    </label>
+                    <label class="yes-no-label">
+                        <input type="radio" name="injured-${lead.lead_id}" value="no" ${lead.was_injured === 'no' ? 'checked' : ''}>
+                        No
+                    </label>
+                </div>
+            </div>
+            
+            <div class="qualification-item">
+                <label>Did they see a medical professional within 30 days?</label>
+                <div class="yes-no-options">
+                    <label class="yes-no-label">
+                        <input type="radio" name="medical-30-days-${lead.lead_id}" value="yes" ${lead.medical_within_30_days === 'yes' ? 'checked' : ''}>
+                        Yes
+                    </label>
+                    <label class="yes-no-label">
+                        <input type="radio" name="medical-30-days-${lead.lead_id}" value="no" ${lead.medical_within_30_days === 'no' ? 'checked' : ''}>
+                        No
+                    </label>
+                </div>
+            </div>
+            
+            <div class="qualification-item">
+                <label>Did the at-fault party have insurance?</label>
+                <div class="yes-no-options">
+                    <label class="yes-no-label">
+                        <input type="radio" name="has-insurance-${lead.lead_id}" value="yes" ${lead.at_fault_has_insurance === 'yes' ? 'checked' : ''}>
+                        Yes
+                    </label>
+                    <label class="yes-no-label">
+                        <input type="radio" name="has-insurance-${lead.lead_id}" value="no" ${lead.at_fault_has_insurance === 'no' ? 'checked' : ''}>
+                        No
+                    </label>
+                </div>
+            </div>
+            
+            <div class="qualification-item">
+                <label>Was it a commercial/government vehicle (and caller knows the entity)?</label>
+                <div class="yes-no-options">
+                    <label class="yes-no-label">
+                        <input type="radio" name="commercial-vehicle-${lead.lead_id}" value="yes" ${lead.is_commercial_vehicle === 'yes' ? 'checked' : ''}>
+                        Yes
+                    </label>
+                    <label class="yes-no-label">
+                        <input type="radio" name="commercial-vehicle-${lead.lead_id}" value="no" ${lead.is_commercial_vehicle === 'no' ? 'checked' : ''}>
+                        No
+                    </label>
+                </div>
+            </div>
+            
+            <div class="qualification-item">
+                <label>If no insurance or hit-and-run: Does the caller have UM coverage?</label>
+                <div class="yes-no-options">
+                    <label class="yes-no-label">
+                        <input type="radio" name="um-coverage-${lead.lead_id}" value="yes" ${lead.has_um_coverage === 'yes' ? 'checked' : ''}>
+                        Yes
+                    </label>
+                    <label class="yes-no-label">
+                        <input type="radio" name="um-coverage-${lead.lead_id}" value="no" ${lead.has_um_coverage === 'no' ? 'checked' : ''}>
+                        No
+                    </label>
+                </div>
+            </div>
+            
+            <div class="qualification-item">
+                <label>Does the caller have proof (photo, dashcam, etc.) that the other vehicle was commercial/government?</label>
+                <div class="yes-no-options">
+                    <label class="yes-no-label">
+                        <input type="radio" name="has-proof-${lead.lead_id}" value="yes" ${lead.has_commercial_proof === 'yes' ? 'checked' : ''}>
+                        Yes
+                    </label>
+                    <label class="yes-no-label">
+                        <input type="radio" name="has-proof-${lead.lead_id}" value="no" ${lead.has_commercial_proof === 'no' ? 'checked' : ''}>
+                        No
+                    </label>
+                </div>
+            </div>
+            
+            <button id="save-qualification-${lead.lead_id}" class="btn save-qualification-btn">Save Qualification Data</button>
+        </div>
+    `;
+    
+    // Add both columns to the detail content
+    detailContent.appendChild(leadInfoColumn);
+    detailContent.appendChild(qualificationColumn);
     
     detailCell.appendChild(detailContent);
     detailRow.appendChild(detailCell);
@@ -223,6 +686,59 @@ function addDetailRow(lead) {
     if (leadRow) {
         leadRow.parentNode.insertBefore(detailRow, leadRow.nextSibling);
     }
+    
+    // Add event listeners for save buttons
+    setTimeout(() => {
+        // Disposition update handler
+        const saveDispositionBtn = document.getElementById(`save-disposition-${lead.lead_id}`);
+        if (saveDispositionBtn) {
+            saveDispositionBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const newDisposition = document.getElementById(`disposition-select-${lead.lead_id}`).value;
+                updateLeadData(lead.lead_id, { disposition: newDisposition });
+            });
+        }
+        
+        // Notes update handler
+        const saveNotesBtn = document.getElementById(`save-notes-${lead.lead_id}`);
+        if (saveNotesBtn) {
+            saveNotesBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const notes = document.getElementById(`lead-notes-${lead.lead_id}`).value;
+                updateLeadData(lead.lead_id, { notes });
+            });
+        }
+        
+        // Qualification data update handler
+        const saveQualificationBtn = document.getElementById(`save-qualification-${lead.lead_id}`);
+        if (saveQualificationBtn) {
+            saveQualificationBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                
+                // Gather all qualification data
+                const qualificationData = {
+                    accident_location: document.getElementById(`accident-location-${lead.lead_id}`).value,
+                    accident_date: document.getElementById(`accident-date-${lead.lead_id}`).value,
+                    deadline_60_days: document.getElementById(`deadline-60-days-${lead.lead_id}`).value,
+                    caller_at_fault: getRadioValue(`at-fault-${lead.lead_id}`),
+                    has_attorney: getRadioValue(`has-attorney-${lead.lead_id}`),
+                    was_injured: getRadioValue(`injured-${lead.lead_id}`),
+                    medical_within_30_days: getRadioValue(`medical-30-days-${lead.lead_id}`),
+                    at_fault_has_insurance: getRadioValue(`has-insurance-${lead.lead_id}`),
+                    is_commercial_vehicle: getRadioValue(`commercial-vehicle-${lead.lead_id}`),
+                    has_um_coverage: getRadioValue(`um-coverage-${lead.lead_id}`),
+                    has_commercial_proof: getRadioValue(`has-proof-${lead.lead_id}`)
+                };
+                
+                updateLeadData(lead.lead_id, qualificationData);
+            });
+        }
+        
+        // Check deadline based on accident date when the form is loaded
+        if (lead.accident_date) {
+            checkDeadline(lead.lead_id);
+        }
+    }, 0);
 }
 
 // Toggle lead details expansion
@@ -251,18 +767,103 @@ function toggleLeadDetails(lead) {
     }
 }
 
+// Show error notification
+function showError(message, isDuplicate = false) {
+    errorEl.textContent = message;
+    errorEl.style.display = 'block';
+    
+    // Add special styling for duplicate errors
+    if (isDuplicate) {
+        errorEl.classList.add('duplicate-error');
+    } else {
+        errorEl.classList.remove('duplicate-error');
+    }
+}
+
+// Hide error
+function hideError() {
+    errorEl.style.display = 'none';
+    errorEl.classList.remove('duplicate-error');
+}
+
+// Handle lead submission response
+function handleLeadSubmissionResponse(response, data) {
+    if (response.ok) {
+        return response.json().then(result => {
+            return { success: true, data: result };
+        });
+    } else {
+        // Check for duplicate lead (409 Conflict)
+        if (response.status === 409) {
+            return response.json().then(error => {
+                return { 
+                    success: false, 
+                    isDuplicate: true, 
+                    message: error.message || 'Duplicate lead detected'
+                };
+            });
+        }
+        
+        // Handle other errors
+        return response.json().then(error => {
+            return { 
+                success: false, 
+                message: error.message || `HTTP error ${response.status}`
+            };
+        }).catch(() => {
+            return { 
+                success: false, 
+                message: `HTTP error ${response.status}`
+            };
+        });
+    }
+}
+
+// Submit lead (example for any lead submission form you might add to the dashboard)
+async function submitLead(leadData) {
+    showLoading(true);
+    hideError();
+    
+    try {
+        const response = await fetch(API_ENDPOINT, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'x-api-key': leadData.api_key // Include API key if required
+            },
+            body: JSON.stringify(leadData),
+            mode: 'cors'
+        });
+        
+        const result = await handleLeadSubmissionResponse(response, leadData);
+        
+        if (result.success) {
+            // Successfully submitted
+            alert("Lead successfully submitted!");
+            // Reset form or take other success actions
+            return true;
+        } else {
+            // Handle error
+            if (result.isDuplicate) {
+                showError(result.message, true);
+            } else {
+                showError(result.message);
+            }
+            return false;
+        }
+    } catch (error) {
+        console.error('Error submitting lead:', error);
+        showError('Network error while submitting lead. Please try again.');
+        return false;
+    } finally {
+        showLoading(false);
+    }
+}
+
 // Helper functions
 function showLoading(show) {
     loadingEl.style.display = show ? 'block' : 'none';
-}
-
-function showError(message) {
-    errorEl.textContent = message;
-    errorEl.style.display = 'block';
-}
-
-function hideError() {
-    errorEl.style.display = 'none';
 }
 
 function getLocationDisplay(lead) {
@@ -318,4 +919,282 @@ function escapeHtml(text) {
 function arraysEqual(a, b) {
     if (a.length !== b.length) return false;
     return a.every((val, index) => val === b[index]);
+}
+
+// Add a function to update lead disposition and notes
+async function updateLeadDisposition(leadId, disposition, notes) {
+    try {
+        const response = await fetch(`${API_ENDPOINT}/${leadId}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'x-api-key': API_KEY
+            },
+            body: JSON.stringify({
+                disposition,
+                notes
+            }),
+            mode: 'cors'
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `HTTP error ${response.status}`);
+        }
+        
+        const result = await response.json();
+        return result;
+    } catch (error) {
+        console.error('Error updating lead disposition:', error);
+        throw error;
+    }
+}
+
+// Function to show the disposition update modal
+function showDispositionModal(lead) {
+    // Create modal on-the-fly if it doesn't exist
+    if (!document.getElementById('disposition-modal-overlay')) {
+        createDispositionModal();
+    }
+    
+    const modalOverlay = document.getElementById('disposition-modal-overlay');
+    const dispositionSelect = document.getElementById('lead-disposition');
+    const notesTextarea = document.getElementById('lead-notes');
+    const leadIdInput = document.getElementById('lead-id');
+    
+    // Set current values
+    leadIdInput.value = lead.lead_id;
+    dispositionSelect.value = lead.disposition || 'New';
+    notesTextarea.value = lead.notes || '';
+    
+    // Show modal
+    modalOverlay.style.display = 'flex';
+}
+
+// Function to create the disposition modal in the DOM
+function createDispositionModal() {
+    const modalHtml = `
+        <div id="disposition-modal-overlay" class="modal-overlay">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3 class="modal-title">Update Lead Disposition</h3>
+                    <button class="modal-close" id="disposition-modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="lead-id">
+                    <div class="modal-form-group">
+                        <label for="lead-disposition">Disposition</label>
+                        <select id="lead-disposition">
+                            <option value="New">New</option>
+                            <option value="Contacted">Contacted</option>
+                            <option value="Qualified">Qualified</option>
+                            <option value="Proposal">Proposal</option>
+                            <option value="Sold">Sold</option>
+                            <option value="Closed">Closed</option>
+                            <option value="Lost">Lost</option>
+                            <option value="Junk">Junk</option>
+                        </select>
+                    </div>
+                    <div class="modal-form-group">
+                        <label for="lead-notes">Notes</label>
+                        <textarea id="lead-notes" rows="4"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="disposition-cancel">Cancel</button>
+                    <button class="btn" id="disposition-save">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Append modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Add event listeners
+    document.getElementById('disposition-modal-close').addEventListener('click', closeDispositionModal);
+    document.getElementById('disposition-cancel').addEventListener('click', closeDispositionModal);
+    document.getElementById('disposition-save').addEventListener('click', saveDisposition);
+}
+
+// Function to close the disposition modal
+function closeDispositionModal() {
+    const modalOverlay = document.getElementById('disposition-modal-overlay');
+    modalOverlay.style.display = 'none';
+}
+
+// Function to save the disposition changes
+async function saveDisposition() {
+    const leadId = document.getElementById('lead-id').value;
+    const disposition = document.getElementById('lead-disposition').value;
+    const notes = document.getElementById('lead-notes').value;
+    
+    try {
+        showLoading(true);
+        const result = await updateLeadDisposition(leadId, disposition, notes);
+        
+        // Update the lead in the table
+        const leads = JSON.parse(localStorage.getItem('leads') || '[]');
+        const leadIndex = leads.findIndex(lead => lead.lead_id === leadId);
+        
+        if (leadIndex !== -1) {
+            leads[leadIndex].disposition = disposition;
+            leads[leadIndex].notes = notes;
+            leads[leadIndex].updated_at = result.lead.updated_at;
+            localStorage.setItem('leads', JSON.stringify(leads));
+            
+            // Re-render leads
+            renderLeads();
+            
+            // If a detail row is expanded for this lead, refresh it
+            if (expandedLeadId === leadId) {
+                toggleLeadDetails(leads[leadIndex]);
+                toggleLeadDetails(leads[leadIndex]);
+            }
+        }
+        
+        alert('Lead disposition updated successfully');
+        closeDispositionModal();
+    } catch (error) {
+        alert(`Error updating lead disposition: ${error.message}`);
+    } finally {
+        showLoading(false);
+    }
+}
+
+// Function to update lead data via PATCH endpoint
+async function updateLeadData(leadId, data) {
+    try {
+        showLoading(true);
+        
+        // Add the timestamp for tracking when updates occur
+        const updateData = {
+            ...data,
+            updated_at: new Date().toISOString()
+        };
+        
+        const response = await fetch(`${API_ENDPOINT}/${leadId}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'x-api-key': API_KEY
+            },
+            body: JSON.stringify(updateData),
+            mode: 'cors'
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `HTTP error ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        // Update the lead in local state
+        const leadIndex = leads.findIndex(lead => lead.lead_id === leadId);
+        
+        if (leadIndex !== -1) {
+            // Update the lead with the new data
+            leads[leadIndex] = {
+                ...leads[leadIndex],
+                ...updateData
+            };
+            
+            // Update localStorage
+            localStorage.setItem('leads', JSON.stringify(leads));
+            
+            // Re-render leads to show updated data
+            renderLeads();
+            
+            // If this lead is expanded, make sure it stays expanded
+            if (expandedLeadId === leadId) {
+                const leadRow = document.querySelector(`tr[data-lead-id="${leadId}"]`);
+                if (leadRow) {
+                    leadRow.classList.add('expanded');
+                    addDetailRow(leads[leadIndex]);
+                }
+            }
+            
+            // Show success message
+            showSuccessToast('Lead data updated successfully');
+        }
+    } catch (error) {
+        console.error('Error updating lead data:', error);
+        showError(`Error updating lead data: ${error.message}`);
+    } finally {
+        showLoading(false);
+    }
+}
+
+// Show a temporary success toast instead of alert
+function showSuccessToast(message) {
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = 'success-toast';
+    toast.textContent = message;
+    
+    // Add to DOM
+    document.body.appendChild(toast);
+    
+    // Show the toast
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 10);
+    
+    // Hide and remove after 3 seconds
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+            document.body.removeChild(toast);
+        }, 300);
+    }, 3000);
+}
+
+// Helper function to get the value of a radio button
+function getRadioValue(name) {
+    const radio = document.querySelector(`input[name="${name}"]:checked`);
+    return radio ? radio.value : null;
+}
+
+// Function to check deadline based on accident date
+function checkDeadline(leadId) {
+    const accidentDateInput = document.getElementById(`accident-date-${leadId}`);
+    const deadlineWarning = document.getElementById(`deadline-warning-${leadId}`);
+    const deadlineInput = document.getElementById(`deadline-60-days-${leadId}`);
+    
+    if (!accidentDateInput.value) {
+        deadlineWarning.style.display = 'none';
+        deadlineInput.value = '';
+        return;
+    }
+    
+    const accidentDate = new Date(accidentDateInput.value);
+    const today = new Date();
+    
+    // Calculate the deadline date (2 years after accident)
+    const deadlineDate = new Date(accidentDate);
+    deadlineDate.setFullYear(deadlineDate.getFullYear() + 2);
+    
+    // Calculate days left
+    const daysLeft = Math.floor((deadlineDate - today) / (1000 * 60 * 60 * 24));
+    
+    if (daysLeft < 0) {
+        // Past the 2-year deadline
+        deadlineWarning.style.display = 'block';
+        deadlineWarning.textContent = 'Warning: This accident occurred more than 2 years ago. The statute of limitations has likely expired.';
+        deadlineWarning.className = 'deadline-warning expired';
+        deadlineInput.value = 'no';
+    } else if (daysLeft < 60) {
+        // Less than 60 days left
+        deadlineWarning.style.display = 'block';
+        deadlineWarning.textContent = `Warning: Only ${daysLeft} days left before the 2-year deadline expires.`;
+        deadlineWarning.className = 'deadline-warning urgent';
+        deadlineInput.value = 'no';
+    } else {
+        // More than 60 days left
+        deadlineWarning.style.display = 'none';
+        deadlineInput.value = 'yes';
+    }
 } 
