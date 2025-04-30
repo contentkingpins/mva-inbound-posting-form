@@ -1,5 +1,6 @@
 const AWS = require('aws-sdk');
 const { v4: uuidv4 } = require('uuid');
+const crypto = require('crypto');
 
 const dynamoDB = new AWS.DynamoDB.DocumentClient();
 const VENDORS_TABLE = process.env.VENDORS_TABLE;
@@ -24,6 +25,17 @@ exports.handler = async (event) => {
     } else if (path === '/export') {
       if (httpMethod === 'GET') {
         return await handleExportLeads(queryStringParameters);
+      }
+    } else if (path === '/vendors') {
+      if (httpMethod === 'GET') {
+        return await handleGetVendors();
+      } else if (httpMethod === 'POST') {
+        return await handleCreateVendor(JSON.parse(body));
+      }
+    } else if (path.match(/^\/vendors\/([^\/]+)\/regenerate-key$/)) {
+      if (httpMethod === 'POST') {
+        const vendorCode = path.split('/')[2];
+        return await handleRegenerateApiKey(vendorCode);
       }
     }
     
@@ -563,6 +575,179 @@ async function handleExportLeads(queryParams) {
       body: JSON.stringify({ status: 'error', message: 'Error exporting leads' })
     };
   }
+}
+
+// Handler for GET /vendors - List all vendors
+async function handleGetVendors() {
+  try {
+    const result = await dynamoDB.scan({
+      TableName: VENDORS_TABLE
+    }).promise();
+    
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify(result.Items)
+    };
+  } catch (error) {
+    console.error('Error fetching vendors:', error);
+    return {
+      statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ status: 'error', message: 'Error fetching vendors' })
+    };
+  }
+}
+
+// Handler for POST /vendors - Create a new vendor
+async function handleCreateVendor(data) {
+  try {
+    // Generate vendor code if not provided
+    const vendor_code = data.vendor_code || generateVendorCode(data.name);
+    
+    // Generate API key
+    const api_key = crypto.randomBytes(16).toString('hex');
+    
+    // Create timestamp
+    const created_at = new Date().toISOString();
+    
+    // Prepare vendor object
+    const vendor = {
+      vendor_code,
+      name: data.name,
+      contact_email: data.contact_email || null,
+      contact_phone: data.contact_phone || null,
+      website: data.website || null,
+      api_key,
+      status: data.status || 'active',
+      created_at,
+      updated_at: created_at
+    };
+    
+    // Validate required fields
+    if (!vendor.name) {
+      return {
+        statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({ status: 'error', message: 'Vendor name is required' })
+      };
+    }
+    
+    // Store in DynamoDB
+    try {
+      await dynamoDB.put({
+        TableName: VENDORS_TABLE,
+        Item: vendor,
+        // Ensure vendor_code doesn't already exist
+        ConditionExpression: 'attribute_not_exists(vendor_code)'
+      }).promise();
+      
+      return {
+        statusCode: 201,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify(vendor)
+      };
+    } catch (error) {
+      if (error.code === 'ConditionalCheckFailedException') {
+        // Try again with a new vendor code
+        data.vendor_code = generateVendorCode(data.name);
+        return handleCreateVendor(data);
+      }
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error creating vendor:', error);
+    return {
+      statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ status: 'error', message: 'Error creating vendor' })
+    };
+  }
+}
+
+// Handler for POST /vendors/:vendor_code/regenerate-key - Regenerate API key
+async function handleRegenerateApiKey(vendor_code) {
+  try {
+    // Generate new API key
+    const api_key = crypto.randomBytes(16).toString('hex');
+    
+    // Update vendor in DynamoDB
+    await dynamoDB.update({
+      TableName: VENDORS_TABLE,
+      Key: { vendor_code },
+      UpdateExpression: 'set api_key = :api_key, updated_at = :updated_at',
+      ExpressionAttributeValues: {
+        ':api_key': api_key,
+        ':updated_at': new Date().toISOString()
+      },
+      ConditionExpression: 'attribute_exists(vendor_code)'
+    }).promise();
+    
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ 
+        status: 'success', 
+        vendor_code,
+        api_key,
+        message: 'API key regenerated successfully' 
+      })
+    };
+  } catch (error) {
+    console.error(`Error regenerating API key for vendor ${vendor_code}:`, error);
+    
+    if (error.code === 'ConditionalCheckFailedException') {
+      return {
+        statusCode: 404,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({ status: 'error', message: 'Vendor not found' })
+      };
+    }
+    
+    return {
+      statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ status: 'error', message: 'Error regenerating API key' })
+    };
+  }
+}
+
+// Generate a unique vendor code
+function generateVendorCode(vendorName) {
+  // Create a code based on vendor name (first 3 chars) + random string
+  const prefix = vendorName
+    .replace(/[^a-zA-Z0-9]/g, '') // Remove special characters
+    .substring(0, 3)
+    .toUpperCase();
+  
+  // Add random 5 character string
+  const randomString = crypto.randomBytes(3).toString('hex').toUpperCase();
+  
+  return `${prefix}${randomString}`;
 }
 
 // Validation function
