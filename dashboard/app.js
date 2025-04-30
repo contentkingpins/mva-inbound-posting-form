@@ -618,11 +618,11 @@ function addDetailRow(lead) {
                 <label>Did the at-fault party have insurance?</label>
                 <div class="yes-no-options">
                     <label class="yes-no-label">
-                        <input type="radio" name="has-insurance-${lead.lead_id}" value="yes" ${lead.at_fault_has_insurance === 'yes' ? 'checked' : ''}>
+                        <input type="radio" name="has-insurance-${lead.lead_id}" value="yes" ${lead.at_fault_has_insurance === 'yes' ? 'checked' : ''} onchange="checkInsuranceStatus('${lead.lead_id}')">
                         Yes
                     </label>
                     <label class="yes-no-label">
-                        <input type="radio" name="has-insurance-${lead.lead_id}" value="no" ${lead.at_fault_has_insurance === 'no' ? 'checked' : ''}>
+                        <input type="radio" name="has-insurance-${lead.lead_id}" value="no" ${lead.at_fault_has_insurance === 'no' ? 'checked' : ''} onchange="checkInsuranceStatus('${lead.lead_id}')">
                         No
                     </label>
                 </div>
@@ -642,17 +642,20 @@ function addDetailRow(lead) {
                 </div>
             </div>
             
-            <div class="qualification-item">
+            <div id="um-coverage-section-${lead.lead_id}" class="qualification-item" style="${lead.at_fault_has_insurance === 'no' ? 'display:block' : 'display:none'}">
                 <label>If no insurance or hit-and-run: Does the caller have UM coverage?</label>
                 <div class="yes-no-options">
                     <label class="yes-no-label">
-                        <input type="radio" name="um-coverage-${lead.lead_id}" value="yes" ${lead.has_um_coverage === 'yes' ? 'checked' : ''}>
+                        <input type="radio" name="um-coverage-${lead.lead_id}" value="yes" ${lead.has_um_coverage === 'yes' ? 'checked' : ''} onchange="checkInsuranceStatus('${lead.lead_id}')">
                         Yes
                     </label>
                     <label class="yes-no-label">
-                        <input type="radio" name="um-coverage-${lead.lead_id}" value="no" ${lead.has_um_coverage === 'no' ? 'checked' : ''}>
+                        <input type="radio" name="um-coverage-${lead.lead_id}" value="no" ${lead.has_um_coverage === 'no' ? 'checked' : ''} onchange="checkInsuranceStatus('${lead.lead_id}')">
                         No
                     </label>
+                </div>
+                <div id="um-warning-${lead.lead_id}" class="insurance-warning" style="display:none">
+                    Warning: Caller has no insurance and no UM coverage. Recommend disqualifying this lead.
                 </div>
             </div>
             
@@ -738,6 +741,9 @@ function addDetailRow(lead) {
         if (lead.accident_date) {
             checkDeadline(lead.lead_id);
         }
+        
+        // Check insurance status when form is loaded
+        checkInsuranceStatus(lead.lead_id);
     }, 0);
 }
 
@@ -1196,5 +1202,31 @@ function checkDeadline(leadId) {
         // More than 60 days left
         deadlineWarning.style.display = 'none';
         deadlineInput.value = 'yes';
+    }
+}
+
+// Function to check insurance status and show UM coverage field when needed
+function checkInsuranceStatus(leadId) {
+    const hasInsuranceYes = document.querySelector(`input[name="has-insurance-${leadId}"][value="yes"]`);
+    const hasInsuranceNo = document.querySelector(`input[name="has-insurance-${leadId}"][value="no"]`);
+    const umCoverageSection = document.getElementById(`um-coverage-section-${leadId}`);
+    const umWarning = document.getElementById(`um-warning-${leadId}`);
+    const umCoverageYes = document.querySelector(`input[name="um-coverage-${leadId}"][value="yes"]`);
+    const umCoverageNo = document.querySelector(`input[name="um-coverage-${leadId}"][value="no"]`);
+    
+    // If no insurance, show UM coverage question
+    if (hasInsuranceNo && hasInsuranceNo.checked) {
+        umCoverageSection.style.display = 'block';
+        
+        // Check if No UM coverage is selected
+        if (umCoverageNo && umCoverageNo.checked) {
+            umWarning.style.display = 'block';
+        } else {
+            umWarning.style.display = 'none';
+        }
+    } else {
+        // If has insurance, hide UM coverage question and warning
+        umCoverageSection.style.display = 'none';
+        umWarning.style.display = 'none';
     }
 } 
