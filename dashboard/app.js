@@ -1,5 +1,5 @@
 // Configuration
-const API_ENDPOINT = 'https://your-api-gateway-id.execute-api.us-east-1.amazonaws.com/dev/leads';
+const API_ENDPOINT = 'https://nv01uveape.execute-api.us-east-1.amazonaws.com/prod/leads';
 const REFRESH_INTERVAL = 10000; // 10 seconds
 
 // DOM Elements

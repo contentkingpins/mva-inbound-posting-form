@@ -97,12 +97,27 @@ Retrieves lead records.
 
 Results are sorted by timestamp in descending order (newest first).
 
-## Deployment
+## Deployment Information
 
-1. Install the Serverless Framework: `npm install -g serverless`
-2. Install dependencies: `npm install`
-3. Deploy: `serverless deploy`
-4. After deployment, retrieve your API key with: `serverless info --verbose`
+The API is deployed at: 
+`https://nv01uveape.execute-api.us-east-1.amazonaws.com/prod/leads`
+
+### Environment Setup
+
+For local testing, set the API_KEY environment variable:
+
+```
+export API_KEY=your_api_key_here  # Linux/Mac
+set API_KEY=your_api_key_here     # Windows
+```
+
+### Testing
+
+Run the automated tests with:
+
+```
+API_KEY=your_api_key node scripts/test-api.js
+```
 
 ## Database Structure
 
@@ -121,4 +136,4 @@ API requests are logged to CloudWatch under the log group `/aws/apigateway/leads
 
 ```
 aws logs get-log-events --log-group-name /aws/apigateway/leads-api --log-stream-name YOUR_LOG_STREAM
-``` # mva-inbound-posting-form
+```
