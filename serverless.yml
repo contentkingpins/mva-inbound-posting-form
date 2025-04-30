@@ -14,6 +14,7 @@ provider:
         - dynamodb:Scan
         - dynamodb:GetItem
         - dynamodb:PutItem
+        - dynamodb:UpdateItem
       Resource: 
         - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.VENDORS_TABLE}"
         - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.LEADS_TABLE}"
@@ -53,6 +54,27 @@ functions:
           path: /leads
           method: get
           cors: true
+      # Adding lead update endpoint
+      - http:
+          path: /leads/{lead_id}
+          method: patch
+          cors: true
+          private: true # Require API key
+      # Adding Vendor Endpoints
+      - http:
+          path: /vendors
+          method: get
+          cors: true
+      - http:
+          path: /vendors
+          method: post
+          cors: true
+          private: true # Require API key
+      - http:
+          path: /vendors/{vendor_code}/regenerate-key
+          method: post
+          cors: true
+          private: true # Require API key
 
 resources:
   Resources:

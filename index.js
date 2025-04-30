@@ -1,15 +1,25 @@
-const AWS = require('aws-sdk');
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+const { 
+  DynamoDBDocumentClient, 
+  GetCommand, 
+  PutCommand, 
+  QueryCommand, 
+  ScanCommand,
+  UpdateCommand
+} = require('@aws-sdk/lib-dynamodb');
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
 
-const dynamoDB = new AWS.DynamoDB.DocumentClient();
+const client = new DynamoDBClient();
+const dynamoDB = DynamoDBDocumentClient.from(client);
+
 const VENDORS_TABLE = process.env.VENDORS_TABLE;
 const LEADS_TABLE = process.env.LEADS_TABLE;
 
 // Main handler function for API Gateway
 exports.handler = async (event) => {
   try {
-    const { httpMethod, path, queryStringParameters, body } = event;
+    const { httpMethod, path, queryStringParameters, body, pathParameters } = event;
     
     // Route handler
     if (path === '/leads') {
@@ -17,6 +27,13 @@ exports.handler = async (event) => {
         return await handleCreateLead(JSON.parse(body));
       } else if (httpMethod === 'GET') {
         return await handleGetLeads(queryStringParameters);
+      }
+    } 
+    // Handle lead update
+    else if (path.match(/^\/leads\/[^\/]+$/)) {
+      if (httpMethod === 'PATCH') {
+        const leadId = pathParameters.lead_id;
+        return await handleUpdateLead(leadId, JSON.parse(body));
       }
     } else if (path === '/stats') {
       if (httpMethod === 'GET') {
@@ -32,9 +49,9 @@ exports.handler = async (event) => {
       } else if (httpMethod === 'POST') {
         return await handleCreateVendor(JSON.parse(body));
       }
-    } else if (path.match(/^\/vendors\/([^\/]+)\/regenerate-key$/)) {
+    } else if (path.match(/^\/vendors\/[^\/]+\/regenerate-key$/)) {
       if (httpMethod === 'POST') {
-        const vendorCode = path.split('/')[2];
+        const vendorCode = pathParameters.vendor_code;
         return await handleRegenerateApiKey(vendorCode);
       }
     }
@@ -78,10 +95,12 @@ async function handleCreateLead(data) {
   
   // Check if vendor_code exists
   try {
-    const vendorResult = await dynamoDB.get({
-      TableName: VENDORS_TABLE,
-      Key: { vendor_code: data.vendor_code }
-    }).promise();
+    const vendorResult = await dynamoDB.send(
+      new GetCommand({
+        TableName: VENDORS_TABLE,
+        Key: { vendor_code: data.vendor_code }
+      })
+    );
     
     if (!vendorResult.Item) {
       return {
@@ -107,33 +126,65 @@ async function handleCreateLead(data) {
       body: JSON.stringify({ status: 'error', message: 'Error validating vendor' })
     };
   }
-  
-  // Check for duplicate leads
+
+  // Check for duplicate email
   try {
-    const isDuplicate = await checkForDuplicateLead(data);
-    if (isDuplicate) {
+    const emailCheckResult = await dynamoDB.send(
+      new QueryCommand({
+        TableName: LEADS_TABLE,
+        IndexName: 'EmailIndex',
+        KeyConditionExpression: 'email = :email',
+        ExpressionAttributeValues: {
+          ':email': data.email
+        }
+      })
+    );
+    
+    if (emailCheckResult.Items && emailCheckResult.Items.length > 0) {
       return {
-        statusCode: 409, // Conflict status code
+        statusCode: 400,
         headers: {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*'
         },
         body: JSON.stringify({ 
           status: 'error', 
-          message: 'Duplicate lead detected. This lead has already been submitted.' 
+          message: 'A lead with this email already exists' 
         })
       };
     }
   } catch (error) {
-    console.error('Duplicate check error:', error);
-    return {
-      statusCode: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      },
-      body: JSON.stringify({ status: 'error', message: 'Error checking for duplicate leads' })
-    };
+    console.error('Email duplicate check error:', error);
+  }
+
+  // Check for duplicate phone
+  try {
+    const phoneCheckResult = await dynamoDB.send(
+      new QueryCommand({
+        TableName: LEADS_TABLE,
+        IndexName: 'PhoneIndex',
+        KeyConditionExpression: 'phone_home = :phone',
+        ExpressionAttributeValues: {
+          ':phone': data.phone_home
+        }
+      })
+    );
+    
+    if (phoneCheckResult.Items && phoneCheckResult.Items.length > 0) {
+      return {
+        statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({ 
+          status: 'error', 
+          message: 'A lead with this phone number already exists' 
+        })
+      };
+    }
+  } catch (error) {
+    console.error('Phone duplicate check error:', error);
   }
 
   // Generate lead ID and timestamp
@@ -144,14 +195,19 @@ async function handleCreateLead(data) {
   const lead = {
     ...data,
     lead_id,
-    timestamp
+    timestamp,
+    disposition: "New",
+    notes: "",
+    updated_at: timestamp
   };
   
   try {
-    await dynamoDB.put({
-      TableName: LEADS_TABLE,
-      Item: lead
-    }).promise();
+    await dynamoDB.send(
+      new PutCommand({
+        TableName: LEADS_TABLE,
+        Item: lead
+      })
+    );
     
     return {
       statusCode: 200,
@@ -178,128 +234,25 @@ async function handleCreateLead(data) {
   }
 }
 
-// Check for duplicate leads based on email and phone number
-async function checkForDuplicateLead(data) {
-  // Define what constitutes a duplicate lead - here we'll use email OR phone number
-  try {
-    // Using a more efficient approach with query operations
-    // Note: This assumes you've created a GSI called "EmailIndex" with email as the partition key
-    const emailParams = {
-      TableName: LEADS_TABLE,
-      IndexName: 'EmailIndex',
-      KeyConditionExpression: 'email = :email',
-      ExpressionAttributeValues: {
-        ':email': data.email
-      }
-    };
-    
-    const emailResults = await dynamoDB.query(emailParams).promise();
-    
-    if (emailResults.Items && emailResults.Items.length > 0) {
-      console.log('Duplicate lead detected: same email', {
-        email: data.email
-      });
-      return true;
-    }
-    
-    // Using a GSI called "PhoneIndex" with phone_home as the partition key
-    const phoneParams = {
-      TableName: LEADS_TABLE,
-      IndexName: 'PhoneIndex',
-      KeyConditionExpression: 'phone_home = :phone_home',
-      ExpressionAttributeValues: {
-        ':phone_home': data.phone_home
-      }
-    };
-    
-    const phoneResults = await dynamoDB.query(phoneParams).promise();
-    
-    if (phoneResults.Items && phoneResults.Items.length > 0) {
-      console.log('Duplicate lead detected: same phone number', {
-        phone: data.phone_home
-      });
-      return true;
-    }
-    
-    // No duplicates found
-    return false;
-  } catch (error) {
-    // If the GSIs don't exist yet, fall back to scan operations
-    if (error.code === 'ResourceNotFoundException') {
-      console.warn('GSIs not found, falling back to scan operation for duplicate check');
-      return fallbackDuplicateCheck(data);
-    }
-    
-    console.error('Error checking for duplicates:', error);
-    throw error;
-  }
-}
-
-// Fallback duplicate check using scan (less efficient but works without GSIs)
-async function fallbackDuplicateCheck(data) {
-  try {
-    // Check by email
-    const emailParams = {
-      TableName: LEADS_TABLE,
-      FilterExpression: 'email = :email',
-      ExpressionAttributeValues: {
-        ':email': data.email
-      }
-    };
-    
-    const emailResults = await dynamoDB.scan(emailParams).promise();
-    
-    if (emailResults.Items && emailResults.Items.length > 0) {
-      console.log('Duplicate lead detected: same email (fallback)', {
-        email: data.email
-      });
-      return true;
-    }
-    
-    // Check by phone number
-    const phoneParams = {
-      TableName: LEADS_TABLE,
-      FilterExpression: 'phone_home = :phone_home',
-      ExpressionAttributeValues: {
-        ':phone_home': data.phone_home
-      }
-    };
-    
-    const phoneResults = await dynamoDB.scan(phoneParams).promise();
-    
-    if (phoneResults.Items && phoneResults.Items.length > 0) {
-      console.log('Duplicate lead detected: same phone number (fallback)', {
-        phone: data.phone_home
-      });
-      return true;
-    }
-    
-    return false;
-  } catch (error) {
-    console.error('Error in fallback duplicate check:', error);
-    throw error;
-  }
-}
-
 // Handler for GET /leads
 async function handleGetLeads(queryParams) {
   try {
     const vendor_code = queryParams ? queryParams.vendor_code : null;
-    let params;
     
     if (vendor_code) {
       // Query by vendor_code using GSI
-      params = {
-        TableName: LEADS_TABLE,
-        IndexName: 'VendorTimestampIndex',
-        KeyConditionExpression: 'vendor_code = :vendor_code',
-        ExpressionAttributeValues: {
-          ':vendor_code': vendor_code
-        },
-        ScanIndexForward: false // Sort by timestamp descending
-      };
+      const result = await dynamoDB.send(
+        new QueryCommand({
+          TableName: LEADS_TABLE,
+          IndexName: 'VendorTimestampIndex',
+          KeyConditionExpression: 'vendor_code = :vendor_code',
+          ExpressionAttributeValues: {
+            ':vendor_code': vendor_code
+          },
+          ScanIndexForward: false // Sort by timestamp descending
+        })
+      );
       
-      const result = await dynamoDB.query(params).promise();
       return {
         statusCode: 200,
         headers: {
@@ -310,11 +263,11 @@ async function handleGetLeads(queryParams) {
       };
     } else {
       // Get all leads
-      params = {
-        TableName: LEADS_TABLE
-      };
-      
-      const result = await dynamoDB.scan(params).promise();
+      const result = await dynamoDB.send(
+        new ScanCommand({
+          TableName: LEADS_TABLE
+        })
+      );
       
       // Sort by timestamp descending
       const sortedItems = result.Items.sort((a, b) => 
@@ -354,24 +307,24 @@ async function handleGetLeadStats(queryParams) {
     let leads;
     if (vendorCode) {
       // Query by vendor_code using GSI
-      const params = {
-        TableName: LEADS_TABLE,
-        IndexName: 'VendorTimestampIndex',
-        KeyConditionExpression: 'vendor_code = :vendor_code',
-        ExpressionAttributeValues: {
-          ':vendor_code': vendorCode
-        }
-      };
-      
-      const result = await dynamoDB.query(params).promise();
+      const result = await dynamoDB.send(
+        new QueryCommand({
+          TableName: LEADS_TABLE,
+          IndexName: 'VendorTimestampIndex',
+          KeyConditionExpression: 'vendor_code = :vendor_code',
+          ExpressionAttributeValues: {
+            ':vendor_code': vendorCode
+          }
+        })
+      );
       leads = result.Items;
     } else {
       // Get all leads
-      const params = {
-        TableName: LEADS_TABLE
-      };
-      
-      const result = await dynamoDB.scan(params).promise();
+      const result = await dynamoDB.send(
+        new ScanCommand({
+          TableName: LEADS_TABLE
+        })
+      );
       leads = result.Items;
     }
     
@@ -461,7 +414,6 @@ async function handleGetLeadStats(queryParams) {
       } 
       : formattedStats;
     
-    // Return the stats
     return {
       statusCode: 200,
       headers: {
@@ -498,16 +450,17 @@ async function handleExportLeads(queryParams) {
     if (vendor_code) {
       // Query using GSI if we're only filtering by vendor
       if (!start_date && !end_date) {
-        const params = {
-          TableName: LEADS_TABLE,
-          IndexName: 'VendorTimestampIndex',
-          KeyConditionExpression: 'vendor_code = :vendor_code',
-          ExpressionAttributeValues: {
-            ':vendor_code': vendor_code
-          }
-        };
+        const result = await dynamoDB.send(
+          new QueryCommand({
+            TableName: LEADS_TABLE,
+            IndexName: 'VendorTimestampIndex',
+            KeyConditionExpression: 'vendor_code = :vendor_code',
+            ExpressionAttributeValues: {
+              ':vendor_code': vendor_code
+            }
+          })
+        );
         
-        const result = await dynamoDB.query(params).promise();
         return {
           statusCode: 200,
           headers: {
@@ -548,7 +501,9 @@ async function handleExportLeads(queryParams) {
     }
     
     // Execute the scan operation
-    const result = await dynamoDB.scan(params).promise();
+    const result = await dynamoDB.send(
+      new ScanCommand(params)
+    );
     
     // Sort by timestamp (newest first)
     const sortedItems = result.Items.sort((a, b) => 
@@ -577,12 +532,20 @@ async function handleExportLeads(queryParams) {
   }
 }
 
-// Handler for GET /vendors - List all vendors
+// Handler for GET /vendors
 async function handleGetVendors() {
   try {
-    const result = await dynamoDB.scan({
-      TableName: VENDORS_TABLE
-    }).promise();
+    const result = await dynamoDB.send(
+      new ScanCommand({
+        TableName: VENDORS_TABLE
+      })
+    );
+    
+    // Remove API keys from the response for security
+    const vendorsWithoutKeys = result.Items.map(vendor => {
+      const { api_key, ...vendorWithoutKey } = vendor;
+      return vendorWithoutKey;
+    });
     
     return {
       statusCode: 200,
@@ -590,85 +553,99 @@ async function handleGetVendors() {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*'
       },
-      body: JSON.stringify(result.Items)
+      body: JSON.stringify(vendorsWithoutKeys)
     };
   } catch (error) {
-    console.error('Error fetching vendors:', error);
+    console.error('Get vendors error:', error);
     return {
       statusCode: 500,
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*'
       },
-      body: JSON.stringify({ status: 'error', message: 'Error fetching vendors' })
+      body: JSON.stringify({ status: 'error', message: 'Error retrieving vendors' })
     };
   }
 }
 
-// Handler for POST /vendors - Create a new vendor
+// Handler for POST /vendors
 async function handleCreateVendor(data) {
-  try {
-    // Generate vendor code if not provided
-    const vendor_code = data.vendor_code || generateVendorCode(data.name);
-    
-    // Generate API key
-    const api_key = crypto.randomBytes(16).toString('hex');
-    
-    // Create timestamp
-    const created_at = new Date().toISOString();
-    
-    // Prepare vendor object
-    const vendor = {
-      vendor_code,
-      name: data.name,
-      contact_email: data.contact_email || null,
-      contact_phone: data.contact_phone || null,
-      website: data.website || null,
-      api_key,
-      status: data.status || 'active',
-      created_at,
-      updated_at: created_at
+  // Validate vendor data
+  if (!data.vendor_code || !data.name) {
+    return {
+      statusCode: 400,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ 
+        status: 'error', 
+        message: 'Vendor code and name are required' 
+      })
     };
+  }
+  
+  // Check if vendor already exists
+  try {
+    const existingVendor = await dynamoDB.send(
+      new GetCommand({
+        TableName: VENDORS_TABLE,
+        Key: { vendor_code: data.vendor_code }
+      })
+    );
     
-    // Validate required fields
-    if (!vendor.name) {
+    if (existingVendor.Item) {
       return {
         statusCode: 400,
         headers: {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*'
         },
-        body: JSON.stringify({ status: 'error', message: 'Vendor name is required' })
+        body: JSON.stringify({ 
+          status: 'error', 
+          message: 'Vendor code already exists' 
+        })
       };
-    }
-    
-    // Store in DynamoDB
-    try {
-      await dynamoDB.put({
-        TableName: VENDORS_TABLE,
-        Item: vendor,
-        // Ensure vendor_code doesn't already exist
-        ConditionExpression: 'attribute_not_exists(vendor_code)'
-      }).promise();
-      
-      return {
-        statusCode: 201,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        },
-        body: JSON.stringify(vendor)
-      };
-    } catch (error) {
-      if (error.code === 'ConditionalCheckFailedException') {
-        // Try again with a new vendor code
-        data.vendor_code = generateVendorCode(data.name);
-        return handleCreateVendor(data);
-      }
-      throw error;
     }
   } catch (error) {
-    console.error('Error creating vendor:', error);
+    console.error('Vendor check error:', error);
+  }
+  
+  // Generate API key
+  const apiKey = generateApiKey();
+  
+  // Create vendor record
+  const vendor = {
+    vendor_code: data.vendor_code,
+    name: data.name,
+    description: data.description || '',
+    api_key: apiKey,
+    created_at: new Date().toISOString()
+  };
+  
+  try {
+    await dynamoDB.send(
+      new PutCommand({
+        TableName: VENDORS_TABLE,
+        Item: vendor
+      })
+    );
+    
+    // Return vendor data including the API key
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({
+        status: 'success',
+        vendor: vendor,
+        message: 'Vendor created successfully'
+      })
+    };
+  } catch (error) {
+    console.error('Create vendor error:', error);
     return {
       statusCode: 500,
       headers: {
@@ -676,62 +653,6 @@ async function handleCreateVendor(data) {
         'Access-Control-Allow-Origin': '*'
       },
       body: JSON.stringify({ status: 'error', message: 'Error creating vendor' })
-    };
-  }
-}
-
-// Handler for POST /vendors/:vendor_code/regenerate-key - Regenerate API key
-async function handleRegenerateApiKey(vendor_code) {
-  try {
-    // Generate new API key
-    const api_key = crypto.randomBytes(16).toString('hex');
-    
-    // Update vendor in DynamoDB
-    await dynamoDB.update({
-      TableName: VENDORS_TABLE,
-      Key: { vendor_code },
-      UpdateExpression: 'set api_key = :api_key, updated_at = :updated_at',
-      ExpressionAttributeValues: {
-        ':api_key': api_key,
-        ':updated_at': new Date().toISOString()
-      },
-      ConditionExpression: 'attribute_exists(vendor_code)'
-    }).promise();
-    
-    return {
-      statusCode: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      },
-      body: JSON.stringify({ 
-        status: 'success', 
-        vendor_code,
-        api_key,
-        message: 'API key regenerated successfully' 
-      })
-    };
-  } catch (error) {
-    console.error(`Error regenerating API key for vendor ${vendor_code}:`, error);
-    
-    if (error.code === 'ConditionalCheckFailedException') {
-      return {
-        statusCode: 404,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        },
-        body: JSON.stringify({ status: 'error', message: 'Vendor not found' })
-      };
-    }
-    
-    return {
-      statusCode: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      },
-      body: JSON.stringify({ status: 'error', message: 'Error regenerating API key' })
     };
   }
 }
@@ -748,6 +669,73 @@ function generateVendorCode(vendorName) {
   const randomString = crypto.randomBytes(3).toString('hex').toUpperCase();
   
   return `${prefix}${randomString}`;
+}
+
+// Handler for POST /vendors/{vendor_code}/regenerate-key
+async function handleRegenerateApiKey(vendorCode) {
+  // Check if vendor exists
+  try {
+    const existingVendor = await dynamoDB.send(
+      new GetCommand({
+        TableName: VENDORS_TABLE,
+        Key: { vendor_code: vendorCode }
+      })
+    );
+    
+    if (!existingVendor.Item) {
+      return {
+        statusCode: 404,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({ 
+          status: 'error', 
+          message: 'Vendor not found' 
+        })
+      };
+    }
+    
+    // Generate new API key
+    const newApiKey = generateApiKey();
+    
+    // Update vendor with new API key
+    await dynamoDB.send(
+      new UpdateCommand({
+        TableName: VENDORS_TABLE,
+        Key: { vendor_code: vendorCode },
+        UpdateExpression: 'set api_key = :apiKey, updated_at = :updated_at',
+        ExpressionAttributeValues: {
+          ':apiKey': newApiKey,
+          ':updated_at': new Date().toISOString()
+        },
+        ReturnValues: 'ALL_NEW'
+      })
+    );
+    
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({
+        status: 'success',
+        api_key: newApiKey,
+        message: 'API key regenerated successfully'
+      })
+    };
+  } catch (error) {
+    console.error('Regenerate API key error:', error);
+    return {
+      statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ status: 'error', message: 'Error regenerating API key' })
+    };
+  }
 }
 
 // Validation function
@@ -787,4 +775,107 @@ function validateLeadData(data) {
   }
   
   return errors;
+}
+
+// Helper function to generate API keys
+function generateApiKey() {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+// Handler for PATCH /leads/{lead_id}
+async function handleUpdateLead(leadId, data) {
+  // Validate required fields
+  if (!data.disposition) {
+    return {
+      statusCode: 400,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ 
+        status: 'error', 
+        message: 'disposition is required' 
+      })
+    };
+  }
+
+  // Check if lead exists
+  try {
+    const leadResult = await dynamoDB.send(
+      new GetCommand({
+        TableName: LEADS_TABLE,
+        Key: { lead_id: leadId }
+      })
+    );
+    
+    if (!leadResult.Item) {
+      return {
+        statusCode: 404,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({ 
+          status: 'error', 
+          message: 'Lead not found' 
+        })
+      };
+    }
+
+    // Update lead with new disposition and notes
+    const updated_at = new Date().toISOString();
+    
+    const updateExpression = [];
+    const expressionAttributeValues = {};
+    const expressionAttributeNames = {};
+
+    // Always update disposition and updated_at
+    updateExpression.push('#disposition = :disposition');
+    updateExpression.push('#updated_at = :updated_at');
+    expressionAttributeValues[':disposition'] = data.disposition;
+    expressionAttributeValues[':updated_at'] = updated_at;
+    expressionAttributeNames['#disposition'] = 'disposition';
+    expressionAttributeNames['#updated_at'] = 'updated_at';
+    
+    // Only update notes if provided
+    if (data.notes !== undefined) {
+      updateExpression.push('#notes = :notes');
+      expressionAttributeValues[':notes'] = data.notes;
+      expressionAttributeNames['#notes'] = 'notes';
+    }
+
+    const params = {
+      TableName: LEADS_TABLE,
+      Key: { lead_id: leadId },
+      UpdateExpression: 'SET ' + updateExpression.join(', '),
+      ExpressionAttributeValues: expressionAttributeValues,
+      ExpressionAttributeNames: expressionAttributeNames,
+      ReturnValues: 'ALL_NEW'
+    };
+
+    const result = await dynamoDB.send(new UpdateCommand(params));
+    
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({
+        status: 'success',
+        lead: result.Attributes,
+        message: 'Lead updated successfully'
+      })
+    };
+  } catch (error) {
+    console.error('Update lead error:', error);
+    return {
+      statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ status: 'error', message: 'Error updating lead' })
+    };
+  }
 } 
