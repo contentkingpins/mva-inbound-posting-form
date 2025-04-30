@@ -1,9 +1,16 @@
 const https = require('https');
 
 // Replace with actual API Gateway endpoint after deployment
-const API_ENDPOINT = 'https://your-api-gateway-id.execute-api.us-east-1.amazonaws.com/dev';
-// Replace with your actual API key
-const API_KEY = 'your-api-key-here';
+const API_ENDPOINT = 'https://nv01uveape.execute-api.us-east-1.amazonaws.com/prod';
+// Load API key from environment variable - DO NOT hardcode API keys
+const API_KEY = process.env.API_KEY;
+
+// Check if API key is available
+if (!API_KEY) {
+  console.error('Error: API_KEY environment variable not set');
+  console.error('Set the API key using: API_KEY=your_api_key node scripts/test-api.js');
+  process.exit(1);
+}
 
 // Test POST /leads
 async function testCreateLead() {
@@ -74,20 +81,26 @@ async function testGetLeads() {
 // Helper function to make HTTP requests
 function makeRequest(path, method, data = null) {
   return new Promise((resolve, reject) => {
+    // Parse the API endpoint properly
+    const apiUrl = new URL(API_ENDPOINT);
+    
     const options = {
-      hostname: API_ENDPOINT.replace('https://', ''),
-      path,
+      hostname: apiUrl.hostname,
+      path: apiUrl.pathname + path,
       method,
       headers: {
         'Content-Type': 'application/json'
       }
     };
     
-    // Add API key for POST requests
+    // Add API key for POST requests - ensure proper format
     if (method === 'POST') {
       options.headers['x-api-key'] = API_KEY;
+      console.log('Using API key:', API_KEY);
     }
 
+    console.log(`Making ${method} request to ${apiUrl.hostname}${apiUrl.pathname}${path}`);
+    
     const req = https.request(options, (res) => {
       let responseData = '';
       
