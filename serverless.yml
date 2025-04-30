@@ -60,6 +60,11 @@ functions:
           method: patch
           cors: true
           private: true # Require API key
+      # Adding single lead GET endpoint
+      - http:
+          path: /leads/{lead_id}
+          method: get
+          cors: true
       # Adding Vendor Endpoints
       - http:
           path: /vendors
@@ -102,6 +107,10 @@ resources:
             AttributeType: S
           - AttributeName: timestamp
             AttributeType: S
+          - AttributeName: email
+            AttributeType: S
+          - AttributeName: phone_home
+            AttributeType: S
         KeySchema:
           - AttributeName: lead_id
             KeyType: HASH
@@ -114,7 +123,19 @@ resources:
                 KeyType: RANGE
             Projection:
               ProjectionType: ALL
-              
+          - IndexName: EmailIndex
+            KeySchema:
+              - AttributeName: email
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+          - IndexName: PhoneIndex
+            KeySchema:
+              - AttributeName: phone_home
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+    
     # Define API Gateway resource
     ApiGateway:
       Type: AWS::ApiGateway::RestApi
