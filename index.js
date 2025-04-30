@@ -1,14 +1,25 @@
-const AWS = require('aws-sdk');
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+const { 
+  DynamoDBDocumentClient, 
+  GetCommand, 
+  PutCommand, 
+  QueryCommand, 
+  ScanCommand,
+  UpdateCommand
+} = require('@aws-sdk/lib-dynamodb');
 const { v4: uuidv4 } = require('uuid');
+const crypto = require('crypto');
 
-const dynamoDB = new AWS.DynamoDB.DocumentClient();
+const client = new DynamoDBClient();
+const dynamoDB = DynamoDBDocumentClient.from(client);
+
 const VENDORS_TABLE = process.env.VENDORS_TABLE;
 const LEADS_TABLE = process.env.LEADS_TABLE;
 
 // Main handler function for API Gateway
 exports.handler = async (event) => {
   try {
-    const { httpMethod, path, queryStringParameters, body } = event;
+    const { httpMethod, path, queryStringParameters, body, pathParameters } = event;
     
     // Route handler
     if (path === '/leads') {
@@ -16,6 +27,28 @@ exports.handler = async (event) => {
         return await handleCreateLead(JSON.parse(body));
       } else if (httpMethod === 'GET') {
         return await handleGetLeads(queryStringParameters);
+      }
+    } 
+    // Handle lead update
+    else if (path.match(/^\/leads\/[^\/]+$/)) {
+      if (httpMethod === 'PATCH') {
+        const leadId = pathParameters.lead_id;
+        return await handleUpdateLead(leadId, JSON.parse(body));
+      }
+    }
+    // Handle vendor routes
+    else if (path === '/vendors') {
+      if (httpMethod === 'GET') {
+        return await handleGetVendors();
+      } else if (httpMethod === 'POST') {
+        return await handleCreateVendor(JSON.parse(body));
+      }
+    } 
+    // Handle vendor key regeneration
+    else if (path.match(/^\/vendors\/[^\/]+\/regenerate-key$/)) {
+      if (httpMethod === 'POST') {
+        const vendorCode = pathParameters.vendor_code;
+        return await handleRegenerateVendorKey(vendorCode);
       }
     }
     
@@ -58,10 +91,12 @@ async function handleCreateLead(data) {
   
   // Check if vendor_code exists
   try {
-    const vendorResult = await dynamoDB.get({
-      TableName: VENDORS_TABLE,
-      Key: { vendor_code: data.vendor_code }
-    }).promise();
+    const vendorResult = await dynamoDB.send(
+      new GetCommand({
+        TableName: VENDORS_TABLE,
+        Key: { vendor_code: data.vendor_code }
+      })
+    );
     
     if (!vendorResult.Item) {
       return {
@@ -88,6 +123,66 @@ async function handleCreateLead(data) {
     };
   }
 
+  // Check for duplicate email
+  try {
+    const emailCheckResult = await dynamoDB.send(
+      new QueryCommand({
+        TableName: LEADS_TABLE,
+        IndexName: 'EmailIndex',
+        KeyConditionExpression: 'email = :email',
+        ExpressionAttributeValues: {
+          ':email': data.email
+        }
+      })
+    );
+    
+    if (emailCheckResult.Items && emailCheckResult.Items.length > 0) {
+      return {
+        statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({ 
+          status: 'error', 
+          message: 'A lead with this email already exists' 
+        })
+      };
+    }
+  } catch (error) {
+    console.error('Email duplicate check error:', error);
+  }
+
+  // Check for duplicate phone
+  try {
+    const phoneCheckResult = await dynamoDB.send(
+      new QueryCommand({
+        TableName: LEADS_TABLE,
+        IndexName: 'PhoneIndex',
+        KeyConditionExpression: 'phone_home = :phone',
+        ExpressionAttributeValues: {
+          ':phone': data.phone_home
+        }
+      })
+    );
+    
+    if (phoneCheckResult.Items && phoneCheckResult.Items.length > 0) {
+      return {
+        statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({ 
+          status: 'error', 
+          message: 'A lead with this phone number already exists' 
+        })
+      };
+    }
+  } catch (error) {
+    console.error('Phone duplicate check error:', error);
+  }
+
   // Generate lead ID and timestamp
   const lead_id = uuidv4();
   const timestamp = new Date().toISOString();
@@ -96,14 +191,19 @@ async function handleCreateLead(data) {
   const lead = {
     ...data,
     lead_id,
-    timestamp
+    timestamp,
+    disposition: "New",
+    notes: "",
+    updated_at: timestamp
   };
   
   try {
-    await dynamoDB.put({
-      TableName: LEADS_TABLE,
-      Item: lead
-    }).promise();
+    await dynamoDB.send(
+      new PutCommand({
+        TableName: LEADS_TABLE,
+        Item: lead
+      })
+    );
     
     return {
       statusCode: 200,
@@ -134,21 +234,21 @@ async function handleCreateLead(data) {
 async function handleGetLeads(queryParams) {
   try {
     const vendor_code = queryParams ? queryParams.vendor_code : null;
-    let params;
     
     if (vendor_code) {
       // Query by vendor_code using GSI
-      params = {
-        TableName: LEADS_TABLE,
-        IndexName: 'VendorTimestampIndex',
-        KeyConditionExpression: 'vendor_code = :vendor_code',
-        ExpressionAttributeValues: {
-          ':vendor_code': vendor_code
-        },
-        ScanIndexForward: false // Sort by timestamp descending
-      };
+      const result = await dynamoDB.send(
+        new QueryCommand({
+          TableName: LEADS_TABLE,
+          IndexName: 'VendorTimestampIndex',
+          KeyConditionExpression: 'vendor_code = :vendor_code',
+          ExpressionAttributeValues: {
+            ':vendor_code': vendor_code
+          },
+          ScanIndexForward: false // Sort by timestamp descending
+        })
+      );
       
-      const result = await dynamoDB.query(params).promise();
       return {
         statusCode: 200,
         headers: {
@@ -159,11 +259,11 @@ async function handleGetLeads(queryParams) {
       };
     } else {
       // Get all leads
-      params = {
-        TableName: LEADS_TABLE
-      };
-      
-      const result = await dynamoDB.scan(params).promise();
+      const result = await dynamoDB.send(
+        new ScanCommand({
+          TableName: LEADS_TABLE
+        })
+      );
       
       // Sort by timestamp descending
       const sortedItems = result.Items.sort((a, b) => 
@@ -188,6 +288,197 @@ async function handleGetLeads(queryParams) {
         'Access-Control-Allow-Origin': '*'
       },
       body: JSON.stringify({ status: 'error', message: 'Error retrieving leads' })
+    };
+  }
+}
+
+// Handler for GET /vendors
+async function handleGetVendors() {
+  try {
+    const result = await dynamoDB.send(
+      new ScanCommand({
+        TableName: VENDORS_TABLE
+      })
+    );
+    
+    // Remove API keys from the response for security
+    const vendorsWithoutKeys = result.Items.map(vendor => {
+      const { api_key, ...vendorWithoutKey } = vendor;
+      return vendorWithoutKey;
+    });
+    
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify(vendorsWithoutKeys)
+    };
+  } catch (error) {
+    console.error('Get vendors error:', error);
+    return {
+      statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ status: 'error', message: 'Error retrieving vendors' })
+    };
+  }
+}
+
+// Handler for POST /vendors
+async function handleCreateVendor(data) {
+  // Validate vendor data
+  if (!data.vendor_code || !data.name) {
+    return {
+      statusCode: 400,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ 
+        status: 'error', 
+        message: 'Vendor code and name are required' 
+      })
+    };
+  }
+  
+  // Check if vendor already exists
+  try {
+    const existingVendor = await dynamoDB.send(
+      new GetCommand({
+        TableName: VENDORS_TABLE,
+        Key: { vendor_code: data.vendor_code }
+      })
+    );
+    
+    if (existingVendor.Item) {
+      return {
+        statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({ 
+          status: 'error', 
+          message: 'Vendor code already exists' 
+        })
+      };
+    }
+  } catch (error) {
+    console.error('Vendor check error:', error);
+  }
+  
+  // Generate API key
+  const apiKey = generateApiKey();
+  
+  // Create vendor record
+  const vendor = {
+    vendor_code: data.vendor_code,
+    name: data.name,
+    description: data.description || '',
+    api_key: apiKey,
+    created_at: new Date().toISOString()
+  };
+  
+  try {
+    await dynamoDB.send(
+      new PutCommand({
+        TableName: VENDORS_TABLE,
+        Item: vendor
+      })
+    );
+    
+    // Return vendor data including the API key
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({
+        status: 'success',
+        vendor: vendor,
+        message: 'Vendor created successfully'
+      })
+    };
+  } catch (error) {
+    console.error('Create vendor error:', error);
+    return {
+      statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ status: 'error', message: 'Error creating vendor' })
+    };
+  }
+}
+
+// Handler for POST /vendors/{vendor_code}/regenerate-key
+async function handleRegenerateVendorKey(vendorCode) {
+  // Check if vendor exists
+  try {
+    const existingVendor = await dynamoDB.send(
+      new GetCommand({
+        TableName: VENDORS_TABLE,
+        Key: { vendor_code: vendorCode }
+      })
+    );
+    
+    if (!existingVendor.Item) {
+      return {
+        statusCode: 404,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({ 
+          status: 'error', 
+          message: 'Vendor not found' 
+        })
+      };
+    }
+    
+    // Generate new API key
+    const newApiKey = generateApiKey();
+    
+    // Update vendor with new API key
+    await dynamoDB.send(
+      new UpdateCommand({
+        TableName: VENDORS_TABLE,
+        Key: { vendor_code: vendorCode },
+        UpdateExpression: 'set api_key = :apiKey',
+        ExpressionAttributeValues: {
+          ':apiKey': newApiKey
+        },
+        ReturnValues: 'ALL_NEW'
+      })
+    );
+    
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({
+        status: 'success',
+        api_key: newApiKey,
+        message: 'API key regenerated successfully'
+      })
+    };
+  } catch (error) {
+    console.error('Regenerate API key error:', error);
+    return {
+      statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ status: 'error', message: 'Error regenerating API key' })
     };
   }
 }
@@ -229,4 +520,107 @@ function validateLeadData(data) {
   }
   
   return errors;
+}
+
+// Helper function to generate API keys
+function generateApiKey() {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+// Handler for PATCH /leads/{lead_id}
+async function handleUpdateLead(leadId, data) {
+  // Validate required fields
+  if (!data.disposition) {
+    return {
+      statusCode: 400,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ 
+        status: 'error', 
+        message: 'disposition is required' 
+      })
+    };
+  }
+
+  // Check if lead exists
+  try {
+    const leadResult = await dynamoDB.send(
+      new GetCommand({
+        TableName: LEADS_TABLE,
+        Key: { lead_id: leadId }
+      })
+    );
+    
+    if (!leadResult.Item) {
+      return {
+        statusCode: 404,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({ 
+          status: 'error', 
+          message: 'Lead not found' 
+        })
+      };
+    }
+
+    // Update lead with new disposition and notes
+    const updated_at = new Date().toISOString();
+    
+    const updateExpression = [];
+    const expressionAttributeValues = {};
+    const expressionAttributeNames = {};
+
+    // Always update disposition and updated_at
+    updateExpression.push('#disposition = :disposition');
+    updateExpression.push('#updated_at = :updated_at');
+    expressionAttributeValues[':disposition'] = data.disposition;
+    expressionAttributeValues[':updated_at'] = updated_at;
+    expressionAttributeNames['#disposition'] = 'disposition';
+    expressionAttributeNames['#updated_at'] = 'updated_at';
+    
+    // Only update notes if provided
+    if (data.notes !== undefined) {
+      updateExpression.push('#notes = :notes');
+      expressionAttributeValues[':notes'] = data.notes;
+      expressionAttributeNames['#notes'] = 'notes';
+    }
+
+    const params = {
+      TableName: LEADS_TABLE,
+      Key: { lead_id: leadId },
+      UpdateExpression: 'SET ' + updateExpression.join(', '),
+      ExpressionAttributeValues: expressionAttributeValues,
+      ExpressionAttributeNames: expressionAttributeNames,
+      ReturnValues: 'ALL_NEW'
+    };
+
+    const result = await dynamoDB.send(new UpdateCommand(params));
+    
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({
+        status: 'success',
+        lead: result.Attributes,
+        message: 'Lead updated successfully'
+      })
+    };
+  } catch (error) {
+    console.error('Update lead error:', error);
+    return {
+      statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ status: 'error', message: 'Error updating lead' })
+    };
+  }
 } 
