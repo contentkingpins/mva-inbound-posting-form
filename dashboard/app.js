@@ -251,18 +251,103 @@ function toggleLeadDetails(lead) {
     }
 }
 
+// Show error notification
+function showError(message, isDuplicate = false) {
+    errorEl.textContent = message;
+    errorEl.style.display = 'block';
+    
+    // Add special styling for duplicate errors
+    if (isDuplicate) {
+        errorEl.classList.add('duplicate-error');
+    } else {
+        errorEl.classList.remove('duplicate-error');
+    }
+}
+
+// Hide error
+function hideError() {
+    errorEl.style.display = 'none';
+    errorEl.classList.remove('duplicate-error');
+}
+
+// Handle lead submission response
+function handleLeadSubmissionResponse(response, data) {
+    if (response.ok) {
+        return response.json().then(result => {
+            return { success: true, data: result };
+        });
+    } else {
+        // Check for duplicate lead (409 Conflict)
+        if (response.status === 409) {
+            return response.json().then(error => {
+                return { 
+                    success: false, 
+                    isDuplicate: true, 
+                    message: error.message || 'Duplicate lead detected'
+                };
+            });
+        }
+        
+        // Handle other errors
+        return response.json().then(error => {
+            return { 
+                success: false, 
+                message: error.message || `HTTP error ${response.status}`
+            };
+        }).catch(() => {
+            return { 
+                success: false, 
+                message: `HTTP error ${response.status}`
+            };
+        });
+    }
+}
+
+// Submit lead (example for any lead submission form you might add to the dashboard)
+async function submitLead(leadData) {
+    showLoading(true);
+    hideError();
+    
+    try {
+        const response = await fetch(API_ENDPOINT, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'x-api-key': leadData.api_key // Include API key if required
+            },
+            body: JSON.stringify(leadData),
+            mode: 'cors'
+        });
+        
+        const result = await handleLeadSubmissionResponse(response, leadData);
+        
+        if (result.success) {
+            // Successfully submitted
+            alert("Lead successfully submitted!");
+            // Reset form or take other success actions
+            return true;
+        } else {
+            // Handle error
+            if (result.isDuplicate) {
+                showError(result.message, true);
+            } else {
+                showError(result.message);
+            }
+            return false;
+        }
+    } catch (error) {
+        console.error('Error submitting lead:', error);
+        showError('Network error while submitting lead. Please try again.');
+        return false;
+    } finally {
+        showLoading(false);
+    }
+}
+
 // Helper functions
 function showLoading(show) {
     loadingEl.style.display = show ? 'block' : 'none';
-}
-
-function showError(message) {
-    errorEl.textContent = message;
-    errorEl.style.display = 'block';
-}
-
-function hideError() {
-    errorEl.style.display = 'none';
 }
 
 function getLocationDisplay(lead) {

@@ -87,6 +87,34 @@ async function handleCreateLead(data) {
       body: JSON.stringify({ status: 'error', message: 'Error validating vendor' })
     };
   }
+  
+  // Check for duplicate leads
+  try {
+    const isDuplicate = await checkForDuplicateLead(data);
+    if (isDuplicate) {
+      return {
+        statusCode: 409, // Conflict status code
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({ 
+          status: 'error', 
+          message: 'Duplicate lead detected. This lead has already been submitted.' 
+        })
+      };
+    }
+  } catch (error) {
+    console.error('Duplicate check error:', error);
+    return {
+      statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ status: 'error', message: 'Error checking for duplicate leads' })
+    };
+  }
 
   // Generate lead ID and timestamp
   const lead_id = uuidv4();
@@ -127,6 +155,109 @@ async function handleCreateLead(data) {
       },
       body: JSON.stringify({ status: 'error', message: 'Error storing lead' })
     };
+  }
+}
+
+// Check for duplicate leads based on email and phone number
+async function checkForDuplicateLead(data) {
+  // Define what constitutes a duplicate lead - here we'll use email OR phone number
+  try {
+    // Using a more efficient approach with query operations
+    // Note: This assumes you've created a GSI called "EmailIndex" with email as the partition key
+    const emailParams = {
+      TableName: LEADS_TABLE,
+      IndexName: 'EmailIndex',
+      KeyConditionExpression: 'email = :email',
+      ExpressionAttributeValues: {
+        ':email': data.email
+      }
+    };
+    
+    const emailResults = await dynamoDB.query(emailParams).promise();
+    
+    if (emailResults.Items && emailResults.Items.length > 0) {
+      console.log('Duplicate lead detected: same email', {
+        email: data.email
+      });
+      return true;
+    }
+    
+    // Using a GSI called "PhoneIndex" with phone_home as the partition key
+    const phoneParams = {
+      TableName: LEADS_TABLE,
+      IndexName: 'PhoneIndex',
+      KeyConditionExpression: 'phone_home = :phone_home',
+      ExpressionAttributeValues: {
+        ':phone_home': data.phone_home
+      }
+    };
+    
+    const phoneResults = await dynamoDB.query(phoneParams).promise();
+    
+    if (phoneResults.Items && phoneResults.Items.length > 0) {
+      console.log('Duplicate lead detected: same phone number', {
+        phone: data.phone_home
+      });
+      return true;
+    }
+    
+    // No duplicates found
+    return false;
+  } catch (error) {
+    // If the GSIs don't exist yet, fall back to scan operations
+    if (error.code === 'ResourceNotFoundException') {
+      console.warn('GSIs not found, falling back to scan operation for duplicate check');
+      return fallbackDuplicateCheck(data);
+    }
+    
+    console.error('Error checking for duplicates:', error);
+    throw error;
+  }
+}
+
+// Fallback duplicate check using scan (less efficient but works without GSIs)
+async function fallbackDuplicateCheck(data) {
+  try {
+    // Check by email
+    const emailParams = {
+      TableName: LEADS_TABLE,
+      FilterExpression: 'email = :email',
+      ExpressionAttributeValues: {
+        ':email': data.email
+      }
+    };
+    
+    const emailResults = await dynamoDB.scan(emailParams).promise();
+    
+    if (emailResults.Items && emailResults.Items.length > 0) {
+      console.log('Duplicate lead detected: same email (fallback)', {
+        email: data.email
+      });
+      return true;
+    }
+    
+    // Check by phone number
+    const phoneParams = {
+      TableName: LEADS_TABLE,
+      FilterExpression: 'phone_home = :phone_home',
+      ExpressionAttributeValues: {
+        ':phone_home': data.phone_home
+      }
+    };
+    
+    const phoneResults = await dynamoDB.scan(phoneParams).promise();
+    
+    if (phoneResults.Items && phoneResults.Items.length > 0) {
+      console.log('Duplicate lead detected: same phone number (fallback)', {
+        phone: data.phone_home
+      });
+      return true;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('Error in fallback duplicate check:', error);
+    throw error;
   }
 }
 

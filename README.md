@@ -137,3 +137,67 @@ API requests are logged to CloudWatch under the log group `/aws/apigateway/leads
 ```
 aws logs get-log-events --log-group-name /aws/apigateway/leads-api --log-stream-name YOUR_LOG_STREAM
 ```
+
+# Lead Management System
+
+This repository contains the code for a lead management system with AWS Lambda, API Gateway, and DynamoDB.
+
+## Duplicate Lead Detection
+
+The system now includes functionality to detect and reject duplicate lead submissions. A lead is considered a duplicate if either:
+
+1. The same email address has been used before, or
+2. The same phone number has been used before
+
+When a duplicate is detected, the API returns a 409 Conflict status code with an error message.
+
+## Deployment Instructions
+
+### 1. Update DynamoDB Tables
+
+The duplicate checking functionality requires two new Global Secondary Indexes (GSIs) on the Leads table:
+
+- `EmailIndex`: For checking duplicates by email
+- `PhoneIndex`: For checking duplicates by phone number
+
+Deploy the updated CloudFormation template:
+
+```bash
+aws cloudformation deploy \
+  --template-file cloudformation/dynamodb.yaml \
+  --stack-name lead-management-dynamodb \
+  --capabilities CAPABILITY_IAM
+```
+
+### 2. Deploy Lambda Function
+
+Zip the Lambda code:
+
+```bash
+zip -r lambda.zip index.js node_modules/
+```
+
+Update the Lambda function:
+
+```bash
+aws lambda update-function-code \
+  --function-name lead-management-api \
+  --zip-file fileb://lambda.zip
+```
+
+## Testing
+
+To test the duplicate detection:
+
+1. Submit a lead through the API
+2. Try to submit another lead with the same email or phone number
+3. The second submission should be rejected with a 409 Conflict status code
+
+Example response for a duplicate submission:
+
+```json
+{
+  "status": "error",
+  "message": "Duplicate lead detected. This lead has already been submitted."
+}
+```

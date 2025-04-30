@@ -159,6 +159,14 @@ tr.detail-row td {
     display: none;
 }
 
+/* Special styling for duplicate lead errors */
+.duplicate-error {
+    background-color: #fef3c7;
+    color: #92400e;
+    border-left: 4px solid #f59e0b;
+    font-weight: 500;
+}
+
 .no-data {
     background-color: #f7fafc;
     color: #718096;
