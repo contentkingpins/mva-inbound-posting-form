@@ -439,7 +439,11 @@ Success Response (200):
                 return;
             }
             
-            vendorCardsContainer.innerHTML = vendors.map(vendor => `
+            vendorCardsContainer.innerHTML = vendors.map(vendor => {
+                // Default status to 'active' if not present
+                const status = vendor.status || 'active';
+                
+                return `
                 <div class="vendor-card" data-vendor-code="${vendor.vendor_code}">
                     <div class="vendor-header">
                         <h3 class="vendor-title">${escapeHtml(vendor.name)}</h3>
@@ -460,7 +464,7 @@ Success Response (200):
                         </div>
                         <div class="vendor-info">
                             <span class="info-label">Status:</span>
-                            <span class="badge badge-${vendor.status}">${vendor.status.charAt(0).toUpperCase() + vendor.status.slice(1)}</span>
+                            <span class="badge badge-${status}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>
                         </div>
                         <div class="vendor-info">
                             <span class="info-label">Created:</span>
@@ -485,7 +489,8 @@ Success Response (200):
                         <button class="btn btn-sm btn-secondary" onclick="viewVendorLeads('${vendor.vendor_code}')">View Leads</button>
                     </div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
         }
 
         // Handle vendor form submission
