@@ -137,3 +137,118 @@ API requests are logged to CloudWatch under the log group `/aws/apigateway/leads
 ```
 aws logs get-log-events --log-group-name /aws/apigateway/leads-api --log-stream-name YOUR_LOG_STREAM
 ```
+
+# Lead Management System
+
+This repository contains the code for a lead management system with AWS Lambda, API Gateway, and DynamoDB.
+
+## Duplicate Lead Detection
+
+The system now includes functionality to detect and reject duplicate lead submissions. A lead is considered a duplicate if either:
+
+1. The same email address has been used before, or
+2. The same phone number has been used before
+
+When a duplicate is detected, the API returns a 409 Conflict status code with an error message.
+
+## Deployment Instructions
+
+### 1. Update DynamoDB Tables
+
+The duplicate checking functionality requires two new Global Secondary Indexes (GSIs) on the Leads table:
+
+- `EmailIndex`: For checking duplicates by email
+- `PhoneIndex`: For checking duplicates by phone number
+
+Deploy the updated CloudFormation template:
+
+```bash
+aws cloudformation deploy \
+  --template-file cloudformation/dynamodb.yaml \
+  --stack-name lead-management-dynamodb \
+  --capabilities CAPABILITY_IAM
+```
+
+### 2. Deploy Lambda Function
+
+Zip the Lambda code:
+
+```bash
+zip -r lambda.zip index.js node_modules/
+```
+
+Update the Lambda function:
+
+```bash
+aws lambda update-function-code \
+  --function-name lead-management-api \
+  --zip-file fileb://lambda.zip
+```
+
+## Testing
+
+To test the duplicate detection:
+
+1. Submit a lead through the API
+2. Try to submit another lead with the same email or phone number
+3. The second submission should be rejected with a 409 Conflict status code
+
+Example response for a duplicate submission:
+
+```json
+{
+  "status": "error",
+  "message": "Duplicate lead detected. This lead has already been submitted."
+}
+```
+
+# Lead Export Functionality
+
+The system now includes a CSV export feature for leads that allows internal teams to download lead data for reporting and analysis.
+
+## Features
+
+- Export leads to CSV file from the dashboard
+- Filter exports by date range and/or vendor code
+- Dynamically generated CSV file with descriptive filename
+- Custom backend endpoint for efficient data retrieval
+
+## Usage
+
+1. Click the "Export CSV" button in the dashboard
+2. Select filter options:
+   - Vendor (optional): Filter leads by specific vendor
+   - Date Range (optional): Specify start and end dates
+3. Click "Download CSV" to generate and download the file
+
+## API Endpoint
+
+### GET /export
+
+Retrieves leads with optional filtering for export purposes.
+
+**Query Parameters:**
+- `vendor_code` (optional): Filter leads by vendor code
+- `start_date` (optional): Filter leads after this date (ISO format)
+- `end_date` (optional): Filter leads before this date (ISO format)
+
+**Response (200):**
+```json
+[
+  {
+    "lead_id": "uuid-string",
+    "first_name": "John",
+    "last_name": "Doe",
+    "zip_code": "12345",
+    "state": "CA",
+    "phone_home": "1234567890",
+    "lp_caller_id": "1234567890",
+    "email": "john.doe@example.com",
+    "vendor_code": "VENDOR1",
+    "timestamp": "2023-05-10T15:30:00.000Z"
+  },
+  ...
+]
+```
+
+Results are sorted by timestamp in descending order (newest first).
