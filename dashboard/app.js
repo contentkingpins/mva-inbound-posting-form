@@ -548,21 +548,14 @@ function addDetailRow(lead) {
             
             <div class="qualification-item">
                 <label>What was the date of the accident?</label>
-                <input type="date" id="accident-date-${lead.lead_id}" value="${lead.accident_date || ''}">
+                <input type="date" id="accident-date-${lead.lead_id}" value="${lead.accident_date || ''}" onchange="checkDeadline('${lead.lead_id}')">
+                <div id="deadline-warning-${lead.lead_id}" class="deadline-warning" style="display: none;">
+                    Warning: This accident occurred more than 2 years ago. The statute of limitations has likely expired.
+                </div>
             </div>
             
-            <div class="qualification-item">
-                <label>Is there at least 60 days left before the 2-year deadline?</label>
-                <div class="yes-no-options">
-                    <label class="yes-no-label">
-                        <input type="radio" name="deadline-${lead.lead_id}" value="yes" ${lead.deadline_60_days === 'yes' ? 'checked' : ''}>
-                        Yes
-                    </label>
-                    <label class="yes-no-label">
-                        <input type="radio" name="deadline-${lead.lead_id}" value="no" ${lead.deadline_60_days === 'no' ? 'checked' : ''}>
-                        No
-                    </label>
-                </div>
+            <div class="qualification-item" style="display: none;">
+                <input type="hidden" id="deadline-60-days-${lead.lead_id}" value="${lead.deadline_60_days || ''}">
             </div>
             
             <div class="qualification-item">
@@ -631,10 +624,6 @@ function addDetailRow(lead) {
                     <label class="yes-no-label">
                         <input type="radio" name="has-insurance-${lead.lead_id}" value="no" ${lead.at_fault_has_insurance === 'no' ? 'checked' : ''}>
                         No
-                    </label>
-                    <label class="yes-no-label">
-                        <input type="radio" name="has-insurance-${lead.lead_id}" value="unknown" ${lead.at_fault_has_insurance === 'unknown' ? 'checked' : ''}>
-                        Unknown
                     </label>
                 </div>
             </div>
@@ -730,7 +719,7 @@ function addDetailRow(lead) {
                 const qualificationData = {
                     accident_location: document.getElementById(`accident-location-${lead.lead_id}`).value,
                     accident_date: document.getElementById(`accident-date-${lead.lead_id}`).value,
-                    deadline_60_days: getRadioValue(`deadline-${lead.lead_id}`),
+                    deadline_60_days: document.getElementById(`deadline-60-days-${lead.lead_id}`).value,
                     caller_at_fault: getRadioValue(`at-fault-${lead.lead_id}`),
                     has_attorney: getRadioValue(`has-attorney-${lead.lead_id}`),
                     was_injured: getRadioValue(`injured-${lead.lead_id}`),
@@ -743,6 +732,11 @@ function addDetailRow(lead) {
                 
                 updateLeadData(lead.lead_id, qualificationData);
             });
+        }
+        
+        // Check deadline based on accident date when the form is loaded
+        if (lead.accident_date) {
+            checkDeadline(lead.lead_id);
         }
     }, 0);
 }
@@ -1162,4 +1156,45 @@ function showSuccessToast(message) {
 function getRadioValue(name) {
     const radio = document.querySelector(`input[name="${name}"]:checked`);
     return radio ? radio.value : null;
+}
+
+// Function to check deadline based on accident date
+function checkDeadline(leadId) {
+    const accidentDateInput = document.getElementById(`accident-date-${leadId}`);
+    const deadlineWarning = document.getElementById(`deadline-warning-${leadId}`);
+    const deadlineInput = document.getElementById(`deadline-60-days-${leadId}`);
+    
+    if (!accidentDateInput.value) {
+        deadlineWarning.style.display = 'none';
+        deadlineInput.value = '';
+        return;
+    }
+    
+    const accidentDate = new Date(accidentDateInput.value);
+    const today = new Date();
+    
+    // Calculate the deadline date (2 years after accident)
+    const deadlineDate = new Date(accidentDate);
+    deadlineDate.setFullYear(deadlineDate.getFullYear() + 2);
+    
+    // Calculate days left
+    const daysLeft = Math.floor((deadlineDate - today) / (1000 * 60 * 60 * 24));
+    
+    if (daysLeft < 0) {
+        // Past the 2-year deadline
+        deadlineWarning.style.display = 'block';
+        deadlineWarning.textContent = 'Warning: This accident occurred more than 2 years ago. The statute of limitations has likely expired.';
+        deadlineWarning.className = 'deadline-warning expired';
+        deadlineInput.value = 'no';
+    } else if (daysLeft < 60) {
+        // Less than 60 days left
+        deadlineWarning.style.display = 'block';
+        deadlineWarning.textContent = `Warning: Only ${daysLeft} days left before the 2-year deadline expires.`;
+        deadlineWarning.className = 'deadline-warning urgent';
+        deadlineInput.value = 'no';
+    } else {
+        // More than 60 days left
+        deadlineWarning.style.display = 'none';
+        deadlineInput.value = 'yes';
+    }
 } 

@@ -404,4 +404,25 @@ textarea {
 .success-toast.show {
     opacity: 1;
     transform: translateY(0);
+}
+
+/* Deadline warning styles */
+.deadline-warning {
+    margin-top: 5px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.deadline-warning.expired {
+    background-color: #fed7d7;
+    color: #c53030;
+    border-left: 4px solid #e53e3e;
+}
+
+.deadline-warning.urgent {
+    background-color: #feebc8;
+    color: #c05621;
+    border-left: 4px solid #dd6b20;
 } 
