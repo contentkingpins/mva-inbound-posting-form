@@ -109,6 +109,55 @@
             padding: 6px 12px;
             font-size: 12px;
         }
+        
+        .api-key {
+            font-family: monospace;
+            background-color: #f7fafc;
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .api-key-value {
+            font-size: 14px;
+            color: #2d3748;
+        }
+        
+        .api-key-hidden {
+            font-size: 14px;
+            color: #718096;
+        }
+        
+        .api-key-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 3px 6px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .badge-active {
+            background-color: #c6f6d5;
+            color: #2f855a;
+        }
+        
+        .badge-inactive {
+            background-color: #fed7d7;
+            color: #c53030;
+        }
+        
+        .badge-pending {
+            background-color: #feebc8;
+            color: #c05621;
+        }
     </style>
 </head>
 <body>
@@ -147,16 +196,17 @@
                         </div>
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="vendor-api-key">API Key (Optional)</label>
-                                <input type="text" id="vendor-api-key" placeholder="Leave blank to use global API key">
-                            </div>
-                            <div class="form-group">
                                 <label for="vendor-status">Status</label>
                                 <select id="vendor-status">
                                     <option value="active">Active</option>
                                     <option value="inactive">Inactive</option>
                                     <option value="pending">Pending</option>
                                 </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <p><strong>Note:</strong> A unique API key will be automatically generated for this vendor.</p>
                             </div>
                         </div>
                         <div class="btn-group">
@@ -209,6 +259,7 @@
                             contact_email: 'contact@acmemarketing.com',
                             contact_phone: '555-123-4567',
                             website: 'https://acmemarketing.com',
+                            api_key: '8a7b6c5d4e3f2g1h0i9j8k7l6m5n4o3p',
                             status: 'active',
                             created_at: '2023-04-28T10:00:00Z'
                         },
@@ -218,6 +269,7 @@
                             contact_email: 'sales@globalleads.com',
                             contact_phone: '555-987-6543',
                             website: 'https://globalleads.com',
+                            api_key: '1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p',
                             status: 'active',
                             created_at: '2023-04-27T15:30:00Z'
                         }
@@ -243,15 +295,34 @@
                     
                     const randomString = Math.random().toString(36).substring(2, 7).toUpperCase();
                     
+                    // Generate a mock API key (32 characters)
+                    const apiKey = Array.from(Array(32), () => Math.floor(Math.random() * 36).toString(36)).join('');
+                    
                     // Mock response
                     return {
                         ...vendorData,
                         vendor_code: `${prefix}${randomString}`,
+                        api_key: apiKey,
                         created_at: new Date().toISOString(),
                         updated_at: new Date().toISOString()
                     };
                 } catch (error) {
                     console.error('Error creating vendor:', error);
+                    throw error;
+                }
+            },
+            
+            // Regenerate API key
+            regenerateApiKey: async function(vendorCode) {
+                // In a real app, this would be an API call
+                try {
+                    // Simulate API delay
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    // Generate a mock API key (32 characters)
+                    return Array.from(Array(32), () => Math.floor(Math.random() * 36).toString(36)).join('');
+                } catch (error) {
+                    console.error('Error regenerating API key:', error);
                     throw error;
                 }
             },
@@ -272,7 +343,7 @@ POST ${apiUrl}
 ## Headers
 - Content-Type: application/json
 - Accept: application/json
-${vendor.api_key ? `- x-api-key: ${vendor.api_key}` : ''}
+- x-api-key: ${vendor.api_key}
 
 ## Request Body
 
@@ -306,7 +377,12 @@ Success Response (200):
   "lead_id": "uuid-string",
   "message": "Lead received"
 }
-\`\`\``;
+\`\`\`
+
+## Security Notice
+- Keep your API key confidential
+- Do not share your API key with other vendors
+- If you believe your API key has been compromised, contact us immediately for a replacement`;
             }
         };
 
@@ -377,11 +453,24 @@ Success Response (200):
                         </div>
                         <div class="vendor-info">
                             <span class="info-label">Status:</span>
-                            <span class="status-badge status-${vendor.status}">${vendor.status.charAt(0).toUpperCase() + vendor.status.slice(1)}</span>
+                            <span class="badge badge-${vendor.status}">${vendor.status.charAt(0).toUpperCase() + vendor.status.slice(1)}</span>
                         </div>
                         <div class="vendor-info">
                             <span class="info-label">Created:</span>
                             ${formatDate(vendor.created_at)}
+                        </div>
+                        
+                        <div class="api-key">
+                            <div>
+                                <div class="info-label">API Key</div>
+                                <div class="api-key-hidden" id="api-key-${vendor.vendor_code}">
+                                    ${vendor.api_key.substring(0, 4)}...${vendor.api_key.substring(vendor.api_key.length - 4)}
+                                </div>
+                            </div>
+                            <div class="api-key-actions">
+                                <button class="btn btn-sm" onclick="toggleApiKeyVisibility('${vendor.vendor_code}', '${vendor.api_key}')">Show/Hide</button>
+                                <button class="btn btn-sm btn-secondary" onclick="regenerateApiKey('${vendor.vendor_code}')">Regenerate</button>
+                            </div>
                         </div>
                     </div>
                     <div class="vendor-actions">
@@ -401,7 +490,6 @@ Success Response (200):
                 contact_email: document.getElementById('vendor-email').value,
                 contact_phone: document.getElementById('vendor-phone').value,
                 website: document.getElementById('vendor-website').value,
-                api_key: document.getElementById('vendor-api-key').value || null,
                 status: document.getElementById('vendor-status').value
             };
             
@@ -428,6 +516,56 @@ Success Response (200):
                 
             } catch (error) {
                 alert('Error creating vendor. Please try again.');
+            }
+        }
+
+        // Show/hide API key
+        function toggleApiKeyVisibility(vendorCode, apiKey) {
+            const apiKeyElement = document.getElementById(`api-key-${vendorCode}`);
+            
+            if (apiKeyElement.classList.contains('api-key-hidden')) {
+                apiKeyElement.textContent = apiKey;
+                apiKeyElement.classList.remove('api-key-hidden');
+                apiKeyElement.classList.add('api-key-value');
+                
+                // Auto-hide after 10 seconds
+                setTimeout(() => {
+                    if (apiKeyElement) {
+                        apiKeyElement.textContent = `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`;
+                        apiKeyElement.classList.remove('api-key-value');
+                        apiKeyElement.classList.add('api-key-hidden');
+                    }
+                }, 10000);
+            } else {
+                apiKeyElement.textContent = `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`;
+                apiKeyElement.classList.remove('api-key-value');
+                apiKeyElement.classList.add('api-key-hidden');
+            }
+        }
+
+        // Regenerate API key
+        async function regenerateApiKey(vendorCode) {
+            try {
+                if (!confirm('Are you sure you want to regenerate the API key? The old key will no longer work.')) {
+                    return;
+                }
+                
+                const newApiKey = await apiService.regenerateApiKey(vendorCode);
+                
+                // Update vendor card with new API key
+                const apiKeyElement = document.getElementById(`api-key-${vendorCode}`);
+                if (apiKeyElement) {
+                    apiKeyElement.textContent = `${newApiKey.substring(0, 4)}...${newApiKey.substring(newApiKey.length - 4)}`;
+                    apiKeyElement.classList.remove('api-key-value');
+                    apiKeyElement.classList.add('api-key-hidden');
+                }
+                
+                // Reload vendors to refresh data
+                await loadVendors();
+                
+                alert('API key regenerated successfully. Make sure to provide the new key to the vendor.');
+            } catch (error) {
+                alert('Error regenerating API key. Please try again.');
             }
         }
 

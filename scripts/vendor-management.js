@@ -27,6 +27,12 @@ const vendorManager = {
     return `${prefix}${randomString}`;
   },
   
+  // Generate a unique API key
+  generateApiKey: () => {
+    // Generate a secure, random API key (32 characters)
+    return crypto.randomBytes(16).toString('hex');
+  },
+  
   // Create a new vendor
   createVendor: async (vendorData) => {
     if (!vendorData.name) {
@@ -36,6 +42,9 @@ const vendorManager = {
     // Generate vendor code if not provided
     const vendor_code = vendorData.vendor_code || 
       vendorManager.generateVendorCode(vendorData.name);
+    
+    // Generate unique API key
+    const api_key = vendorData.api_key || vendorManager.generateApiKey();
     
     // Create timestamp
     const created_at = new Date().toISOString();
@@ -47,7 +56,7 @@ const vendorManager = {
       contact_email: vendorData.contact_email || null,
       contact_phone: vendorData.contact_phone || null,
       website: vendorData.website || null,
-      api_key: vendorData.api_key || null, // Optional API key if needed
+      api_key, // Always include an API key
       status: vendorData.status || 'active',
       created_at,
       updated_at: created_at
@@ -63,6 +72,7 @@ const vendorManager = {
       }).promise();
       
       console.log(`Successfully created vendor: ${vendor.name} with code ${vendor.vendor_code}`);
+      console.log(`API Key: ${vendor.api_key}`);
       return vendor;
     } catch (error) {
       if (error.code === 'ConditionalCheckFailedException') {
@@ -149,6 +159,32 @@ const vendorManager = {
     }
   },
   
+  // Regenerate API key for vendor
+  regenerateApiKey: async (vendor_code) => {
+    try {
+      const newApiKey = vendorManager.generateApiKey();
+      
+      await dynamoDB.update({
+        TableName: VENDORS_TABLE,
+        Key: { vendor_code },
+        UpdateExpression: 'set api_key = :api_key, updated_at = :updated_at',
+        ExpressionAttributeValues: {
+          ':api_key': newApiKey,
+          ':updated_at': new Date().toISOString()
+        },
+        ConditionExpression: 'attribute_exists(vendor_code)'
+      }).promise();
+      
+      console.log(`Successfully regenerated API key for vendor: ${vendor_code}`);
+      console.log(`New API Key: ${newApiKey}`);
+      
+      return newApiKey;
+    } catch (error) {
+      console.error(`Error regenerating API key for vendor ${vendor_code}:`, error);
+      throw error;
+    }
+  },
+  
   // Generate API instructions for a vendor
   generateApiInstructions: (vendor) => {
     const apiUrl = 'https://nv01uveape.execute-api.us-east-1.amazonaws.com/prod/leads';
@@ -165,7 +201,7 @@ POST ${apiUrl}
 ## Headers
 - Content-Type: application/json
 - Accept: application/json
-${vendor.api_key ? `- x-api-key: ${vendor.api_key}` : ''}
+- x-api-key: ${vendor.api_key}
 
 ## Request Body
 
@@ -221,7 +257,7 @@ Error Response (400):
 \`\`\`bash
 curl -X POST "${apiUrl}" \\
   -H "Content-Type: application/json" \\
-  ${vendor.api_key ? `-H "x-api-key: ${vendor.api_key}" \\` : ''}
+  -H "x-api-key: ${vendor.api_key}" \\
   -d '{
     "first_name": "John",
     "last_name": "Doe",
@@ -251,8 +287,8 @@ const data = {
 
 axios.post('${apiUrl}', data, {
   headers: {
-    'Content-Type': 'application/json'${vendor.api_key ? `,
-    'x-api-key': '${vendor.api_key}'` : ''}
+    'Content-Type': 'application/json',
+    'x-api-key': '${vendor.api_key}'
   }
 })
 .then(response => {
@@ -262,6 +298,11 @@ axios.post('${apiUrl}', data, {
   console.error('Error:', error.response.data);
 });
 \`\`\`
+
+## Security Notice
+- Keep your API key confidential
+- Do not share your API key with other vendors
+- If you believe your API key has been compromised, contact us immediately for a replacement
 
 ## Support
 If you have any questions or issues with the API, please contact us at support@example.com.
@@ -300,6 +341,7 @@ async function main() {
     console.log('  node vendor-management.js list');
     console.log('  node vendor-management.js get VENDOR_CODE');
     console.log('  node vendor-management.js instructions VENDOR_CODE');
+    console.log('  node vendor-management.js regenerate-key VENDOR_CODE');
     return;
   }
   
@@ -323,6 +365,7 @@ async function main() {
           code: v.vendor_code,
           name: v.name,
           email: v.contact_email,
+          api_key: v.api_key ? `${v.api_key.substring(0, 4)}...${v.api_key.substring(v.api_key.length - 4)}` : 'N/A',
           status: v.status
         })));
         console.log(`Total vendors: ${vendors.length}`);
@@ -338,7 +381,12 @@ async function main() {
         if (!vendorData) {
           console.log(`Vendor with code ${args[1]} not found`);
         } else {
-          console.log(vendorData);
+          // Don't log the full API key to console
+          const displayVendor = { ...vendorData };
+          if (displayVendor.api_key) {
+            displayVendor.api_key = `${displayVendor.api_key.substring(0, 4)}...${displayVendor.api_key.substring(displayVendor.api_key.length - 4)}`;
+          }
+          console.log(displayVendor);
         }
         break;
         
@@ -354,6 +402,22 @@ async function main() {
         } else {
           const filePath = vendorManager.saveVendorInstructions(vendorForInstructions);
           console.log(`API instructions saved to ${filePath}`);
+        }
+        break;
+        
+      case 'regenerate-key':
+        // node vendor-management.js regenerate-key VENDOR_CODE
+        if (!args[1]) {
+          console.error('Vendor code is required');
+          return;
+        }
+        const newApiKey = await vendorManager.regenerateApiKey(args[1]);
+        console.log(`New API key generated for ${args[1]}: ${newApiKey}`);
+        
+        // Generate new instructions with updated API key
+        const updatedVendor = await vendorManager.getVendorByCode(args[1]);
+        if (updatedVendor) {
+          vendorManager.saveVendorInstructions(updatedVendor);
         }
         break;
         
