@@ -17,6 +17,10 @@ exports.handler = async (event) => {
       } else if (httpMethod === 'GET') {
         return await handleGetLeads(queryStringParameters);
       }
+    } else if (path === '/stats') {
+      if (httpMethod === 'GET') {
+        return await handleGetLeadStats(queryStringParameters);
+      }
     }
     
     // Return 404 for unsupported routes
@@ -319,6 +323,146 @@ async function handleGetLeads(queryParams) {
         'Access-Control-Allow-Origin': '*'
       },
       body: JSON.stringify({ status: 'error', message: 'Error retrieving leads' })
+    };
+  }
+}
+
+// Handler for GET /stats - Aggregated lead statistics
+async function handleGetLeadStats(queryParams) {
+  try {
+    // Default to all time periods if not specified
+    const period = queryParams?.period || 'all';
+    const vendorCode = queryParams?.vendor_code || null;
+    
+    // Get all leads
+    let leads;
+    if (vendorCode) {
+      // Query by vendor_code using GSI
+      const params = {
+        TableName: LEADS_TABLE,
+        IndexName: 'VendorTimestampIndex',
+        KeyConditionExpression: 'vendor_code = :vendor_code',
+        ExpressionAttributeValues: {
+          ':vendor_code': vendorCode
+        }
+      };
+      
+      const result = await dynamoDB.query(params).promise();
+      leads = result.Items;
+    } else {
+      // Get all leads
+      const params = {
+        TableName: LEADS_TABLE
+      };
+      
+      const result = await dynamoDB.scan(params).promise();
+      leads = result.Items;
+    }
+    
+    // Calculate current date and relevant cutoff dates
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay()); // Sunday as the first day of the week
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    // Convert to ISO string for comparison
+    const todayIso = today.toISOString();
+    const startOfWeekIso = startOfWeek.toISOString();
+    const startOfMonthIso = startOfMonth.toISOString();
+    
+    // Initialize stats object
+    const stats = {
+      daily: {},
+      weekly: {},
+      monthly: {},
+      all_time: {}
+    };
+    
+    // Group leads by vendor and time period
+    leads.forEach(lead => {
+      const vendor = lead.vendor_code;
+      const timestamp = lead.timestamp;
+      
+      // Skip if no vendor code or timestamp
+      if (!vendor || !timestamp) return;
+      
+      // Initialize counters for this vendor if they don't exist
+      if (!stats.daily[vendor]) stats.daily[vendor] = 0;
+      if (!stats.weekly[vendor]) stats.weekly[vendor] = 0;
+      if (!stats.monthly[vendor]) stats.monthly[vendor] = 0;
+      if (!stats.all_time[vendor]) stats.all_time[vendor] = 0;
+      
+      // Increment counts based on time period
+      if (timestamp >= todayIso) {
+        stats.daily[vendor]++;
+      }
+      
+      if (timestamp >= startOfWeekIso) {
+        stats.weekly[vendor]++;
+      }
+      
+      if (timestamp >= startOfMonthIso) {
+        stats.monthly[vendor]++;
+      }
+      
+      // Always increment all-time count
+      stats.all_time[vendor]++;
+    });
+    
+    // Prepare response based on requested period
+    let responseData;
+    
+    switch (period) {
+      case 'daily':
+        responseData = stats.daily;
+        break;
+      case 'weekly':
+        responseData = stats.weekly;
+        break;
+      case 'monthly':
+        responseData = stats.monthly;
+        break;
+      case 'all':
+      default:
+        responseData = stats;
+        break;
+    }
+    
+    // Format into an array for easier consumption by frontend
+    const formattedStats = Object.entries(responseData).map(([vendor, count]) => ({
+      vendor_code: vendor,
+      count
+    }));
+    
+    // If period is 'all', we need a different structure
+    const finalResponse = period === 'all' 
+      ? {
+        daily: Object.entries(stats.daily).map(([vendor, count]) => ({ vendor_code: vendor, count })),
+        weekly: Object.entries(stats.weekly).map(([vendor, count]) => ({ vendor_code: vendor, count })),
+        monthly: Object.entries(stats.monthly).map(([vendor, count]) => ({ vendor_code: vendor, count })),
+        all_time: Object.entries(stats.all_time).map(([vendor, count]) => ({ vendor_code: vendor, count }))
+      } 
+      : formattedStats;
+    
+    // Return the stats
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify(finalResponse)
+    };
+  } catch (error) {
+    console.error('Get lead stats error:', error);
+    return {
+      statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ status: 'error', message: 'Error retrieving lead statistics' })
     };
   }
 }
