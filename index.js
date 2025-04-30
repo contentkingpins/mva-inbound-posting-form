@@ -19,21 +19,47 @@ const LEADS_TABLE = process.env.LEADS_TABLE;
 // Main handler function for API Gateway
 exports.handler = async (event) => {
   try {
-    const { httpMethod, path, queryStringParameters, body, pathParameters } = event;
+    const { httpMethod, path, queryStringParameters, body, pathParameters, headers } = event;
+    
+    // Check if the endpoint requires authentication
+    const requiresAuth = doesEndpointRequireAuth(path, httpMethod);
+    
+    // If authentication is required, verify the API key
+    if (requiresAuth) {
+      const authResult = await authenticateRequest(headers);
+      if (!authResult.authenticated) {
+        return {
+          statusCode: 401,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          },
+          body: JSON.stringify({ 
+            status: 'error', 
+            message: authResult.message || 'Unauthorized' 
+          })
+        };
+      }
+      
+      // Add vendor info to the event for later use
+      event.vendor = authResult.vendor;
+    }
     
     // Route handler
     if (path === '/leads') {
       if (httpMethod === 'POST') {
-        return await handleCreateLead(JSON.parse(body));
+        return await handleCreateLead(JSON.parse(body), event.vendor);
       } else if (httpMethod === 'GET') {
-        return await handleGetLeads(queryStringParameters);
+        return await handleGetLeads(queryStringParameters, event.vendor);
       }
     } 
-    // Handle lead update
+    // Handle lead update and get single lead
     else if (path.match(/^\/leads\/[^\/]+$/)) {
+      const leadId = pathParameters.lead_id;
       if (httpMethod === 'PATCH') {
-        const leadId = pathParameters.lead_id;
-        return await handleUpdateLead(leadId, JSON.parse(body));
+        return await handleUpdateLead(leadId, JSON.parse(body), event.vendor);
+      } else if (httpMethod === 'GET') {
+        return await handleGetLead(leadId, event.vendor);
       }
     } else if (path === '/stats') {
       if (httpMethod === 'GET') {
@@ -78,8 +104,73 @@ exports.handler = async (event) => {
   }
 };
 
+// Authentication and authorization helper functions
+function doesEndpointRequireAuth(path, method) {
+  // Define which endpoints require authentication
+  // By default, POST and PATCH operations require auth, GET may not
+  if (method === 'POST' || method === 'PATCH' || method === 'PUT' || method === 'DELETE') {
+    return true;
+  }
+  
+  // Specific GET endpoints that require auth
+  if (method === 'GET') {
+    // Add specific paths that require auth even for GET requests
+    const protectedGETPaths = [
+      '/leads/sensitive',
+      '/admin'
+    ];
+    
+    return protectedGETPaths.some(protectedPath => path.startsWith(protectedPath));
+  }
+  
+  return false;
+}
+
+async function authenticateRequest(headers) {
+  // Check for API key in headers
+  const apiKey = headers['x-api-key'];
+  if (!apiKey) {
+    return { 
+      authenticated: false, 
+      message: 'API key is required' 
+    };
+  }
+  
+  try {
+    // Query the vendors table by API key
+    const result = await dynamoDB.send(
+      new ScanCommand({
+        TableName: VENDORS_TABLE,
+        FilterExpression: 'api_key = :apiKey',
+        ExpressionAttributeValues: {
+          ':apiKey': apiKey
+        }
+      })
+    );
+    
+    if (!result.Items || result.Items.length === 0) {
+      return { 
+        authenticated: false, 
+        message: 'Invalid API key' 
+      };
+    }
+    
+    // Return success with vendor info
+    return {
+      authenticated: true,
+      vendor: result.Items[0]
+    };
+  } catch (error) {
+    console.error('Authentication error:', error);
+    return { 
+      authenticated: false, 
+      message: 'Error during authentication' 
+    };
+  }
+}
+
 // Handler for POST /leads
-async function handleCreateLead(data) {
+async function handleCreateLead(data, vendor) {
   // Validation
   const validationErrors = validateLeadData(data);
   if (validationErrors.length > 0) {
@@ -198,7 +289,14 @@ async function handleCreateLead(data) {
     timestamp,
     disposition: "New",
     notes: "",
-    updated_at: timestamp
+    updated_at: timestamp,
+    checklist_data: data.checklist_data || {},
+    update_history: [{
+      timestamp,
+      action: "created",
+      disposition: "New",
+      notes: ""
+    }]
   };
   
   try {
@@ -235,9 +333,13 @@ async function handleCreateLead(data) {
 }
 
 // Handler for GET /leads
-async function handleGetLeads(queryParams) {
+async function handleGetLeads(queryParams, vendor) {
   try {
-    const vendor_code = queryParams ? queryParams.vendor_code : null;
+    // If vendor is provided, use that vendor_code
+    // Otherwise, use the query parameter vendor_code if available
+    const vendor_code = (vendor && vendor.vendor_code !== 'ADMIN') 
+      ? vendor.vendor_code 
+      : (queryParams ? queryParams.vendor_code : null);
     
     if (vendor_code) {
       // Query by vendor_code using GSI
@@ -262,7 +364,22 @@ async function handleGetLeads(queryParams) {
         body: JSON.stringify(result.Items)
       };
     } else {
-      // Get all leads
+      // Only allow admins to get all leads
+      if (vendor && vendor.vendor_code !== 'ADMIN') {
+        return {
+          statusCode: 403,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          },
+          body: JSON.stringify({
+            status: 'error',
+            message: 'You must specify vendor_code or be an admin to list all leads'
+          })
+        };
+      }
+      
+      // Get all leads for admin
       const result = await dynamoDB.send(
         new ScanCommand({
           TableName: LEADS_TABLE
@@ -783,22 +900,7 @@ function generateApiKey() {
 }
 
 // Handler for PATCH /leads/{lead_id}
-async function handleUpdateLead(leadId, data) {
-  // Validate required fields
-  if (!data.disposition) {
-    return {
-      statusCode: 400,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      },
-      body: JSON.stringify({ 
-        status: 'error', 
-        message: 'disposition is required' 
-      })
-    };
-  }
-
+async function handleUpdateLead(leadId, data, vendor) {
   // Check if lead exists
   try {
     const leadResult = await dynamoDB.send(
@@ -822,26 +924,85 @@ async function handleUpdateLead(leadId, data) {
       };
     }
 
-    // Update lead with new disposition and notes
+    // If vendor information is available, check if this vendor owns the lead
+    if (vendor && vendor.vendor_code !== 'ADMIN' && leadResult.Item.vendor_code !== vendor.vendor_code) {
+      return {
+        statusCode: 403,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({ 
+          status: 'error', 
+          message: 'You do not have permission to update this lead' 
+        })
+      };
+    }
+
+    // Update lead with new disposition, notes, and checklist data
     const updated_at = new Date().toISOString();
     
     const updateExpression = [];
     const expressionAttributeValues = {};
     const expressionAttributeNames = {};
 
-    // Always update disposition and updated_at
-    updateExpression.push('#disposition = :disposition');
+    // Always update updated_at
     updateExpression.push('#updated_at = :updated_at');
-    expressionAttributeValues[':disposition'] = data.disposition;
     expressionAttributeValues[':updated_at'] = updated_at;
-    expressionAttributeNames['#disposition'] = 'disposition';
     expressionAttributeNames['#updated_at'] = 'updated_at';
     
-    // Only update notes if provided
+    // Update disposition if provided
+    if (data.disposition !== undefined) {
+      updateExpression.push('#disposition = :disposition');
+      expressionAttributeValues[':disposition'] = data.disposition;
+      expressionAttributeNames['#disposition'] = 'disposition';
+    }
+    
+    // Update notes if provided
     if (data.notes !== undefined) {
       updateExpression.push('#notes = :notes');
       expressionAttributeValues[':notes'] = data.notes;
       expressionAttributeNames['#notes'] = 'notes';
+    }
+    
+    // Update checklist_data if provided
+    if (data.checklist_data !== undefined) {
+      updateExpression.push('#checklist_data = :checklist_data');
+      expressionAttributeValues[':checklist_data'] = data.checklist_data;
+      expressionAttributeNames['#checklist_data'] = 'checklist_data';
+    }
+    
+    // Add to update history
+    const historyEntry = {
+      timestamp: updated_at,
+      action: "updated",
+      disposition: data.disposition || leadResult.Item.disposition,
+      notes: data.notes || leadResult.Item.notes
+    };
+    
+    // If checklist data was updated, add that to the history entry
+    if (data.checklist_data) {
+      historyEntry.checklist_updated = true;
+    }
+    
+    const currentHistory = leadResult.Item.update_history || [];
+    updateExpression.push('#update_history = :update_history');
+    expressionAttributeValues[':update_history'] = [...currentHistory, historyEntry];
+    expressionAttributeNames['#update_history'] = 'update_history';
+
+    // Ensure we have something to update
+    if (updateExpression.length <= 1) {
+      return {
+        statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({ 
+          status: 'error', 
+          message: 'No valid fields to update' 
+        })
+      };
     }
 
     const params = {
@@ -876,6 +1037,72 @@ async function handleUpdateLead(leadId, data) {
         'Access-Control-Allow-Origin': '*'
       },
       body: JSON.stringify({ status: 'error', message: 'Error updating lead' })
+    };
+  }
+}
+
+// Handler for GET /leads/{lead_id}
+async function handleGetLead(leadId, vendor) {
+  try {
+    // Get the lead from DynamoDB
+    const result = await dynamoDB.send(
+      new GetCommand({
+        TableName: LEADS_TABLE,
+        Key: { lead_id: leadId }
+      })
+    );
+
+    // Check if lead exists
+    if (!result.Item) {
+      return {
+        statusCode: 404,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({ 
+          status: 'error', 
+          message: 'Lead not found' 
+        })
+      };
+    }
+
+    // If vendor information is available, check if this vendor owns the lead
+    if (vendor && vendor.vendor_code !== 'ADMIN' && result.Item.vendor_code !== vendor.vendor_code) {
+      return {
+        statusCode: 403,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({ 
+          status: 'error', 
+          message: 'You do not have permission to view this lead' 
+        })
+      };
+    }
+
+    // Return the lead data
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({
+        status: 'success',
+        lead: result.Item
+      })
+    };
+  } catch (error) {
+    console.error('Get lead error:', error);
+    return {
+      statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ status: 'error', message: 'Error retrieving lead' })
     };
   }
 } 
