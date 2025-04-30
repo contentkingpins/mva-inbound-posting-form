@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendor Management Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Additional vendor dashboard styles */
+        .vendor-form {
+            background-color: white;
+            padding: 20px;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        
+        .form-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: #4a5568;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #cbd5e0;
+            font-size: 14px;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn-secondary {
+            background-color: #a0aec0;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #718096;
+        }
+        
+        .vendor-card {
+            background-color: white;
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .vendor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+        
+        .vendor-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2d3748;
+            margin: 0;
+        }
+        
+        .vendor-code {
+            font-family: monospace;
+            background-color: #f7fafc;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .vendor-content {
+            font-size: 14px;
+        }
+        
+        .vendor-info {
+            margin-bottom: 12px;
+        }
+        
+        .info-label {
+            font-weight: 500;
+            color: #4a5568;
+            margin-right: 6px;
+        }
+        
+        .vendor-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+        }
+        
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Vendor Management</h1>
+            <div class="controls">
+                <a href="index.html" class="btn">Back to Leads Dashboard</a>
+            </div>
+        </header>
+
+        <main>
+            <section id="add-vendor">
+                <h2>Add New Vendor</h2>
+                <div class="vendor-form">
+                    <form id="vendor-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="vendor-name">Vendor Name *</label>
+                                <input type="text" id="vendor-name" required placeholder="e.g. Acme Marketing">
+                            </div>
+                            <div class="form-group">
+                                <label for="vendor-email">Contact Email</label>
+                                <input type="email" id="vendor-email" placeholder="contact@vendor.com">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="vendor-phone">Contact Phone</label>
+                                <input type="tel" id="vendor-phone" placeholder="555-123-4567">
+                            </div>
+                            <div class="form-group">
+                                <label for="vendor-website">Website</label>
+                                <input type="url" id="vendor-website" placeholder="https://vendor.com">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="vendor-api-key">API Key (Optional)</label>
+                                <input type="text" id="vendor-api-key" placeholder="Leave blank to use global API key">
+                            </div>
+                            <div class="form-group">
+                                <label for="vendor-status">Status</label>
+                                <select id="vendor-status">
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                    <option value="pending">Pending</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="btn-group">
+                            <button type="submit" class="btn">Create Vendor</button>
+                            <button type="reset" class="btn btn-secondary">Reset</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <section id="vendor-list">
+                <h2>Existing Vendors</h2>
+                <div id="vendor-cards">
+                    <!-- Vendor cards will be populated here -->
+                    <div class="loading">Loading vendors...</div>
+                </div>
+            </section>
+
+            <section id="vendor-instructions" style="display: none;">
+                <h2>API Integration Instructions</h2>
+                <div class="vendor-form">
+                    <h3 id="instructions-vendor-name">Vendor Name</h3>
+                    <p>Below are the API integration instructions for this vendor. You can copy this information and send it to the vendor.</p>
+                    <div id="instructions-content" class="vendor-content" style="white-space: pre-wrap; background: #f5f7fa; padding: 20px; border-radius: 4px; margin-top: 20px; font-family: monospace; overflow: auto;"></div>
+                    <div class="btn-group" style="margin-top: 20px;">
+                        <button id="copy-instructions" class="btn">Copy to Clipboard</button>
+                        <button id="close-instructions" class="btn btn-secondary">Close</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // Mock API service - replace with actual API calls in production
+        const apiService = {
+            // Get all vendors
+            getVendors: async function() {
+                // In a real app, this would be an API call
+                try {
+                    // Simulate API delay
+                    await new Promise(resolve => setTimeout(resolve, 800));
+                    
+                    // For demo purposes, return mock data
+                    // In production, this would be a fetch call to your API
+                    return [
+                        {
+                            vendor_code: 'ACM12345',
+                            name: 'Acme Marketing',
+                            contact_email: 'contact@acmemarketing.com',
+                            contact_phone: '555-123-4567',
+                            website: 'https://acmemarketing.com',
+                            status: 'active',
+                            created_at: '2023-04-28T10:00:00Z'
+                        },
+                        {
+                            vendor_code: 'GLO67890',
+                            name: 'Global Leads',
+                            contact_email: 'sales@globalleads.com',
+                            contact_phone: '555-987-6543',
+                            website: 'https://globalleads.com',
+                            status: 'active',
+                            created_at: '2023-04-27T15:30:00Z'
+                        }
+                    ];
+                } catch (error) {
+                    console.error('Error fetching vendors:', error);
+                    throw error;
+                }
+            },
+            
+            // Create new vendor
+            createVendor: async function(vendorData) {
+                // In a real app, this would be an API call
+                try {
+                    // Simulate API delay
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    // Generate a mock vendor code
+                    const prefix = vendorData.name
+                      .replace(/[^a-zA-Z0-9]/g, '')
+                      .substring(0, 3)
+                      .toUpperCase();
+                    
+                    const randomString = Math.random().toString(36).substring(2, 7).toUpperCase();
+                    
+                    // Mock response
+                    return {
+                        ...vendorData,
+                        vendor_code: `${prefix}${randomString}`,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    };
+                } catch (error) {
+                    console.error('Error creating vendor:', error);
+                    throw error;
+                }
+            },
+            
+            // Generate instructions
+            generateInstructions: function(vendor) {
+                // API endpoint
+                const apiUrl = 'https://nv01uveape.execute-api.us-east-1.amazonaws.com/prod/leads';
+                
+                return `# API Integration Instructions for ${vendor.name}
+
+## Overview
+Use our Lead API to submit lead information. Each lead submission must include your unique vendor code: **${vendor.vendor_code}**
+
+## API Endpoint
+POST ${apiUrl}
+
+## Headers
+- Content-Type: application/json
+- Accept: application/json
+${vendor.api_key ? `- x-api-key: ${vendor.api_key}` : ''}
+
+## Request Body
+
+\`\`\`json
+{
+  "first_name": "Customer First Name",
+  "last_name": "Customer Last Name",
+  "phone_home": "1234567890",
+  "lp_caller_id": "1234567890", 
+  "email": "customer@example.com",
+  "vendor_code": "${vendor.vendor_code}",
+  "zip_code": "12345",
+  "state": "CA"
+}
+\`\`\`
+
+## Required Fields
+- first_name (string)
+- last_name (string)
+- phone_home (string, exactly 10 digits)
+- lp_caller_id (string, must match phone_home)
+- email (string, valid email format)
+- vendor_code (string, use your assigned code above)
+
+## Response Format
+
+Success Response (200):
+\`\`\`json
+{
+  "status": "success",
+  "lead_id": "uuid-string",
+  "message": "Lead received"
+}
+\`\`\``;
+            }
+        };
+
+        // DOM Elements
+        const vendorForm = document.getElementById('vendor-form');
+        const vendorCardsContainer = document.getElementById('vendor-cards');
+        const instructionsSection = document.getElementById('vendor-instructions');
+        const instructionsVendorName = document.getElementById('instructions-vendor-name');
+        const instructionsContent = document.getElementById('instructions-content');
+        const copyInstructionsBtn = document.getElementById('copy-instructions');
+        const closeInstructionsBtn = document.getElementById('close-instructions');
+
+        // Load vendors on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadVendors();
+            
+            // Set up event listeners
+            vendorForm.addEventListener('submit', handleVendorFormSubmit);
+            copyInstructionsBtn.addEventListener('click', copyInstructions);
+            closeInstructionsBtn.addEventListener('click', () => {
+                instructionsSection.style.display = 'none';
+            });
+        });
+
+        // Load vendors from API
+        async function loadVendors() {
+            try {
+                const vendors = await apiService.getVendors();
+                renderVendorCards(vendors);
+            } catch (error) {
+                vendorCardsContainer.innerHTML = `
+                    <div class="error">
+                        Error loading vendors. Please try again.
+                    </div>
+                `;
+            }
+        }
+
+        // Render vendor cards
+        function renderVendorCards(vendors) {
+            if (vendors.length === 0) {
+                vendorCardsContainer.innerHTML = `
+                    <div class="no-data">
+                        No vendors found. Create a vendor using the form above.
+                    </div>
+                `;
+                return;
+            }
+            
+            vendorCardsContainer.innerHTML = vendors.map(vendor => `
+                <div class="vendor-card" data-vendor-code="${vendor.vendor_code}">
+                    <div class="vendor-header">
+                        <h3 class="vendor-title">${escapeHtml(vendor.name)}</h3>
+                        <span class="vendor-code">${escapeHtml(vendor.vendor_code)}</span>
+                    </div>
+                    <div class="vendor-content">
+                        <div class="vendor-info">
+                            <span class="info-label">Email:</span>
+                            ${escapeHtml(vendor.contact_email || 'N/A')}
+                        </div>
+                        <div class="vendor-info">
+                            <span class="info-label">Phone:</span>
+                            ${escapeHtml(vendor.contact_phone || 'N/A')}
+                        </div>
+                        <div class="vendor-info">
+                            <span class="info-label">Website:</span>
+                            ${vendor.website ? `<a href="${escapeHtml(vendor.website)}" target="_blank">${escapeHtml(vendor.website)}</a>` : 'N/A'}
+                        </div>
+                        <div class="vendor-info">
+                            <span class="info-label">Status:</span>
+                            <span class="status-badge status-${vendor.status}">${vendor.status.charAt(0).toUpperCase() + vendor.status.slice(1)}</span>
+                        </div>
+                        <div class="vendor-info">
+                            <span class="info-label">Created:</span>
+                            ${formatDate(vendor.created_at)}
+                        </div>
+                    </div>
+                    <div class="vendor-actions">
+                        <button class="btn btn-sm" onclick="showInstructions(${JSON.stringify(vendor).replace(/"/g, '&quot;')})">View API Instructions</button>
+                        <button class="btn btn-sm btn-secondary" onclick="viewVendorLeads('${vendor.vendor_code}')">View Leads</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Handle vendor form submission
+        async function handleVendorFormSubmit(event) {
+            event.preventDefault();
+            
+            const vendorData = {
+                name: document.getElementById('vendor-name').value,
+                contact_email: document.getElementById('vendor-email').value,
+                contact_phone: document.getElementById('vendor-phone').value,
+                website: document.getElementById('vendor-website').value,
+                api_key: document.getElementById('vendor-api-key').value || null,
+                status: document.getElementById('vendor-status').value
+            };
+            
+            try {
+                const newVendor = await apiService.createVendor(vendorData);
+                
+                // Add to vendor list
+                const tempContainer = document.createElement('div');
+                renderVendorCards([newVendor]);
+                
+                // Get HTML and add to container
+                const newCard = vendorCardsContainer.querySelector('.no-data');
+                if (newCard) {
+                    vendorCardsContainer.innerHTML = tempContainer.innerHTML;
+                } else {
+                    vendorCardsContainer.innerHTML = tempContainer.innerHTML + vendorCardsContainer.innerHTML;
+                }
+                
+                // Clear form
+                vendorForm.reset();
+                
+                // Show instructions
+                showInstructions(newVendor);
+                
+            } catch (error) {
+                alert('Error creating vendor. Please try again.');
+            }
+        }
+
+        // Show API instructions for a vendor
+        function showInstructions(vendor) {
+            instructionsVendorName.textContent = vendor.name;
+            instructionsContent.textContent = apiService.generateInstructions(vendor);
+            instructionsSection.style.display = 'block';
+            
+            // Scroll to instructions
+            instructionsSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Copy instructions to clipboard
+        function copyInstructions() {
+            const text = instructionsContent.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = copyInstructionsBtn.textContent;
+                copyInstructionsBtn.textContent = 'Copied!';
+                setTimeout(() => {
+                    copyInstructionsBtn.textContent = originalText;
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+        }
+
+        // View leads for a specific vendor
+        function viewVendorLeads(vendorCode) {
+            window.location.href = `index.html?vendor_code=${vendorCode}`;
+        }
+
+        // Format date
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            
+            try {
+                const date = new Date(dateString);
+                
+                if (isNaN(date)) {
+                    return dateString;
+                }
+                
+                return date.toLocaleDateString(undefined, {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                });
+            } catch (e) {
+                return dateString;
+            }
+        }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            if (text === null || text === undefined) return '';
+            
+            return String(text)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+</html> 
