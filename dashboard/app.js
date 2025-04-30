@@ -1,5 +1,6 @@
 // Configuration
 const API_ENDPOINT = 'https://nv01uveape.execute-api.us-east-1.amazonaws.com/prod/leads';
+const EXPORT_ENDPOINT = 'https://nv01uveape.execute-api.us-east-1.amazonaws.com/prod/export';
 const REFRESH_INTERVAL = 10000; // 10 seconds
 
 // DOM Elements
@@ -12,11 +13,22 @@ const loadingEl = document.getElementById('loading');
 const errorEl = document.getElementById('error');
 const noDataEl = document.getElementById('no-data');
 
+// Export Modal Elements
+const exportBtn = document.getElementById('export-btn');
+const exportModalOverlay = document.getElementById('export-modal-overlay');
+const exportModalClose = document.getElementById('export-modal-close');
+const exportVendorSelect = document.getElementById('export-vendor');
+const exportStartDate = document.getElementById('export-start-date');
+const exportEndDate = document.getElementById('export-end-date');
+const exportCancelBtn = document.getElementById('export-cancel');
+const exportDownloadBtn = document.getElementById('export-download');
+
 // State
 let leads = [];
 let vendorCodes = new Set();
 let refreshTimer = null;
 let expandedLeadId = null;
+let allLeads = []; // For export functionality - store all leads
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -26,6 +38,20 @@ document.addEventListener('DOMContentLoaded', () => {
     refreshBtn.addEventListener('click', fetchLeads);
     vendorFilter.addEventListener('change', filterLeads);
     autoRefreshCb.addEventListener('change', toggleAutoRefresh);
+    
+    // Export Modal Listeners
+    exportBtn.addEventListener('click', openExportModal);
+    exportModalClose.addEventListener('click', closeExportModal);
+    exportCancelBtn.addEventListener('click', closeExportModal);
+    exportDownloadBtn.addEventListener('click', exportLeadsToCsv);
+    
+    // Set default date values for export
+    const today = new Date();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(today.getDate() - 30);
+    
+    exportEndDate.valueAsDate = today;
+    exportStartDate.valueAsDate = thirtyDaysAgo;
 });
 
 // Toggle auto-refresh functionality
@@ -70,6 +96,13 @@ async function fetchLeads() {
         
         leads = await response.json();
         
+        // Store all leads for export functionality
+        // In a real app, this might not be efficient for large datasets
+        // You might want to fetch data specifically for export instead
+        if (!vendorCode) {
+            allLeads = [...leads];
+        }
+        
         // Update vendor dropdown options
         updateVendorOptions();
         
@@ -82,6 +115,205 @@ async function fetchLeads() {
     } finally {
         showLoading(false);
     }
+}
+
+// Open export modal
+function openExportModal() {
+    // Populate vendor dropdown with all available vendors
+    populateExportVendorSelect();
+    
+    // Show the modal
+    exportModalOverlay.style.display = 'flex';
+}
+
+// Close export modal
+function closeExportModal() {
+    exportModalOverlay.style.display = 'none';
+}
+
+// Populate the export vendor select dropdown
+function populateExportVendorSelect() {
+    // Clear existing options except the first one
+    while (exportVendorSelect.options.length > 1) {
+        exportVendorSelect.remove(1);
+    }
+    
+    // Add vendor options
+    Array.from(vendorCodes).sort().forEach(code => {
+        const option = document.createElement('option');
+        option.value = code;
+        option.textContent = code;
+        exportVendorSelect.appendChild(option);
+    });
+}
+
+// Export leads to CSV file
+async function exportLeadsToCsv() {
+    try {
+        showLoading(true);
+        
+        // Get filter values
+        const vendorFilter = exportVendorSelect.value;
+        const startDate = exportStartDate.value ? new Date(exportStartDate.value) : null;
+        const endDate = exportEndDate.value ? new Date(exportEndDate.value) : null;
+        
+        // Set end date to end of day
+        if (endDate) {
+            endDate.setHours(23, 59, 59, 999);
+        }
+        
+        // Build export URL with query parameters
+        let url = EXPORT_ENDPOINT;
+        const queryParams = [];
+        
+        if (vendorFilter) {
+            queryParams.push(`vendor_code=${encodeURIComponent(vendorFilter)}`);
+        }
+        
+        if (startDate) {
+            queryParams.push(`start_date=${encodeURIComponent(startDate.toISOString())}`);
+        }
+        
+        if (endDate) {
+            queryParams.push(`end_date=${encodeURIComponent(endDate.toISOString())}`);
+        }
+        
+        if (queryParams.length > 0) {
+            url += '?' + queryParams.join('&');
+        }
+        
+        // Fetch the leads for export
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            mode: 'cors'
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error ${response.status}`);
+        }
+        
+        const filteredLeads = await response.json();
+        
+        // Check if we have leads to export
+        if (filteredLeads.length === 0) {
+            alert('No leads match the selected criteria.');
+            return;
+        }
+        
+        // Generate CSV content
+        const csvContent = generateCsvContent(filteredLeads);
+        
+        // Create a download link
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        
+        // Create file name with timestamp and filters
+        let fileName = 'leads_export';
+        
+        if (vendorFilter) {
+            fileName += `_${vendorFilter}`;
+        }
+        
+        if (startDate) {
+            fileName += `_from_${startDate.toISOString().split('T')[0]}`;
+        }
+        
+        if (endDate) {
+            fileName += `_to_${endDate.toISOString().split('T')[0]}`;
+        }
+        
+        fileName += '.csv';
+        
+        // Set up download link
+        link.setAttribute('href', blobUrl);
+        link.setAttribute('download', fileName);
+        link.style.display = 'none';
+        
+        // Add to DOM, click and remove
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Revoke the blob URL to free memory
+        setTimeout(() => {
+            URL.revokeObjectURL(blobUrl);
+        }, 100);
+        
+        // Close the modal
+        closeExportModal();
+        
+    } catch (error) {
+        console.error('Error exporting leads:', error);
+        alert('Failed to export leads. Please try again.');
+    } finally {
+        showLoading(false);
+    }
+}
+
+// Generate CSV content from leads data
+function generateCsvContent(leadsData) {
+    if (!leadsData || leadsData.length === 0) {
+        return '';
+    }
+    
+    // Define CSV headers - customize these based on your needs
+    const headers = [
+        'Lead ID',
+        'First Name',
+        'Last Name',
+        'Phone',
+        'Email',
+        'Zip Code',
+        'State',
+        'Vendor Code',
+        'Timestamp'
+    ];
+    
+    // Create header row
+    let csvContent = headers.join(',') + '\n';
+    
+    // Add data rows
+    leadsData.forEach(lead => {
+        const row = [
+            escapeCsvValue(lead.lead_id || ''),
+            escapeCsvValue(lead.first_name || ''),
+            escapeCsvValue(lead.last_name || ''),
+            escapeCsvValue(lead.phone_home || ''),
+            escapeCsvValue(lead.email || ''),
+            escapeCsvValue(lead.zip_code || ''),
+            escapeCsvValue(lead.state || ''),
+            escapeCsvValue(lead.vendor_code || ''),
+            escapeCsvValue(lead.timestamp || '')
+        ];
+        
+        csvContent += row.join(',') + '\n';
+    });
+    
+    return csvContent;
+}
+
+// Escape CSV value to handle commas, quotes, etc.
+function escapeCsvValue(value) {
+    if (value === null || value === undefined) {
+        return '';
+    }
+    
+    value = String(value);
+    
+    // If the value contains commas, quotes, or newlines, wrap it in quotes
+    if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+        // Double up any quotes
+        value = value.replace(/"/g, '""');
+        // Wrap in quotes
+        value = `"${value}"`;
+    }
+    
+    return value;
 }
 
 // Update vendor filter options

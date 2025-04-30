@@ -21,6 +21,10 @@ exports.handler = async (event) => {
       if (httpMethod === 'GET') {
         return await handleGetLeadStats(queryStringParameters);
       }
+    } else if (path === '/export') {
+      if (httpMethod === 'GET') {
+        return await handleExportLeads(queryStringParameters);
+      }
     }
     
     // Return 404 for unsupported routes
@@ -463,6 +467,100 @@ async function handleGetLeadStats(queryParams) {
         'Access-Control-Allow-Origin': '*'
       },
       body: JSON.stringify({ status: 'error', message: 'Error retrieving lead statistics' })
+    };
+  }
+}
+
+// Handler for GET /export - Export leads with filtering
+async function handleExportLeads(queryParams) {
+  try {
+    const vendor_code = queryParams?.vendor_code || null;
+    const start_date = queryParams?.start_date || null;
+    const end_date = queryParams?.end_date || null;
+    
+    // Build filter expression parts
+    let filterExpressionParts = [];
+    let expressionAttributeValues = {};
+    
+    // Start with vendor code filter if provided
+    if (vendor_code) {
+      // Query using GSI if we're only filtering by vendor
+      if (!start_date && !end_date) {
+        const params = {
+          TableName: LEADS_TABLE,
+          IndexName: 'VendorTimestampIndex',
+          KeyConditionExpression: 'vendor_code = :vendor_code',
+          ExpressionAttributeValues: {
+            ':vendor_code': vendor_code
+          }
+        };
+        
+        const result = await dynamoDB.query(params).promise();
+        return {
+          statusCode: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          },
+          body: JSON.stringify(result.Items)
+        };
+      }
+      
+      // Add to filter parts for scan operation
+      filterExpressionParts.push('vendor_code = :vendor_code');
+      expressionAttributeValues[':vendor_code'] = vendor_code;
+    }
+    
+    // Add date range filters if provided
+    if (start_date && end_date) {
+      filterExpressionParts.push('timestamp BETWEEN :start_date AND :end_date');
+      expressionAttributeValues[':start_date'] = start_date;
+      expressionAttributeValues[':end_date'] = end_date;
+    } else if (start_date) {
+      filterExpressionParts.push('timestamp >= :start_date');
+      expressionAttributeValues[':start_date'] = start_date;
+    } else if (end_date) {
+      filterExpressionParts.push('timestamp <= :end_date');
+      expressionAttributeValues[':end_date'] = end_date;
+    }
+    
+    // Build params for the query
+    const params = {
+      TableName: LEADS_TABLE
+    };
+    
+    // Add filter expression if we have any filters
+    if (filterExpressionParts.length > 0) {
+      params.FilterExpression = filterExpressionParts.join(' AND ');
+      params.ExpressionAttributeValues = expressionAttributeValues;
+    }
+    
+    // Execute the scan operation
+    const result = await dynamoDB.scan(params).promise();
+    
+    // Sort by timestamp (newest first)
+    const sortedItems = result.Items.sort((a, b) => 
+      new Date(b.timestamp) - new Date(a.timestamp)
+    );
+    
+    // Return the results
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify(sortedItems)
+    };
+  } catch (error) {
+    console.error('Export leads error:', error);
+    return {
+      statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ status: 'error', message: 'Error exporting leads' })
     };
   }
 }

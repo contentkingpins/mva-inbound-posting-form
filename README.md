@@ -201,3 +201,54 @@ Example response for a duplicate submission:
   "message": "Duplicate lead detected. This lead has already been submitted."
 }
 ```
+
+# Lead Export Functionality
+
+The system now includes a CSV export feature for leads that allows internal teams to download lead data for reporting and analysis.
+
+## Features
+
+- Export leads to CSV file from the dashboard
+- Filter exports by date range and/or vendor code
+- Dynamically generated CSV file with descriptive filename
+- Custom backend endpoint for efficient data retrieval
+
+## Usage
+
+1. Click the "Export CSV" button in the dashboard
+2. Select filter options:
+   - Vendor (optional): Filter leads by specific vendor
+   - Date Range (optional): Specify start and end dates
+3. Click "Download CSV" to generate and download the file
+
+## API Endpoint
+
+### GET /export
+
+Retrieves leads with optional filtering for export purposes.
+
+**Query Parameters:**
+- `vendor_code` (optional): Filter leads by vendor code
+- `start_date` (optional): Filter leads after this date (ISO format)
+- `end_date` (optional): Filter leads before this date (ISO format)
+
+**Response (200):**
+```json
+[
+  {
+    "lead_id": "uuid-string",
+    "first_name": "John",
+    "last_name": "Doe",
+    "zip_code": "12345",
+    "state": "CA",
+    "phone_home": "1234567890",
+    "lp_caller_id": "1234567890",
+    "email": "john.doe@example.com",
+    "vendor_code": "VENDOR1",
+    "timestamp": "2023-05-10T15:30:00.000Z"
+  },
+  ...
+]
+```
+
+Results are sorted by timestamp in descending order (newest first).
