@@ -430,7 +430,9 @@ Success Response (200):
 
         // Render vendor cards
         function renderVendorCards(vendors) {
-            if (vendors.length === 0) {
+            console.log('Rendering vendors:', vendors);
+            
+            if (!vendors || vendors.length === 0) {
                 vendorCardsContainer.innerHTML = `
                     <div class="no-data">
                         No vendors found. Create a vendor using the form above.
@@ -440,56 +442,91 @@ Success Response (200):
             }
             
             vendorCardsContainer.innerHTML = vendors.map(vendor => {
-                // Default status to 'active' if not present
-                const status = vendor.status || 'active';
-                
-                return `
-                <div class="vendor-card" data-vendor-code="${vendor.vendor_code}">
-                    <div class="vendor-header">
-                        <h3 class="vendor-title">${escapeHtml(vendor.name)}</h3>
-                        <span class="vendor-code">${escapeHtml(vendor.vendor_code)}</span>
-                    </div>
-                    <div class="vendor-content">
-                        <div class="vendor-info">
-                            <span class="info-label">Email:</span>
-                            ${escapeHtml(vendor.contact_email || 'N/A')}
-                        </div>
-                        <div class="vendor-info">
-                            <span class="info-label">Phone:</span>
-                            ${escapeHtml(vendor.contact_phone || 'N/A')}
-                        </div>
-                        <div class="vendor-info">
-                            <span class="info-label">Website:</span>
-                            ${vendor.website ? `<a href="${escapeHtml(vendor.website)}" target="_blank">${escapeHtml(vendor.website)}</a>` : 'N/A'}
-                        </div>
-                        <div class="vendor-info">
-                            <span class="info-label">Status:</span>
-                            <span class="badge badge-${status}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>
-                        </div>
-                        <div class="vendor-info">
-                            <span class="info-label">Created:</span>
-                            ${formatDate(vendor.created_at)}
-                        </div>
-                        
-                        <div class="api-key">
-                            <div>
-                                <div class="info-label">API Key</div>
-                                <div class="api-key-hidden" id="api-key-${vendor.vendor_code}">
-                                    ${vendor.api_key.substring(0, 4)}...${vendor.api_key.substring(vendor.api_key.length - 4)}
+                try {
+                    // Skip vendors without required data
+                    if (!vendor || !vendor.vendor_code) {
+                        console.error('Invalid vendor data:', vendor);
+                        return '';
+                    }
+                    
+                    // Default status to 'active' if not present
+                    const status = vendor.status || 'active';
+                    
+                    // Handle missing API key
+                    let apiKeyDisplay = '';
+                    if (vendor.api_key) {
+                        apiKeyDisplay = `
+                            <div class="api-key">
+                                <div>
+                                    <div class="info-label">API Key</div>
+                                    <div class="api-key-hidden" id="api-key-${vendor.vendor_code}">
+                                        ${vendor.api_key.substring(0, 4)}...${vendor.api_key.substring(vendor.api_key.length - 4)}
+                                    </div>
+                                </div>
+                                <div class="api-key-actions">
+                                    <button class="btn btn-sm" onclick="toggleApiKeyVisibility('${vendor.vendor_code}', '${vendor.api_key}')">Show/Hide</button>
+                                    <button class="btn btn-sm btn-secondary" onclick="regenerateApiKey('${vendor.vendor_code}')">Regenerate</button>
                                 </div>
                             </div>
-                            <div class="api-key-actions">
-                                <button class="btn btn-sm" onclick="toggleApiKeyVisibility('${vendor.vendor_code}', '${vendor.api_key}')">Show/Hide</button>
-                                <button class="btn btn-sm btn-secondary" onclick="regenerateApiKey('${vendor.vendor_code}')">Regenerate</button>
+                        `;
+                    } else {
+                        apiKeyDisplay = `
+                            <div class="api-key">
+                                <div>
+                                    <div class="info-label">API Key</div>
+                                    <div>API key not available</div>
+                                </div>
+                                <div class="api-key-actions">
+                                    <button class="btn btn-sm btn-secondary" onclick="regenerateApiKey('${vendor.vendor_code}')">Generate Key</button>
+                                </div>
                             </div>
+                        `;
+                    }
+                    
+                    // Generate the vendor card HTML
+                    return `
+                    <div class="vendor-card" data-vendor-code="${vendor.vendor_code}">
+                        <div class="vendor-header">
+                            <h3 class="vendor-title">${escapeHtml(vendor.name || 'Unnamed Vendor')}</h3>
+                            <span class="vendor-code">${escapeHtml(vendor.vendor_code)}</span>
+                        </div>
+                        <div class="vendor-content">
+                            <div class="vendor-info">
+                                <span class="info-label">Email:</span>
+                                ${escapeHtml(vendor.contact_email || 'N/A')}
+                            </div>
+                            <div class="vendor-info">
+                                <span class="info-label">Phone:</span>
+                                ${escapeHtml(vendor.contact_phone || 'N/A')}
+                            </div>
+                            <div class="vendor-info">
+                                <span class="info-label">Website:</span>
+                                ${vendor.website ? `<a href="${escapeHtml(vendor.website)}" target="_blank">${escapeHtml(vendor.website)}</a>` : 'N/A'}
+                            </div>
+                            <div class="vendor-info">
+                                <span class="info-label">Status:</span>
+                                <span class="badge badge-${status}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>
+                            </div>
+                            <div class="vendor-info">
+                                <span class="info-label">Created:</span>
+                                ${formatDate(vendor.created_at)}
+                            </div>
+                            
+                            ${apiKeyDisplay}
+                        </div>
+                        <div class="vendor-actions">
+                            ${vendor.api_key ? 
+                                `<button class="btn btn-sm" onclick="showInstructions(${JSON.stringify(vendor).replace(/"/g, '&quot;')})">View API Instructions</button>` :
+                                `<button class="btn btn-sm" disabled>Generate Key First</button>`
+                            }
+                            <button class="btn btn-sm btn-secondary" onclick="viewVendorLeads('${vendor.vendor_code}')">View Leads</button>
                         </div>
                     </div>
-                    <div class="vendor-actions">
-                        <button class="btn btn-sm" onclick="showInstructions(${JSON.stringify(vendor).replace(/"/g, '&quot;')})">View API Instructions</button>
-                        <button class="btn btn-sm btn-secondary" onclick="viewVendorLeads('${vendor.vendor_code}')">View Leads</button>
-                    </div>
-                </div>
-            `;
+                `;
+                } catch (error) {
+                    console.error('Error rendering vendor card:', error, vendor);
+                    return '';
+                }
             }).join('');
         }
 
