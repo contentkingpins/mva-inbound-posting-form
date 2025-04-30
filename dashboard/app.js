@@ -562,10 +562,6 @@ function addDetailRow(lead) {
                         <input type="radio" name="deadline-${lead.lead_id}" value="no" ${lead.deadline_60_days === 'no' ? 'checked' : ''}>
                         No
                     </label>
-                    <label class="yes-no-label">
-                        <input type="radio" name="deadline-${lead.lead_id}" value="" ${lead.deadline_60_days === undefined || lead.deadline_60_days === null || lead.deadline_60_days === '' ? 'checked' : ''}>
-                        Not Specified
-                    </label>
                 </div>
             </div>
             
@@ -579,10 +575,6 @@ function addDetailRow(lead) {
                     <label class="yes-no-label">
                         <input type="radio" name="at-fault-${lead.lead_id}" value="no" ${lead.caller_at_fault === 'no' ? 'checked' : ''}>
                         No
-                    </label>
-                    <label class="yes-no-label">
-                        <input type="radio" name="at-fault-${lead.lead_id}" value="" ${lead.caller_at_fault === undefined || lead.caller_at_fault === null || lead.caller_at_fault === '' ? 'checked' : ''}>
-                        Not Specified
                     </label>
                 </div>
             </div>
@@ -598,10 +590,6 @@ function addDetailRow(lead) {
                         <input type="radio" name="has-attorney-${lead.lead_id}" value="no" ${lead.has_attorney === 'no' ? 'checked' : ''}>
                         No
                     </label>
-                    <label class="yes-no-label">
-                        <input type="radio" name="has-attorney-${lead.lead_id}" value="" ${lead.has_attorney === undefined || lead.has_attorney === null || lead.has_attorney === '' ? 'checked' : ''}>
-                        Not Specified
-                    </label>
                 </div>
             </div>
             
@@ -616,10 +604,6 @@ function addDetailRow(lead) {
                         <input type="radio" name="injured-${lead.lead_id}" value="no" ${lead.was_injured === 'no' ? 'checked' : ''}>
                         No
                     </label>
-                    <label class="yes-no-label">
-                        <input type="radio" name="injured-${lead.lead_id}" value="" ${lead.was_injured === undefined || lead.was_injured === null || lead.was_injured === '' ? 'checked' : ''}>
-                        Not Specified
-                    </label>
                 </div>
             </div>
             
@@ -633,10 +617,6 @@ function addDetailRow(lead) {
                     <label class="yes-no-label">
                         <input type="radio" name="medical-30-days-${lead.lead_id}" value="no" ${lead.medical_within_30_days === 'no' ? 'checked' : ''}>
                         No
-                    </label>
-                    <label class="yes-no-label">
-                        <input type="radio" name="medical-30-days-${lead.lead_id}" value="" ${lead.medical_within_30_days === undefined || lead.medical_within_30_days === null || lead.medical_within_30_days === '' ? 'checked' : ''}>
-                        Not Specified
                     </label>
                 </div>
             </div>
@@ -670,10 +650,6 @@ function addDetailRow(lead) {
                         <input type="radio" name="commercial-vehicle-${lead.lead_id}" value="no" ${lead.is_commercial_vehicle === 'no' ? 'checked' : ''}>
                         No
                     </label>
-                    <label class="yes-no-label">
-                        <input type="radio" name="commercial-vehicle-${lead.lead_id}" value="" ${lead.is_commercial_vehicle === undefined || lead.is_commercial_vehicle === null || lead.is_commercial_vehicle === '' ? 'checked' : ''}>
-                        Not Specified
-                    </label>
                 </div>
             </div>
             
@@ -688,10 +664,6 @@ function addDetailRow(lead) {
                         <input type="radio" name="um-coverage-${lead.lead_id}" value="no" ${lead.has_um_coverage === 'no' ? 'checked' : ''}>
                         No
                     </label>
-                    <label class="yes-no-label">
-                        <input type="radio" name="um-coverage-${lead.lead_id}" value="" ${lead.has_um_coverage === undefined || lead.has_um_coverage === null || lead.has_um_coverage === '' ? 'checked' : ''}>
-                        Not Specified
-                    </label>
                 </div>
             </div>
             
@@ -705,10 +677,6 @@ function addDetailRow(lead) {
                     <label class="yes-no-label">
                         <input type="radio" name="has-proof-${lead.lead_id}" value="no" ${lead.has_commercial_proof === 'no' ? 'checked' : ''}>
                         No
-                    </label>
-                    <label class="yes-no-label">
-                        <input type="radio" name="has-proof-${lead.lead_id}" value="" ${lead.has_commercial_proof === undefined || lead.has_commercial_proof === null || lead.has_commercial_proof === '' ? 'checked' : ''}>
-                        Not Specified
                     </label>
                 </div>
             </div>
