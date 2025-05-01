@@ -104,8 +104,8 @@
                         <!-- Vendor options will be populated by JavaScript -->
                     </select>
                 </div>
-                <div class="search-group">
-                    <input type="text" id="lead-search" placeholder="Search by name, email, phone, location..." autocomplete="off">
+                <div class="search-group" style="display: flex !important; visibility: visible !important; opacity: 1 !important; border: 2px solid #4299e1 !important;">
+                    <input type="text" id="lead-search" placeholder="Search by name, email, phone, location..." autocomplete="off" style="display: block !important; visibility: visible !important;">
                 </div>
                 <button id="refresh-btn" class="btn">Refresh Data</button>
                 <div class="auto-refresh">
@@ -181,5 +181,38 @@
     <script src="load_mock_data.js"></script>
     <!-- Main application script -->
     <script src="app.js"></script>
+    
+    <!-- Script to ensure search bar visibility -->
+    <script>
+        // Make sure search bar is visible on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            // Force search bar visibility
+            var searchGroup = document.querySelector('.search-group');
+            if (searchGroup) {
+                searchGroup.style.display = 'flex';
+                searchGroup.style.visibility = 'visible';
+                searchGroup.style.opacity = '1';
+                searchGroup.style.border = '2px solid #4299e1';
+                
+                // Add the search icon if it's not there
+                if (!searchGroup.querySelector('.search-icon')) {
+                    var searchIcon = document.createElement('span');
+                    searchIcon.className = 'search-icon';
+                    searchIcon.textContent = '🔍';
+                    searchIcon.style.marginRight = '8px';
+                    searchIcon.style.color = '#4299e1';
+                    searchGroup.insertBefore(searchIcon, searchGroup.firstChild);
+                }
+                
+                // Make sure the input is visible
+                var searchInput = document.getElementById('lead-search');
+                if (searchInput) {
+                    searchInput.style.display = 'block';
+                    searchInput.style.visibility = 'visible';
+                    searchInput.style.width = '100%';
+                }
+            }
+        });
+    </script>
 </body>
 </html> 
