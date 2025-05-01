@@ -440,8 +440,17 @@ function renderLeads() {
                 </div>
             </td>
             <td>${escapeHtml(lead.accident_date || 'Not specified')}</td>
-            <td>
-                <span class="disposition-tag ${dispositionClass}">${escapeHtml(disposition)}</span>
+            <td class="disposition-cell">
+                <div class="disposition-dropdown-container">
+                    <select class="disposition-dropdown" data-lead-id="${lead.lead_id}">
+                        <option value="New" ${disposition === 'New' ? 'selected' : ''}>New</option>
+                        <option value="Retained for Firm" ${disposition === 'Retained for Firm' ? 'selected' : ''}>Retained for Firm</option>
+                        <option value="Docs Sent" ${disposition === 'Docs Sent' ? 'selected' : ''}>Docs Sent</option>
+                        <option value="Awaiting Proof of Claim" ${disposition === 'Awaiting Proof of Claim' ? 'selected' : ''}>Awaiting Proof of Claim</option>
+                        <option value="Not Interested" ${disposition === 'Not Interested' ? 'selected' : ''}>Not Interested</option>
+                        <option value="Not Qualified Lead" ${disposition === 'Not Qualified Lead' ? 'selected' : ''}>Not Qualified Lead</option>
+                    </select>
+                </div>
             </td>
             <td>${escapeHtml(getLocationDisplay(lead) || '')}</td>
             <td>${escapeHtml(lead.vendor_code || '')}</td>
@@ -449,7 +458,12 @@ function renderLeads() {
         `;
         
         // Add click handler
-        row.addEventListener('click', () => toggleLeadDetails(lead));
+        row.addEventListener('click', (e) => {
+            // Don't toggle lead details if clicking on the disposition dropdown
+            if (!e.target.closest('.disposition-dropdown-container')) {
+                toggleLeadDetails(lead);
+            }
+        });
         
         leadsBody.appendChild(row);
         
@@ -457,6 +471,23 @@ function renderLeads() {
         if (lead.lead_id === expandedLeadId) {
             addDetailRow(lead);
         }
+    });
+    
+    // Add event listeners for disposition dropdowns
+    document.querySelectorAll('.disposition-dropdown').forEach(dropdown => {
+        // Set initial data-value for styling
+        dropdown.setAttribute('data-value', dropdown.value);
+        
+        dropdown.addEventListener('change', (e) => {
+            e.stopPropagation();
+            const leadId = e.target.dataset.leadId;
+            const newDisposition = e.target.value;
+            
+            // Update the data-value attribute for styling
+            e.target.setAttribute('data-value', newDisposition);
+            
+            updateLeadData(leadId, { disposition: newDisposition });
+        });
     });
 }
 

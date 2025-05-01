@@ -437,4 +437,88 @@ textarea {
     background-color: #fed7d7;
     color: #c53030;
     border-left: 4px solid #e53e3e;
+}
+
+/* Disposition dropdown in main table */
+.disposition-cell {
+    min-width: 160px;
+}
+
+.disposition-dropdown-container {
+    position: relative;
+    width: 100%;
+}
+
+.disposition-dropdown {
+    width: 100%;
+    padding: 5px 8px;
+    border-radius: 4px;
+    border: 1px solid #e2e8f0;
+    background-color: white;
+    font-size: 13px;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 16px;
+    padding-right: 30px;
+}
+
+/* Add color indicators to the dropdown based on selected value */
+.disposition-dropdown option[value="New"] {
+    background-color: #e2e8f0;
+    color: #4a5568;
+}
+
+.disposition-dropdown option[value="Retained for Firm"] {
+    background-color: #c6f6d5;
+    color: #276749;
+}
+
+.disposition-dropdown option[value="Docs Sent"] {
+    background-color: #bee3f8;
+    color: #2b6cb0;
+}
+
+.disposition-dropdown option[value="Awaiting Proof of Claim"] {
+    background-color: #feebc8;
+    color: #c05621;
+}
+
+.disposition-dropdown option[value="Not Interested"] {
+    background-color: #fed7d7;
+    color: #c53030;
+}
+
+.disposition-dropdown option[value="Not Qualified Lead"] {
+    background-color: #e2e8f0;
+    color: #718096;
+}
+
+/* Add colored border to the dropdown based on selected value */
+.disposition-dropdown[data-value="New"] {
+    border-left: 3px solid #a0aec0;
+}
+
+.disposition-dropdown[data-value="Retained for Firm"] {
+    border-left: 3px solid #48bb78;
+}
+
+.disposition-dropdown[data-value="Docs Sent"] {
+    border-left: 3px solid #4299e1;
+}
+
+.disposition-dropdown[data-value="Awaiting Proof of Claim"] {
+    border-left: 3px solid #ed8936;
+}
+
+.disposition-dropdown[data-value="Not Interested"] {
+    border-left: 3px solid #f56565;
+}
+
+.disposition-dropdown[data-value="Not Qualified Lead"] {
+    border-left: 3px solid #718096;
 } 
