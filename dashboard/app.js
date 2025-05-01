@@ -103,6 +103,12 @@ function handleSearch(e) {
         }
     }
     
+    // Close any open dropdowns
+    const openDropdowns = document.querySelectorAll('.disposition-dropdown.open');
+    openDropdowns.forEach(dropdown => {
+        dropdown.classList.remove('open');
+    });
+    
     filterAndRenderLeads();
     
     // Show/hide no results message
@@ -154,9 +160,14 @@ function filterAndRenderLeads() {
     // Important: Store expandedLeadId before re-rendering to maintain expanded state
     const wasExpanded = expandedLeadId;
     
+    // Reset expandedLeadId to ensure no lead is automatically expanded
+    expandedLeadId = null;
+    
     renderLeads();
     
-    // If a lead was expanded and is still in the filtered results, keep it expanded
+    // If a lead was expanded before filtering and we want to maintain that state,
+    // uncomment the following code. For now, we'll keep all leads collapsed as requested.
+    /*
     if (wasExpanded && filteredLeads.some(lead => lead.lead_id === wasExpanded)) {
         expandedLeadId = wasExpanded;
         const leadToExpand = filteredLeads.find(lead => lead.lead_id === wasExpanded);
@@ -166,6 +177,7 @@ function filterAndRenderLeads() {
             }
         }, 100);
     }
+    */
 }
 
 // Fetch leads from API
@@ -537,6 +549,12 @@ function renderLeads() {
             const row = document.createElement('tr');
             row.dataset.leadId = lead.lead_id;
             row.classList.add('lead-row');
+            
+            // Ensure no row is pre-expanded
+            if (lead.lead_id !== expandedLeadId) {
+                row.classList.remove('expanded');
+            }
+            
             row.innerHTML = `
                 <td class="lead-name">
                     <div class="name-cell">
@@ -575,11 +593,6 @@ function renderLeads() {
             // Add row to table
             leadsBody.appendChild(row);
             
-            // If this lead was expanded, add the detail row
-            if (expandedLeadId === lead.lead_id) {
-                addDetailRow(lead);
-            }
-            
             // Add event listener for show details button
             const detailsBtn = row.querySelector('.details-btn');
             detailsBtn.addEventListener('click', () => {
@@ -589,6 +602,13 @@ function renderLeads() {
             // Add event listeners for disposition dropdown
             const dispositionDropdown = row.querySelector('.disposition-dropdown');
             dispositionDropdown.addEventListener('click', function(e) {
+                // Close all other open dropdowns first
+                document.querySelectorAll('.disposition-dropdown.open').forEach(dropdown => {
+                    if (dropdown !== this) {
+                        dropdown.classList.remove('open');
+                    }
+                });
+                
                 this.classList.toggle('open');
                 e.stopPropagation();
             });
