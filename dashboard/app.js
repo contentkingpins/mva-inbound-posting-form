@@ -33,6 +33,7 @@ let refreshTimer = null;
 let expandedLeadId = null;
 let allLeads = []; // For export functionality - store all leads
 let searchTerm = ''; // Store the current search term
+let searchDebounceTimer = null; // For debouncing search input
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -41,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Event Listeners
     refreshBtn.addEventListener('click', fetchLeads);
     vendorFilter.addEventListener('change', filterAndRenderLeads);
-    searchInput.addEventListener('input', handleSearch);
+    searchInput.addEventListener('input', debounceSearch);
     autoRefreshCb.addEventListener('change', toggleAutoRefresh);
     
     // Export Modal Listeners
@@ -57,6 +58,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     exportEndDate.valueAsDate = today;
     exportStartDate.valueAsDate = thirtyDaysAgo;
+    
+    // Focus the search input for better UX
+    searchInput.focus();
 });
 
 // Toggle auto-refresh functionality
@@ -71,10 +75,31 @@ function toggleAutoRefresh() {
     }
 }
 
+// Debounce the search to improve performance
+function debounceSearch(e) {
+    if (searchDebounceTimer) {
+        clearTimeout(searchDebounceTimer);
+    }
+    
+    searchDebounceTimer = setTimeout(() => {
+        handleSearch(e);
+    }, 300); // 300ms debounce time
+}
+
 // Handle search input
 function handleSearch(e) {
     searchTerm = e.target.value.toLowerCase().trim();
     filterAndRenderLeads();
+    
+    // Show/hide no results message
+    if (filteredLeads.length === 0 && searchTerm) {
+        noDataEl.textContent = `No leads found matching "${searchTerm}"`;
+        noDataEl.style.display = 'block';
+        leadsTable.style.display = 'none';
+    } else if (filteredLeads.length > 0) {
+        noDataEl.style.display = 'none';
+        leadsTable.style.display = 'table';
+    }
 }
 
 // Filter and render leads based on vendor filter and search term
@@ -90,35 +115,23 @@ function filterAndRenderLeads() {
     // Then filter by search term if one exists
     if (searchTerm) {
         filteredLeads = resultsToFilter.filter(lead => {
-            // Search in name
-            const fullName = `${lead.first_name} ${lead.last_name}`.toLowerCase();
-            if (fullName.includes(searchTerm)) return true;
+            // Search in all fields, combining them for more comprehensive search
+            const searchableContent = [
+                `${lead.first_name} ${lead.last_name}`, // Full name
+                lead.email,
+                lead.phone_home,
+                lead.lead_id,
+                lead.zip_code,
+                lead.city,
+                lead.state,
+                lead.notes,
+                lead.disposition,
+                lead.accident_date,
+                lead.accident_location,
+                `${lead.city} ${lead.state} ${lead.zip_code}` // Combined location
+            ].filter(Boolean).join(' ').toLowerCase();
             
-            // Search in email
-            if (lead.email && lead.email.toLowerCase().includes(searchTerm)) return true;
-            
-            // Search in phone
-            if (lead.phone_home && lead.phone_home.toLowerCase().includes(searchTerm)) return true;
-            
-            // Search in lead_id
-            if (lead.lead_id && lead.lead_id.toLowerCase().includes(searchTerm)) return true;
-            
-            // Search in zip/city/state
-            if (lead.zip_code && lead.zip_code.toLowerCase().includes(searchTerm)) return true;
-            if (lead.city && lead.city.toLowerCase().includes(searchTerm)) return true;
-            if (lead.state && lead.state.toLowerCase().includes(searchTerm)) return true;
-            
-            // Search in notes
-            if (lead.notes && lead.notes.toLowerCase().includes(searchTerm)) return true;
-            
-            // Search in disposition
-            if (lead.disposition && lead.disposition.toLowerCase().includes(searchTerm)) return true;
-            
-            // Search in accident details
-            if (lead.accident_date && lead.accident_date.toLowerCase().includes(searchTerm)) return true;
-            if (lead.accident_location && lead.accident_location.toLowerCase().includes(searchTerm)) return true;
-            
-            return false;
+            return searchableContent.includes(searchTerm);
         });
     } else {
         filteredLeads = resultsToFilter;

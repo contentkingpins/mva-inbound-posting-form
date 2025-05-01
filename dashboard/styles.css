@@ -34,13 +34,20 @@ h1 {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    margin-bottom: 15px;
+    gap: 10px;
+    margin-bottom: 20px;
 }
 
 .filter-group {
     display: flex;
     align-items: center;
-    margin-right: 15px;
+    margin-right: 0;
+}
+
+.filter-group label,
+.auto-refresh label {
+    margin-right: 8px;
+    font-weight: 600;
 }
 
 select, .btn {
@@ -57,6 +64,7 @@ select, .btn {
     border: none;
     cursor: pointer;
     transition: background-color 0.2s;
+    margin-left: 5px;
 }
 
 .btn:hover {
@@ -180,11 +188,36 @@ tr.detail-row td {
     
     .controls {
         flex-direction: column;
-        align-items: flex-start;
+        align-items: stretch;
+        gap: 15px;
+    }
+    
+    .search-group, 
+    .filter-group {
+        width: 100%;
+        margin: 0;
+    }
+    
+    .search-group input {
+        width: 100%;
+    }
+    
+    .btn {
+        margin: 5px 0;
     }
     
     .detail-content {
         grid-template-columns: 1fr;
+    }
+    
+    .search-group {
+        width: 100%;
+        margin: 0 0 10px 0;
+        max-width: 100%;
+    }
+    
+    .search-group input {
+        width: 100%;
     }
 }
 
@@ -522,40 +555,42 @@ textarea {
     border-left: 3px solid #718096;
 }
 
-/* Add styles for the search input field */
+/* Update search bar styles to make it more prominent */
 .search-group {
     display: flex;
     align-items: center;
-    margin-right: 15px;
+    margin: 0 15px;
+    background-color: #fff;
+    border-radius: 6px;
+    border: 1px solid #4299e1;
+    padding: 8px 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    flex: 1;
+    max-width: 400px;
+    position: relative;
+}
+
+.search-group::before {
+    content: "🔍";
+    margin-right: 8px;
+    color: #4299e1;
+    font-size: 16px;
 }
 
 .search-group label {
     margin-right: 8px;
     font-weight: 600;
+    color: #4a5568;
 }
 
 .search-group input {
     padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    width: 250px;
-    font-size: 14px;
+    border: none;
+    width: 100%;
+    font-size: 15px;
+    outline: none;
 }
 
 .search-group input:focus {
     outline: none;
-    border-color: #4a90e2;
-    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
-}
-
-/* Responsive styles for mobile */
-@media (max-width: 768px) {
-    .search-group, .filter-group {
-        width: 100%;
-        margin-bottom: 10px;
-    }
-    
-    .search-group input {
-        width: 100%;
-    }
 } 
