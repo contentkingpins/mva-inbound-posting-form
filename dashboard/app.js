@@ -92,8 +92,28 @@ async function fetchLeads() {
             mode: 'cors'  // Explicitly state CORS mode for Amplify hosting
         });
         
+        let newLeads = [];
+        
         if (!response.ok) {
-            throw new Error(`HTTP error ${response.status}`);
+            // If API fails, show error but continue with data from localStorage
+            console.error(`HTTP error ${response.status}`);
+            showError('Failed to fetch leads from API. Showing cached data instead.');
+            
+            // Use existing data from localStorage
+            const existingLeads = JSON.parse(localStorage.getItem('leads') || '[]');
+            if (existingLeads.length > 0) {
+                newLeads = existingLeads;
+                
+                // If vendor filter is applied, filter the local data
+                if (vendorCode) {
+                    newLeads = newLeads.filter(lead => lead.vendor_code === vendorCode);
+                }
+            } else {
+                throw new Error(`HTTP error ${response.status}`);
+            }
+        } else {
+            // API worked, get leads from it
+            newLeads = await response.json();
         }
         
         // Get existing leads from localStorage to preserve disposition and notes
@@ -108,9 +128,6 @@ async function fetchLeads() {
                 updated_at: lead.updated_at
             });
         });
-        
-        // Get new leads from API
-        const newLeads = await response.json();
         
         // Merge new leads with existing disposition/notes data
         leads = newLeads.map(lead => {
