@@ -555,6 +555,9 @@ function renderLeads() {
                 row.classList.remove('expanded');
             }
             
+            // Format the accident date as YYYY-MM-DD
+            const accidentDate = lead.accident_date ? formatDateYMD(lead.accident_date) : '';
+            
             row.innerHTML = `
                 <td class="lead-name">
                     <div class="name-cell">
@@ -570,20 +573,16 @@ function renderLeads() {
                         <div class="email">${escapeHtml(lead.email || '')}</div>
                     </div>
                 </td>
-                <td>${formatDate(lead.accident_date || '')}</td>
+                <td>${accidentDate}</td>
                 <td>
-                    <div class="disposition-dropdown" data-value="${lead.disposition}">
-                        <span class="current-value">${lead.disposition || 'New'}</span>
-                        <span class="dropdown-icon">▼</span>
-                        <div class="dropdown-options">
-                            <div class="option" data-value="New">New</div>
-                            <div class="option" data-value="Retained for Firm">Retained for Firm</div>
-                            <div class="option" data-value="Docs Sent">Docs Sent</div>
-                            <div class="option" data-value="Awaiting Proof of Claim">Awaiting Proof of Claim</div>
-                            <div class="option" data-value="Not Interested">Not Interested</div>
-                            <div class="option" data-value="Not Qualified Lead">Not Qualified Lead</div>
-                        </div>
-                    </div>
+                    <select class="disposition-select" data-lead-id="${lead.lead_id}">
+                        <option value="New" ${(lead.disposition || 'New') === 'New' ? 'selected' : ''}>New</option>
+                        <option value="Retained for Firm" ${lead.disposition === 'Retained for Firm' ? 'selected' : ''}>Retained for Firm</option>
+                        <option value="Docs Sent" ${lead.disposition === 'Docs Sent' ? 'selected' : ''}>Docs Sent</option>
+                        <option value="Awaiting Proof of Claim" ${lead.disposition === 'Awaiting Proof of Claim' ? 'selected' : ''}>Awaiting Proof of Claim</option>
+                        <option value="Not Interested" ${lead.disposition === 'Not Interested' ? 'selected' : ''}>Not Interested</option>
+                        <option value="Not Qualified Lead" ${lead.disposition === 'Not Qualified Lead' ? 'selected' : ''}>Not Qualified Lead</option>
+                    </select>
                 </td>
                 <td>${getLocationDisplay(lead)}</td>
                 <td>${escapeHtml(lead.vendor_code || '')}</td>
@@ -595,76 +594,73 @@ function renderLeads() {
             
             // Add event listener for show details button
             const detailsBtn = row.querySelector('.details-btn');
-            detailsBtn.addEventListener('click', () => {
+            detailsBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent row click from firing
                 toggleLeadDetails(lead);
             });
             
-            // Add event listeners for disposition dropdown
-            const dispositionDropdown = row.querySelector('.disposition-dropdown');
-            dispositionDropdown.addEventListener('click', function(e) {
-                // Close all other open dropdowns first
-                document.querySelectorAll('.disposition-dropdown.open').forEach(dropdown => {
-                    if (dropdown !== this) {
-                        dropdown.classList.remove('open');
-                    }
-                });
+            // Add event listener for select dropdown
+            const dispositionSelect = row.querySelector('.disposition-select');
+            dispositionSelect.addEventListener('change', async function(e) {
+                e.stopPropagation(); // Prevent row click
                 
-                this.classList.toggle('open');
-                e.stopPropagation();
-            });
-            
-            const options = row.querySelectorAll('.option');
-            options.forEach(option => {
-                option.addEventListener('click', async function(e) {
-                    const newValue = this.dataset.value;
-                    const leadId = this.closest('tr').dataset.leadId;
-                    const dropdown = this.closest('.disposition-dropdown');
-                    const currentValue = dropdown.querySelector('.current-value');
+                const newValue = this.value;
+                const leadId = this.dataset.leadId;
+                
+                // Find the lead in the array
+                const leadToUpdate = filteredLeads.find(l => l.lead_id === leadId);
+                
+                try {
+                    // Update without notes
+                    await updateLeadDisposition(leadId, newValue, leadToUpdate.notes || '');
                     
-                    // Update UI immediately
-                    currentValue.textContent = newValue;
-                    dropdown.dataset.value = newValue;
-                    dropdown.classList.remove('open');
+                    // Update local data
+                    leadToUpdate.disposition = newValue;
                     
-                    // Find the lead in the array
-                    const leadToUpdate = filteredLeads.find(l => l.lead_id === leadId);
+                    // Update localStorage
+                    updateLocalStorage();
+                    
+                    // Show success toast
+                    showSuccessToast(`Disposition updated to "${newValue}"`);
                     
                     // Show disposition modal if needed
                     if (newValue === 'Not Qualified Lead' || newValue === 'Not Interested') {
                         showDispositionModal(leadToUpdate);
-                    } else {
-                        try {
-                            // Update without notes
-                            await updateLeadDisposition(leadId, newValue, leadToUpdate.notes || '');
-                            
-                            // Update local data
-                            leadToUpdate.disposition = newValue;
-                            
-                            // Update localStorage
-                            updateLocalStorage();
-                            
-                            // Show success toast
-                            showSuccessToast(`Disposition updated to "${newValue}"`);
-                        } catch (error) {
-                            console.error('Error updating disposition:', error);
-                            currentValue.textContent = leadToUpdate.disposition || 'New'; // Revert UI
-                            dropdown.dataset.value = leadToUpdate.disposition || 'New';
-                            showError('Failed to update disposition. Please try again.');
-                        }
                     }
-                    
-                    e.stopPropagation();
-                });
+                } catch (error) {
+                    console.error('Error updating disposition:', error);
+                    // Revert UI to previous value
+                    this.value = leadToUpdate.disposition || 'New';
+                    showError('Failed to update disposition. Please try again.');
+                }
+            });
+            
+            // Make the entire row clickable
+            row.addEventListener('click', function(e) {
+                // Don't trigger if clicked on select or button
+                if (e.target.closest('select') || e.target.closest('button')) {
+                    return;
+                }
+                toggleLeadDetails(lead);
             });
         });
+}
+
+// Helper function to format date as YYYY-MM-DD
+function formatDateYMD(dateString) {
+    if (!dateString) return '';
     
-    // Close dropdowns when clicking elsewhere
-    document.addEventListener('click', function() {
-        const openDropdowns = document.querySelectorAll('.disposition-dropdown.open');
-        openDropdowns.forEach(dropdown => {
-            dropdown.classList.remove('open');
-        });
-    });
+    try {
+        const date = new Date(dateString);
+        
+        if (isNaN(date)) {
+            return dateString;
+        }
+        
+        return date.toISOString().split('T')[0]; // Returns YYYY-MM-DD
+    } catch (e) {
+        return dateString;
+    }
 }
 
 // Update local storage
