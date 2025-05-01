@@ -1,15 +1,10 @@
 version: 1
 frontend:
   phases:
-    preBuild:
-      commands:
-        - echo "No build dependencies for this static site"
     build:
       commands:
-        - echo "No build step required"
+        - echo "Configuring Amplify to deploy from dashboard directory"
   artifacts:
     baseDirectory: dashboard
     files:
-      - '**/*'
-  cache:
-    paths: [] 
+      - "**/*"
