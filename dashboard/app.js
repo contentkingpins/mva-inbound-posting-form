@@ -86,7 +86,8 @@ async function fetchLeads() {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json'
+                'Accept': 'application/json',
+                'x-api-key': API_KEY
             },
             mode: 'cors'  // Explicitly state CORS mode for Amplify hosting
         });
@@ -225,7 +226,8 @@ async function exportLeadsToCsv() {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json'
+                'Accept': 'application/json',
+                'x-api-key': API_KEY
             },
             mode: 'cors'
         });
