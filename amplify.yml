@@ -3,13 +3,14 @@ frontend:
   phases:
     preBuild:
       commands:
-        - echo "Installing dependencies for custom build"
-        - npm ci
+        - echo "Setting up build environment"
     build:
       commands:
         - echo "Deploying from dashboard directory"
+        - ls -la
         - mkdir -p dist
         - cp -R dashboard/* dist/
+        - echo "Build completed successfully"
   artifacts:
     baseDirectory: dist
     files:
