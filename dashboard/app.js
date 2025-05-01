@@ -89,6 +89,20 @@ function debounceSearch(e) {
 // Handle search input
 function handleSearch(e) {
     searchTerm = e.target.value.toLowerCase().trim();
+    
+    // Close any expanded row before filtering
+    if (expandedLeadId) {
+        const expandedRow = document.getElementById(`detail-${expandedLeadId}`);
+        if (expandedRow) {
+            expandedRow.remove();
+        }
+        
+        const expandedLeadRow = document.querySelector('tr.expanded');
+        if (expandedLeadRow) {
+            expandedLeadRow.classList.remove('expanded');
+        }
+    }
+    
     filterAndRenderLeads();
     
     // Show/hide no results message
@@ -137,7 +151,21 @@ function filterAndRenderLeads() {
         filteredLeads = resultsToFilter;
     }
     
+    // Important: Store expandedLeadId before re-rendering to maintain expanded state
+    const wasExpanded = expandedLeadId;
+    
     renderLeads();
+    
+    // If a lead was expanded and is still in the filtered results, keep it expanded
+    if (wasExpanded && filteredLeads.some(lead => lead.lead_id === wasExpanded)) {
+        expandedLeadId = wasExpanded;
+        const leadToExpand = filteredLeads.find(lead => lead.lead_id === wasExpanded);
+        setTimeout(() => {
+            if (leadToExpand) {
+                addDetailRow(leadToExpand);
+            }
+        }, 100);
+    }
 }
 
 // Fetch leads from API

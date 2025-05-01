@@ -194,15 +194,8 @@
                 searchGroup.style.opacity = '1';
                 searchGroup.style.border = '2px solid #4299e1';
                 
-                // Add the search icon if it's not there
-                if (!searchGroup.querySelector('.search-icon')) {
-                    var searchIcon = document.createElement('span');
-                    searchIcon.className = 'search-icon';
-                    searchIcon.textContent = '🔍';
-                    searchIcon.style.marginRight = '8px';
-                    searchIcon.style.color = '#4299e1';
-                    searchGroup.insertBefore(searchIcon, searchGroup.firstChild);
-                }
+                // Only add search icon if ::before pseudo-element is not working (don't duplicate icons)
+                // Remove this section to avoid duplicate icons, as the CSS ::before is now working
                 
                 // Make sure the input is visible
                 var searchInput = document.getElementById('lead-search');
@@ -210,6 +203,12 @@
                     searchInput.style.display = 'block';
                     searchInput.style.visibility = 'visible';
                     searchInput.style.width = '100%';
+                    
+                    // Modify the search behavior to maintain collapsible functionality
+                    searchInput.addEventListener('input', function(e) {
+                        // This will be handled by the debounceSearch function in app.js
+                        // Just ensure we're not inadvertently expanding all leads here
+                    });
                 }
             }
         });
