@@ -6,6 +6,9 @@ frontend:
         - echo "Setting up build environment"
     build:
       commands:
+        - echo "Creating config.json with API key from environment"
+        - echo "{\"apiKey\":\"$API_KEY\"}" > dashboard/config.json
+        - echo "Config file created successfully"
         - echo "Deploying from dashboard directory"
         - ls -la
         - mkdir -p dist

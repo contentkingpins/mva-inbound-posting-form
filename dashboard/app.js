@@ -2,7 +2,31 @@
 const API_ENDPOINT = 'https://nv01uveape.execute-api.us-east-1.amazonaws.com/prod/leads';
 const EXPORT_ENDPOINT = 'https://nv01uveape.execute-api.us-east-1.amazonaws.com/prod/export';
 const REFRESH_INTERVAL = 10000; // 10 seconds
-const API_KEY = 'fpoI4Uwleh63QVGGsnAUG49W7B8k67g21Gc8glIl'; // API key for auth
+
+// Config initialization
+let API_KEY = '';
+
+// Function to load configuration
+async function loadConfig() {
+    try {
+        // Try to load config from config.json if it exists
+        const response = await fetch('config.json');
+        if (response.ok) {
+            const config = await response.json();
+            API_KEY = config.apiKey || '';
+            console.log('Configuration loaded');
+        } else {
+            console.warn('Could not load config.json, using default configuration');
+            // If running in development, you might set a default for testing
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                console.warn('Using development settings');
+                // Don't set a default API key - leave it blank to force proper configuration
+            }
+        }
+    } catch (error) {
+        console.error('Error loading configuration:', error);
+    }
+}
 
 // DOM Elements
 const vendorFilter = document.getElementById('vendor-filter');
@@ -37,8 +61,16 @@ let searchTerm = ''; // Store the current search term
 let searchDebounceTimer = null; // For debouncing search input
 
 // Initialize
-document.addEventListener('DOMContentLoaded', () => {
-    fetchLeads();
+document.addEventListener('DOMContentLoaded', async () => {
+    // Load configuration before fetching data
+    await loadConfig();
+    
+    // Check if API key is available
+    if (!API_KEY) {
+        showError('API key is not configured. Please set up config.json with a valid API key.');
+    } else {
+        fetchLeads();
+    }
     
     // Event Listeners
     refreshBtn.addEventListener('click', fetchLeads);
