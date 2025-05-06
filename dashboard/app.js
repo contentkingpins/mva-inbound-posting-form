@@ -14,6 +14,7 @@ const leadsBody = document.getElementById('leads-body');
 const loadingEl = document.getElementById('loading');
 const errorEl = document.getElementById('error');
 const noDataEl = document.getElementById('no-data');
+const addLeadBtn = document.getElementById('add-lead-btn'); // New add lead button
 
 // Export Modal Elements
 const exportBtn = document.getElementById('export-btn');
@@ -51,6 +52,9 @@ document.addEventListener('DOMContentLoaded', () => {
     exportCancelBtn.addEventListener('click', closeExportModal);
     exportDownloadBtn.addEventListener('click', exportLeadsToCsv);
     
+    // New Lead Listeners
+    addLeadBtn.addEventListener('click', openAddLeadModal);
+    
     // Set default date values for export
     const today = new Date();
     const thirtyDaysAgo = new Date();
@@ -61,7 +65,411 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Focus the search input for better UX
     searchInput.focus();
+    
+    // Create the add lead modal
+    createAddLeadModal();
 });
+
+// Create the add lead modal HTML structure
+function createAddLeadModal() {
+    // Create modal if it doesn't exist
+    if (document.getElementById('add-lead-modal-overlay')) {
+        return;
+    }
+    
+    const modalHtml = `
+        <div id="add-lead-modal-overlay" class="modal-overlay">
+            <div class="modal" style="width: 800px; max-width: 95%;">
+                <div class="modal-header">
+                    <h3 class="modal-title">Add New Lead</h3>
+                    <button class="modal-close" id="add-lead-modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="add-lead-form">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <!-- Basic Lead Information Column -->
+                            <div>
+                                <h4>Lead Information</h4>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                                    <div class="modal-form-group">
+                                        <label for="lead-first-name">First Name*</label>
+                                        <input type="text" id="lead-first-name" required>
+                                    </div>
+                                    <div class="modal-form-group">
+                                        <label for="lead-last-name">Last Name*</label>
+                                        <input type="text" id="lead-last-name" required>
+                                    </div>
+                                </div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                                    <div class="modal-form-group">
+                                        <label for="lead-email">Email*</label>
+                                        <input type="email" id="lead-email" required>
+                                    </div>
+                                    <div class="modal-form-group">
+                                        <label for="lead-phone">Phone*</label>
+                                        <input type="tel" id="lead-phone" required>
+                                    </div>
+                                </div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                                    <div class="modal-form-group">
+                                        <label for="lead-state">State</label>
+                                        <input type="text" id="lead-state">
+                                    </div>
+                                    <div class="modal-form-group">
+                                        <label for="lead-zip">Zip Code</label>
+                                        <input type="text" id="lead-zip">
+                                    </div>
+                                </div>
+                                <div class="modal-form-group">
+                                    <label for="lead-city">City</label>
+                                    <input type="text" id="lead-city">
+                                </div>
+                                <div class="modal-form-group">
+                                    <label for="lead-vendor">Vendor Code*</label>
+                                    <select id="lead-vendor" required>
+                                        <option value="">Select Vendor</option>
+                                    </select>
+                                </div>
+                                <div class="modal-form-group">
+                                    <label for="lead-notes">Notes</label>
+                                    <textarea id="lead-notes" rows="3"></textarea>
+                                </div>
+                            </div>
+                            
+                            <!-- Qualification Checklist Column -->
+                            <div>
+                                <h4>Qualification Checklist</h4>
+                                <div class="qualification-form">
+                                    <div class="modal-form-group">
+                                        <label for="lead-accident-location">Where did the accident happen?</label>
+                                        <input type="text" id="lead-accident-location">
+                                    </div>
+                                    
+                                    <div class="modal-form-group">
+                                        <label for="lead-accident-date">What was the date of the accident?</label>
+                                        <input type="date" id="lead-accident-date">
+                                        <div id="lead-deadline-warning" class="deadline-warning" style="display: none;"></div>
+                                    </div>
+                                    
+                                    <div class="modal-form-group">
+                                        <label>Was the caller at fault?</label>
+                                        <div class="yes-no-options">
+                                            <label class="yes-no-label">
+                                                <input type="radio" name="at-fault" value="yes">
+                                                Yes
+                                            </label>
+                                            <label class="yes-no-label">
+                                                <input type="radio" name="at-fault" value="no">
+                                                No
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="modal-form-group">
+                                        <label>Does the caller already have an attorney?</label>
+                                        <div class="yes-no-options">
+                                            <label class="yes-no-label">
+                                                <input type="radio" name="has-attorney" value="yes">
+                                                Yes
+                                            </label>
+                                            <label class="yes-no-label">
+                                                <input type="radio" name="has-attorney" value="no">
+                                                No
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="modal-form-group">
+                                        <label>Was the caller injured?</label>
+                                        <div class="yes-no-options">
+                                            <label class="yes-no-label">
+                                                <input type="radio" name="injured" value="yes">
+                                                Yes
+                                            </label>
+                                            <label class="yes-no-label">
+                                                <input type="radio" name="injured" value="no">
+                                                No
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="modal-form-group">
+                                        <label>Did they see a medical professional within 30 days?</label>
+                                        <div class="yes-no-options">
+                                            <label class="yes-no-label">
+                                                <input type="radio" name="medical-30-days" value="yes">
+                                                Yes
+                                            </label>
+                                            <label class="yes-no-label">
+                                                <input type="radio" name="medical-30-days" value="no">
+                                                No
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="modal-form-group">
+                                        <label>Did the at-fault party have insurance?</label>
+                                        <div class="yes-no-options">
+                                            <label class="yes-no-label">
+                                                <input type="radio" name="has-insurance" value="yes" onchange="toggleUmCoverageSection()">
+                                                Yes
+                                            </label>
+                                            <label class="yes-no-label">
+                                                <input type="radio" name="has-insurance" value="no" onchange="toggleUmCoverageSection()">
+                                                No
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div id="um-coverage-section" class="modal-form-group" style="display: none;">
+                                        <label>If no insurance or hit-and-run: Does the caller have UM coverage?</label>
+                                        <div class="yes-no-options">
+                                            <label class="yes-no-label">
+                                                <input type="radio" name="um-coverage" value="yes">
+                                                Yes
+                                            </label>
+                                            <label class="yes-no-label">
+                                                <input type="radio" name="um-coverage" value="no">
+                                                No
+                                            </label>
+                                        </div>
+                                        <div id="um-warning" class="insurance-warning" style="display: none;">
+                                            Warning: Caller has no insurance and no UM coverage. Recommend disqualifying this lead.
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="modal-form-group">
+                                        <label>Was it a commercial/government vehicle (and caller knows the entity)?</label>
+                                        <div class="yes-no-options">
+                                            <label class="yes-no-label">
+                                                <input type="radio" name="commercial-vehicle" value="yes">
+                                                Yes
+                                            </label>
+                                            <label class="yes-no-label">
+                                                <input type="radio" name="commercial-vehicle" value="no">
+                                                No
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="modal-form-group">
+                                        <label>Does the caller have proof that the other vehicle was commercial/government?</label>
+                                        <div class="yes-no-options">
+                                            <label class="yes-no-label">
+                                                <input type="radio" name="has-proof" value="yes">
+                                                Yes
+                                            </label>
+                                            <label class="yes-no-label">
+                                                <input type="radio" name="has-proof" value="no">
+                                                No
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="add-lead-cancel">Cancel</button>
+                    <button class="btn" id="add-lead-submit">Add Lead</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Append modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Add event listeners
+    document.getElementById('add-lead-modal-close').addEventListener('click', closeAddLeadModal);
+    document.getElementById('add-lead-cancel').addEventListener('click', closeAddLeadModal);
+    document.getElementById('add-lead-submit').addEventListener('click', handleLeadSubmit);
+    
+    // Add event listener for accident date to check deadline
+    document.getElementById('lead-accident-date').addEventListener('change', checkAddLeadDeadline);
+}
+
+// Open add lead modal
+function openAddLeadModal() {
+    // Create the modal if it doesn't exist
+    createAddLeadModal();
+    
+    // Populate vendor dropdown
+    populateVendorDropdown();
+    
+    // Add event listeners for UM coverage radio buttons
+    const umCoverageYes = document.querySelector('input[name="um-coverage"][value="yes"]');
+    const umCoverageNo = document.querySelector('input[name="um-coverage"][value="no"]');
+    
+    if (umCoverageYes) {
+        umCoverageYes.addEventListener('change', function() {
+            document.getElementById('um-warning').style.display = 'none';
+        });
+    }
+    
+    if (umCoverageNo) {
+        umCoverageNo.addEventListener('change', function() {
+            document.getElementById('um-warning').style.display = 'block';
+        });
+    }
+    
+    // Show the modal
+    const modalOverlay = document.getElementById('add-lead-modal-overlay');
+    modalOverlay.style.display = 'flex';
+}
+
+// Close add lead modal
+function closeAddLeadModal() {
+    const modalOverlay = document.getElementById('add-lead-modal-overlay');
+    modalOverlay.style.display = 'none';
+    
+    // Reset form
+    document.getElementById('add-lead-form').reset();
+}
+
+// Populate vendor dropdown in add lead form
+function populateVendorDropdown() {
+    const vendorSelect = document.getElementById('lead-vendor');
+    
+    // Clear existing options except the first one
+    while (vendorSelect.options.length > 1) {
+        vendorSelect.remove(1);
+    }
+    
+    // Add vendor options
+    Array.from(vendorCodes).sort().forEach(code => {
+        const option = document.createElement('option');
+        option.value = code;
+        option.textContent = code;
+        vendorSelect.appendChild(option);
+    });
+}
+
+// Handle lead submission
+async function handleLeadSubmit(e) {
+    e.preventDefault();
+    
+    // Validate form
+    const form = document.getElementById('add-lead-form');
+    const isValid = validateLeadForm();
+    
+    if (!isValid) {
+        return;
+    }
+    
+    // Helper function to get radio button value
+    const getRadioValue = (name) => {
+        const radio = document.querySelector(`input[name="${name}"]:checked`);
+        return radio ? radio.value : null;
+    };
+    
+    // Calculate deadline based on accident date
+    let deadline60Days = '';
+    const accidentDate = document.getElementById('lead-accident-date').value;
+    if (accidentDate) {
+        const today = new Date();
+        const accidentDateObj = new Date(accidentDate);
+        const deadlineDate = new Date(accidentDateObj);
+        deadlineDate.setFullYear(deadlineDate.getFullYear() + 2);
+        const daysLeft = Math.floor((deadlineDate - today) / (1000 * 60 * 60 * 24));
+        deadline60Days = daysLeft >= 60 ? 'yes' : 'no';
+    }
+    
+    // Gather form data
+    const leadData = {
+        // Basic lead info
+        first_name: document.getElementById('lead-first-name').value.trim(),
+        last_name: document.getElementById('lead-last-name').value.trim(),
+        email: document.getElementById('lead-email').value.trim(),
+        phone_home: document.getElementById('lead-phone').value.trim(),
+        state: document.getElementById('lead-state').value.trim(),
+        zip_code: document.getElementById('lead-zip').value.trim(),
+        city: document.getElementById('lead-city').value.trim(),
+        vendor_code: document.getElementById('lead-vendor').value,
+        notes: document.getElementById('lead-notes').value.trim(),
+        
+        // Qualification data
+        accident_date: accidentDate || null,
+        accident_location: document.getElementById('lead-accident-location').value.trim(),
+        deadline_60_days: deadline60Days,
+        caller_at_fault: getRadioValue('at-fault'),
+        has_attorney: getRadioValue('has-attorney'),
+        was_injured: getRadioValue('injured'),
+        medical_within_30_days: getRadioValue('medical-30-days'),
+        at_fault_has_insurance: getRadioValue('has-insurance'),
+        is_commercial_vehicle: getRadioValue('commercial-vehicle'),
+        has_um_coverage: getRadioValue('um-coverage'),
+        has_commercial_proof: getRadioValue('has-proof'),
+        
+        // Include API key for authorization
+        api_key: API_KEY
+    };
+    
+    // Submit the lead
+    const success = await submitLead(leadData);
+    
+    if (success) {
+        // Close modal and refresh data
+        closeAddLeadModal();
+        fetchLeads();
+    }
+}
+
+// Form validation
+function validateLeadForm() {
+    const firstName = document.getElementById('lead-first-name').value.trim();
+    const lastName = document.getElementById('lead-last-name').value.trim();
+    const email = document.getElementById('lead-email').value.trim();
+    const phone = document.getElementById('lead-phone').value.trim();
+    const vendor = document.getElementById('lead-vendor').value;
+    
+    let isValid = true;
+    let errorMessage = '';
+    
+    if (!firstName) {
+        errorMessage = 'First name is required';
+        isValid = false;
+    } else if (!lastName) {
+        errorMessage = 'Last name is required';
+        isValid = false;
+    } else if (!email) {
+        errorMessage = 'Email is required';
+        isValid = false;
+    } else if (!validateEmail(email)) {
+        errorMessage = 'Please enter a valid email address';
+        isValid = false;
+    } else if (!phone) {
+        errorMessage = 'Phone number is required';
+        isValid = false;
+    } else if (!validatePhone(phone)) {
+        errorMessage = 'Please enter a valid phone number';
+        isValid = false;
+    } else if (!vendor) {
+        errorMessage = 'Vendor code is required';
+        isValid = false;
+    }
+    
+    if (!isValid) {
+        showError(errorMessage);
+    } else {
+        hideError();
+    }
+    
+    return isValid;
+}
+
+// Email validation
+function validateEmail(email) {
+    const re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    return re.test(String(email).toLowerCase());
+}
+
+// Phone validation - allows various formats
+function validatePhone(phone) {
+    const re = /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/;
+    return re.test(String(phone));
+}
 
 // Toggle auto-refresh functionality
 function toggleAutoRefresh() {
@@ -1460,4 +1868,65 @@ function toggleLeadDetails(lead) {
 // The existing filter function now delegates to filterAndRenderLeads
 function filterLeads() {
     filterAndRenderLeads();
+}
+
+// Toggle UM coverage section based on insurance selection in add lead form
+function toggleUmCoverageSection() {
+    const hasInsuranceYes = document.querySelector('input[name="has-insurance"][value="yes"]');
+    const hasInsuranceNo = document.querySelector('input[name="has-insurance"][value="no"]');
+    const umCoverageSection = document.getElementById('um-coverage-section');
+    const umWarning = document.getElementById('um-warning');
+    
+    // If no insurance, show UM coverage question
+    if (hasInsuranceNo && hasInsuranceNo.checked) {
+        umCoverageSection.style.display = 'block';
+        
+        // Check if No UM coverage is selected
+        const umCoverageNo = document.querySelector('input[name="um-coverage"][value="no"]');
+        if (umCoverageNo && umCoverageNo.checked) {
+            umWarning.style.display = 'block';
+        } else {
+            umWarning.style.display = 'none';
+        }
+    } else {
+        // If has insurance, hide UM coverage question and warning
+        umCoverageSection.style.display = 'none';
+        umWarning.style.display = 'none';
+    }
+}
+
+// Check deadline based on accident date in add lead form
+function checkAddLeadDeadline() {
+    const accidentDateInput = document.getElementById('lead-accident-date');
+    const deadlineWarning = document.getElementById('lead-deadline-warning');
+    
+    if (!accidentDateInput.value) {
+        deadlineWarning.style.display = 'none';
+        return;
+    }
+    
+    const accidentDate = new Date(accidentDateInput.value);
+    const today = new Date();
+    
+    // Calculate the deadline date (2 years after accident)
+    const deadlineDate = new Date(accidentDate);
+    deadlineDate.setFullYear(deadlineDate.getFullYear() + 2);
+    
+    // Calculate days left
+    const daysLeft = Math.floor((deadlineDate - today) / (1000 * 60 * 60 * 24));
+    
+    if (daysLeft < 0) {
+        // Past the 2-year deadline
+        deadlineWarning.style.display = 'block';
+        deadlineWarning.textContent = 'Warning: This accident occurred more than 2 years ago. The statute of limitations has likely expired.';
+        deadlineWarning.className = 'deadline-warning expired';
+    } else if (daysLeft < 60) {
+        // Less than 60 days left
+        deadlineWarning.style.display = 'block';
+        deadlineWarning.textContent = `Warning: Only ${daysLeft} days left before the 2-year deadline expires.`;
+        deadlineWarning.className = 'deadline-warning urgent';
+    } else {
+        // More than 60 days left
+        deadlineWarning.style.display = 'none';
+    }
 } 
