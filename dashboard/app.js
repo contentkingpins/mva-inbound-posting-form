@@ -30,6 +30,7 @@ async function loadConfig() {
 
 // DOM Elements
 const vendorFilter = document.getElementById('vendor-filter');
+const searchInput = document.getElementById('lead-search');
 const refreshBtn = document.getElementById('refresh-btn');
 const autoRefreshCb = document.getElementById('auto-refresh');
 const leadsTable = document.getElementById('leads-table');
@@ -37,6 +38,7 @@ const leadsBody = document.getElementById('leads-body');
 const loadingEl = document.getElementById('loading');
 const errorEl = document.getElementById('error');
 const noDataEl = document.getElementById('no-data');
+const addLeadBtn = document.getElementById('add-lead-btn'); // New add lead button
 
 // Export Modal Elements
 const exportBtn = document.getElementById('export-btn');
@@ -50,10 +52,13 @@ const exportDownloadBtn = document.getElementById('export-download');
 
 // State
 let leads = [];
+let filteredLeads = []; // Store filtered leads
 let vendorCodes = new Set();
 let refreshTimer = null;
 let expandedLeadId = null;
 let allLeads = []; // For export functionality - store all leads
+let searchTerm = ''; // Store the current search term
+let searchDebounceTimer = null; // For debouncing search input
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
@@ -69,7 +74,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Event Listeners
     refreshBtn.addEventListener('click', fetchLeads);
-    vendorFilter.addEventListener('change', filterLeads);
+    vendorFilter.addEventListener('change', filterAndRenderLeads);
+    searchInput.addEventListener('input', debounceSearch);
     autoRefreshCb.addEventListener('change', toggleAutoRefresh);
     
     // Export Modal Listeners
@@ -78,6 +84,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     exportCancelBtn.addEventListener('click', closeExportModal);
     exportDownloadBtn.addEventListener('click', exportLeadsToCsv);
     
+    // New Lead Listeners
+    addLeadBtn.addEventListener('click', openAddLeadModal);
+    
     // Set default date values for export
     const today = new Date();
     const thirtyDaysAgo = new Date();
@@ -85,7 +94,411 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     exportEndDate.valueAsDate = today;
     exportStartDate.valueAsDate = thirtyDaysAgo;
+    
+    // Focus the search input for better UX
+    searchInput.focus();
+    
+    // Create the add lead modal
+    createAddLeadModal();
 });
+
+// Create the add lead modal HTML structure
+function createAddLeadModal() {
+    // Create modal if it doesn't exist
+    if (document.getElementById('add-lead-modal-overlay')) {
+        return;
+    }
+    
+    const modalHtml = `
+        <div id="add-lead-modal-overlay" class="modal-overlay">
+            <div class="modal" style="width: 800px; max-width: 95%; max-height: 90vh; overflow-y: auto;">
+                <div class="modal-header" style="position: sticky; top: 0; background: white; z-index: 10;">
+                    <h3 class="modal-title">Add New Lead</h3>
+                    <button class="modal-close" id="add-lead-modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="add-lead-form">
+                        <div style="display: flex; flex-direction: column; gap: 20px;">
+                            <!-- Basic Lead Information Section -->
+                            <div class="form-section">
+                                <h4>Lead Information</h4>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                                    <div class="modal-form-group">
+                                        <label for="lead-first-name">First Name*</label>
+                                        <input type="text" id="lead-first-name" required>
+                                    </div>
+                                    <div class="modal-form-group">
+                                        <label for="lead-last-name">Last Name*</label>
+                                        <input type="text" id="lead-last-name" required>
+                                    </div>
+                                    <div class="modal-form-group">
+                                        <label for="lead-email">Email*</label>
+                                        <input type="email" id="lead-email" required>
+                                    </div>
+                                    <div class="modal-form-group">
+                                        <label for="lead-phone">Phone*</label>
+                                        <input type="tel" id="lead-phone" required>
+                                    </div>
+                                    <div class="modal-form-group">
+                                        <label for="lead-state">State</label>
+                                        <input type="text" id="lead-state">
+                                    </div>
+                                    <div class="modal-form-group">
+                                        <label for="lead-zip">Zip Code</label>
+                                        <input type="text" id="lead-zip">
+                                    </div>
+                                    <div class="modal-form-group">
+                                        <label for="lead-city">City</label>
+                                        <input type="text" id="lead-city">
+                                    </div>
+                                    <div class="modal-form-group">
+                                        <label for="lead-vendor">Vendor Code*</label>
+                                        <select id="lead-vendor" required>
+                                            <option value="">Select Vendor</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="modal-form-group">
+                                    <label for="lead-notes">Notes</label>
+                                    <textarea id="lead-notes" rows="3"></textarea>
+                                </div>
+                            </div>
+                            
+                            <!-- Qualification Checklist Section -->
+                            <div class="form-section">
+                                <h4>Qualification Checklist</h4>
+                                <div class="qualification-form" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px;">
+                                    <div class="modal-form-group">
+                                        <label for="lead-accident-location">Where did the accident happen?</label>
+                                        <input type="text" id="lead-accident-location">
+                                    </div>
+                                    
+                                    <div class="modal-form-group">
+                                        <label for="lead-accident-date">What was the date of the accident?</label>
+                                        <input type="date" id="lead-accident-date">
+                                        <div id="lead-deadline-warning" class="deadline-warning" style="display: none;"></div>
+                                    </div>
+                                    
+                                    <div class="modal-form-group">
+                                        <label>Was the caller at fault?</label>
+                                        <div class="yes-no-options">
+                                            <label class="yes-no-label">
+                                                <input type="radio" name="at-fault" value="yes">
+                                                Yes
+                                            </label>
+                                            <label class="yes-no-label">
+                                                <input type="radio" name="at-fault" value="no">
+                                                No
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="modal-form-group">
+                                        <label>Does the caller already have an attorney?</label>
+                                        <div class="yes-no-options">
+                                            <label class="yes-no-label">
+                                                <input type="radio" name="has-attorney" value="yes">
+                                                Yes
+                                            </label>
+                                            <label class="yes-no-label">
+                                                <input type="radio" name="has-attorney" value="no">
+                                                No
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="modal-form-group">
+                                        <label>Was the caller injured?</label>
+                                        <div class="yes-no-options">
+                                            <label class="yes-no-label">
+                                                <input type="radio" name="injured" value="yes">
+                                                Yes
+                                            </label>
+                                            <label class="yes-no-label">
+                                                <input type="radio" name="injured" value="no">
+                                                No
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="modal-form-group">
+                                        <label>Did they see a medical professional within 30 days?</label>
+                                        <div class="yes-no-options">
+                                            <label class="yes-no-label">
+                                                <input type="radio" name="medical-30-days" value="yes">
+                                                Yes
+                                            </label>
+                                            <label class="yes-no-label">
+                                                <input type="radio" name="medical-30-days" value="no">
+                                                No
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="modal-form-group">
+                                        <label>Did the at-fault party have insurance?</label>
+                                        <div class="yes-no-options">
+                                            <label class="yes-no-label">
+                                                <input type="radio" name="has-insurance" value="yes" onchange="toggleUmCoverageSection()">
+                                                Yes
+                                            </label>
+                                            <label class="yes-no-label">
+                                                <input type="radio" name="has-insurance" value="no" onchange="toggleUmCoverageSection()">
+                                                No
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div id="um-coverage-section" class="modal-form-group" style="display: none;">
+                                        <label>If no insurance or hit-and-run: Does the caller have UM coverage?</label>
+                                        <div class="yes-no-options">
+                                            <label class="yes-no-label">
+                                                <input type="radio" name="um-coverage" value="yes">
+                                                Yes
+                                            </label>
+                                            <label class="yes-no-label">
+                                                <input type="radio" name="um-coverage" value="no">
+                                                No
+                                            </label>
+                                        </div>
+                                        <div id="um-warning" class="insurance-warning" style="display: none;">
+                                            Warning: Caller has no insurance and no UM coverage. Recommend disqualifying this lead.
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="modal-form-group">
+                                        <label>Was it a commercial/government vehicle (and caller knows the entity)?</label>
+                                        <div class="yes-no-options">
+                                            <label class="yes-no-label">
+                                                <input type="radio" name="commercial-vehicle" value="yes">
+                                                Yes
+                                            </label>
+                                            <label class="yes-no-label">
+                                                <input type="radio" name="commercial-vehicle" value="no">
+                                                No
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="modal-form-group">
+                                        <label>Does the caller have proof that the other vehicle was commercial/government?</label>
+                                        <div class="yes-no-options">
+                                            <label class="yes-no-label">
+                                                <input type="radio" name="has-proof" value="yes">
+                                                Yes
+                                            </label>
+                                            <label class="yes-no-label">
+                                                <input type="radio" name="has-proof" value="no">
+                                                No
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer" style="position: sticky; bottom: 0; background: white; z-index: 10;">
+                    <button class="btn btn-secondary" id="add-lead-cancel">Cancel</button>
+                    <button class="btn" id="add-lead-submit">Add Lead</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Append modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Add event listeners
+    document.getElementById('add-lead-modal-close').addEventListener('click', closeAddLeadModal);
+    document.getElementById('add-lead-cancel').addEventListener('click', closeAddLeadModal);
+    document.getElementById('add-lead-submit').addEventListener('click', handleLeadSubmit);
+    
+    // Add event listener for accident date to check deadline
+    document.getElementById('lead-accident-date').addEventListener('change', checkAddLeadDeadline);
+}
+
+// Open add lead modal
+function openAddLeadModal() {
+    // Create the modal if it doesn't exist
+    createAddLeadModal();
+    
+    // Populate vendor dropdown
+    populateVendorDropdown();
+    
+    // Add event listeners for UM coverage radio buttons
+    const umCoverageYes = document.querySelector('input[name="um-coverage"][value="yes"]');
+    const umCoverageNo = document.querySelector('input[name="um-coverage"][value="no"]');
+    
+    if (umCoverageYes) {
+        umCoverageYes.addEventListener('change', function() {
+            document.getElementById('um-warning').style.display = 'none';
+        });
+    }
+    
+    if (umCoverageNo) {
+        umCoverageNo.addEventListener('change', function() {
+            document.getElementById('um-warning').style.display = 'block';
+        });
+    }
+    
+    // Show the modal
+    const modalOverlay = document.getElementById('add-lead-modal-overlay');
+    modalOverlay.style.display = 'flex';
+}
+
+// Close add lead modal
+function closeAddLeadModal() {
+    const modalOverlay = document.getElementById('add-lead-modal-overlay');
+    modalOverlay.style.display = 'none';
+    
+    // Reset form
+    document.getElementById('add-lead-form').reset();
+}
+
+// Populate vendor dropdown in add lead form
+function populateVendorDropdown() {
+    const vendorSelect = document.getElementById('lead-vendor');
+    
+    // Clear existing options except the first one
+    while (vendorSelect.options.length > 1) {
+        vendorSelect.remove(1);
+    }
+    
+    // Add vendor options
+    Array.from(vendorCodes).sort().forEach(code => {
+        const option = document.createElement('option');
+        option.value = code;
+        option.textContent = code;
+        vendorSelect.appendChild(option);
+    });
+}
+
+// Handle lead submission
+async function handleLeadSubmit(e) {
+    e.preventDefault();
+    
+    // Validate form
+    const form = document.getElementById('add-lead-form');
+    const isValid = validateLeadForm();
+    
+    if (!isValid) {
+        return;
+    }
+    
+    // Helper function to get radio button value
+    const getRadioValue = (name) => {
+        const radio = document.querySelector(`input[name="${name}"]:checked`);
+        return radio ? radio.value : null;
+    };
+    
+    // Calculate deadline based on accident date
+    let deadline60Days = '';
+    const accidentDate = document.getElementById('lead-accident-date').value;
+    if (accidentDate) {
+        const today = new Date();
+        const accidentDateObj = new Date(accidentDate);
+        const deadlineDate = new Date(accidentDateObj);
+        deadlineDate.setFullYear(deadlineDate.getFullYear() + 2);
+        const daysLeft = Math.floor((deadlineDate - today) / (1000 * 60 * 60 * 24));
+        deadline60Days = daysLeft >= 60 ? 'yes' : 'no';
+    }
+    
+    // Gather form data
+    const leadData = {
+        // Basic lead info
+        first_name: document.getElementById('lead-first-name').value.trim(),
+        last_name: document.getElementById('lead-last-name').value.trim(),
+        email: document.getElementById('lead-email').value.trim(),
+        phone_home: document.getElementById('lead-phone').value.trim(),
+        state: document.getElementById('lead-state').value.trim(),
+        zip_code: document.getElementById('lead-zip').value.trim(),
+        city: document.getElementById('lead-city').value.trim(),
+        vendor_code: document.getElementById('lead-vendor').value,
+        notes: document.getElementById('lead-notes').value.trim(),
+        
+        // Qualification data
+        accident_date: accidentDate || null,
+        accident_location: document.getElementById('lead-accident-location').value.trim(),
+        deadline_60_days: deadline60Days,
+        caller_at_fault: getRadioValue('at-fault'),
+        has_attorney: getRadioValue('has-attorney'),
+        was_injured: getRadioValue('injured'),
+        medical_within_30_days: getRadioValue('medical-30-days'),
+        at_fault_has_insurance: getRadioValue('has-insurance'),
+        is_commercial_vehicle: getRadioValue('commercial-vehicle'),
+        has_um_coverage: getRadioValue('um-coverage'),
+        has_commercial_proof: getRadioValue('has-proof'),
+        
+        // Include API key for authorization
+        api_key: API_KEY
+    };
+    
+    // Submit the lead
+    const success = await submitLead(leadData);
+    
+    if (success) {
+        // Close modal and refresh data
+        closeAddLeadModal();
+        fetchLeads();
+    }
+}
+
+// Form validation
+function validateLeadForm() {
+    const firstName = document.getElementById('lead-first-name').value.trim();
+    const lastName = document.getElementById('lead-last-name').value.trim();
+    const email = document.getElementById('lead-email').value.trim();
+    const phone = document.getElementById('lead-phone').value.trim();
+    const vendor = document.getElementById('lead-vendor').value;
+    
+    let isValid = true;
+    let errorMessage = '';
+    
+    if (!firstName) {
+        errorMessage = 'First name is required';
+        isValid = false;
+    } else if (!lastName) {
+        errorMessage = 'Last name is required';
+        isValid = false;
+    } else if (!email) {
+        errorMessage = 'Email is required';
+        isValid = false;
+    } else if (!validateEmail(email)) {
+        errorMessage = 'Please enter a valid email address';
+        isValid = false;
+    } else if (!phone) {
+        errorMessage = 'Phone number is required';
+        isValid = false;
+    } else if (!validatePhone(phone)) {
+        errorMessage = 'Please enter a valid phone number';
+        isValid = false;
+    } else if (!vendor) {
+        errorMessage = 'Vendor code is required';
+        isValid = false;
+    }
+    
+    if (!isValid) {
+        showError(errorMessage);
+    } else {
+        hideError();
+    }
+    
+    return isValid;
+}
+
+// Email validation
+function validateEmail(email) {
+    const re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    return re.test(String(email).toLowerCase());
+}
+
+// Phone validation - allows various formats
+function validatePhone(phone) {
+    const re = /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/;
+    return re.test(String(phone));
+}
 
 // Toggle auto-refresh functionality
 function toggleAutoRefresh() {
@@ -97,6 +510,111 @@ function toggleAutoRefresh() {
             refreshTimer = null;
         }
     }
+}
+
+// Debounce the search to improve performance
+function debounceSearch(e) {
+    if (searchDebounceTimer) {
+        clearTimeout(searchDebounceTimer);
+    }
+    
+    searchDebounceTimer = setTimeout(() => {
+        handleSearch(e);
+    }, 300); // 300ms debounce time
+}
+
+// Handle search input
+function handleSearch(e) {
+    searchTerm = e.target.value.toLowerCase().trim();
+    
+    // Close any expanded row before filtering
+    if (expandedLeadId) {
+        const expandedRow = document.getElementById(`detail-${expandedLeadId}`);
+        if (expandedRow) {
+            expandedRow.remove();
+        }
+        
+        const expandedLeadRow = document.querySelector('tr.expanded');
+        if (expandedLeadRow) {
+            expandedLeadRow.classList.remove('expanded');
+        }
+    }
+    
+    // Close any open dropdowns
+    const openDropdowns = document.querySelectorAll('.disposition-dropdown.open');
+    openDropdowns.forEach(dropdown => {
+        dropdown.classList.remove('open');
+    });
+    
+    filterAndRenderLeads();
+    
+    // Show/hide no results message
+    if (filteredLeads.length === 0 && searchTerm) {
+        noDataEl.textContent = `No leads found matching "${searchTerm}"`;
+        noDataEl.style.display = 'block';
+        leadsTable.style.display = 'none';
+    } else if (filteredLeads.length > 0) {
+        noDataEl.style.display = 'none';
+        leadsTable.style.display = 'table';
+    }
+}
+
+// Filter and render leads based on vendor filter and search term
+function filterAndRenderLeads() {
+    // First filter by vendor
+    const vendorCode = vendorFilter.value;
+    let resultsToFilter = leads;
+    
+    if (vendorCode) {
+        resultsToFilter = leads.filter(lead => lead.vendor_code === vendorCode);
+    }
+    
+    // Then filter by search term if one exists
+    if (searchTerm) {
+        filteredLeads = resultsToFilter.filter(lead => {
+            // Search in all fields, combining them for more comprehensive search
+            const searchableContent = [
+                `${lead.first_name} ${lead.last_name}`, // Full name
+                lead.email,
+                lead.phone_home,
+                lead.lead_id,
+                lead.zip_code,
+                lead.city,
+                lead.state,
+                lead.notes,
+                lead.disposition,
+                lead.accident_date,
+                lead.accident_location,
+                `${lead.city} ${lead.state} ${lead.zip_code}` // Combined location
+            ].filter(Boolean).join(' ').toLowerCase();
+            
+            return searchableContent.includes(searchTerm);
+        });
+    } else {
+        filteredLeads = resultsToFilter;
+    }
+    
+    // Important: Store expandedLeadId before re-rendering to maintain expanded state
+    const wasExpanded = expandedLeadId;
+    
+    // Reset expandedLeadId to ensure no lead is automatically expanded
+    expandedLeadId = null;
+    
+    renderLeads();
+    
+    // If a lead was expanded before filtering and we want to maintain that state,
+    // uncomment the following code. For now, we'll keep all leads collapsed as requested.
+    /*
+    if (wasExpanded && filteredLeads.some(lead => lead.lead_id === wasExpanded)) {
+        expandedLeadId = wasExpanded;
+        const leadToExpand = filteredLeads.find(lead => lead.lead_id === wasExpanded);
+        setTimeout(() => {
+            if (leadToExpand) {
+                addDetailRow(leadToExpand);
+            }
+        }, 100);
+    }
+    */
 }
 
 // Fetch leads from API
@@ -118,13 +636,34 @@ async function fetchLeads() {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json'
+                'Accept': 'application/json',
+                'x-api-key': API_KEY
             },
             mode: 'cors'  // Explicitly state CORS mode for Amplify hosting
         });
         
+        let newLeads = [];
+        
         if (!response.ok) {
-            throw new Error(`HTTP error ${response.status}`);
+            // If API fails, show error but continue with data from localStorage
+            console.error(`HTTP error ${response.status}`);
+            showError('Failed to fetch leads from API. Showing cached data instead.');
+            
+            // Use existing data from localStorage
+            const existingLeads = JSON.parse(localStorage.getItem('leads') || '[]');
+            if (existingLeads.length > 0) {
+                newLeads = existingLeads;
+                
+                // If vendor filter is applied, filter the local data
+                if (vendorCode) {
+                    newLeads = newLeads.filter(lead => lead.vendor_code === vendorCode);
+                }
+            } else {
+                throw new Error(`HTTP error ${response.status}`);
+            }
+        } else {
+            // API worked, get leads from it
+            newLeads = await response.json();
         }
         
         // Get existing leads from localStorage to preserve disposition and notes
@@ -139,9 +678,6 @@ async function fetchLeads() {
                 updated_at: lead.updated_at
             });
         });
-        
-        // Get new leads from API
-        const newLeads = await response.json();
         
         // Merge new leads with existing disposition/notes data
         leads = newLeads.map(lead => {
@@ -176,8 +712,8 @@ async function fetchLeads() {
         // Update vendor dropdown options
         updateVendorOptions();
         
-        // Render the data
-        renderLeads();
+        // After leads are fetched and processed
+        filterAndRenderLeads();
         
     } catch (error) {
         console.error('Error fetching leads:', error);
@@ -257,7 +793,8 @@ async function exportLeadsToCsv() {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json'
+                'Accept': 'application/json',
+                'x-api-key': API_KEY
             },
             mode: 'cors'
         });
@@ -426,351 +963,146 @@ function updateVendorOptions() {
     }
 }
 
-// Filter leads based on vendor selection
-function filterLeads() {
-    fetchLeads();
-}
-
 // Render leads table
 function renderLeads() {
     // Clear existing rows
     leadsBody.innerHTML = '';
     
-    if (leads.length === 0) {
-        leadsTable.style.display = 'none';
+    // Show "no data" message if no leads
+    if (filteredLeads.length === 0) {
         noDataEl.style.display = 'block';
+        leadsTable.style.display = 'none';
         return;
     }
     
-    leadsTable.style.display = 'table';
+    // Hide "no data" message and show table
     noDataEl.style.display = 'none';
+    leadsTable.style.display = 'table';
     
-    // Add rows for each lead
-    leads.forEach(lead => {
-        // Create main row
-        const row = document.createElement('tr');
-        row.className = 'lead-row';
-        row.dataset.leadId = lead.lead_id;
-        
-        if (lead.lead_id === expandedLeadId) {
-            row.classList.add('expanded');
-        }
-        
-        // Get disposition display
-        const disposition = lead.disposition || 'New';
-        const dispositionClass = disposition.toLowerCase().replace(/\s+/g, '-');
-        
-        // Add cells for each column
-        row.innerHTML = `
-            <td>${escapeHtml(lead.first_name || '')} ${escapeHtml(lead.last_name || '')}</td>
-            <td>
-                <div class="contact-info">
-                    <div>${escapeHtml(lead.phone_home || '')}</div>
-                    <div>${escapeHtml(lead.email || '')}</div>
-                </div>
-            </td>
-            <td>${escapeHtml(lead.accident_date || 'Not specified')}</td>
-            <td>
-                <span class="disposition-tag ${dispositionClass}">${escapeHtml(disposition)}</span>
-            </td>
-            <td>${escapeHtml(getLocationDisplay(lead) || '')}</td>
-            <td>${escapeHtml(lead.vendor_code || '')}</td>
-            <td>${formatDate(lead.timestamp)}</td>
-        `;
-        
-        // Add click handler
-        row.addEventListener('click', () => toggleLeadDetails(lead));
-        
-        leadsBody.appendChild(row);
-        
-        // If this lead is expanded, add the detail row
-        if (lead.lead_id === expandedLeadId) {
-            addDetailRow(lead);
-        }
-    });
+    // Sort leads by timestamp (newest first) and render
+    filteredLeads
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+        .forEach(lead => {
+            const row = document.createElement('tr');
+            row.dataset.leadId = lead.lead_id;
+            row.classList.add('lead-row');
+            
+            // Ensure no row is pre-expanded
+            if (lead.lead_id !== expandedLeadId) {
+                row.classList.remove('expanded');
+            }
+            
+            // Format the accident date as YYYY-MM-DD
+            const accidentDate = lead.accident_date ? formatDateYMD(lead.accident_date) : '';
+            
+            row.innerHTML = `
+                <td class="lead-name">
+                    <div class="name-cell">
+                        <span>${escapeHtml(lead.first_name)} ${escapeHtml(lead.last_name)}</span>
+                        <button class="details-btn" title="Show Details">
+                            <span class="details-icon">▼</span>
+                        </button>
+                    </div>
+                </td>
+                <td>
+                    <div class="contact-info">
+                        <div class="phone">${escapeHtml(lead.phone_home || '')}</div>
+                        <div class="email">${escapeHtml(lead.email || '')}</div>
+                    </div>
+                </td>
+                <td>${accidentDate}</td>
+                <td>
+                    <select class="disposition-select" data-lead-id="${lead.lead_id}">
+                        <option value="New" ${(lead.disposition || 'New') === 'New' ? 'selected' : ''}>New</option>
+                        <option value="Retained for Firm" ${lead.disposition === 'Retained for Firm' ? 'selected' : ''}>Retained for Firm</option>
+                        <option value="Docs Sent" ${lead.disposition === 'Docs Sent' ? 'selected' : ''}>Docs Sent</option>
+                        <option value="Awaiting Proof of Claim" ${lead.disposition === 'Awaiting Proof of Claim' ? 'selected' : ''}>Awaiting Proof of Claim</option>
+                        <option value="Not Interested" ${lead.disposition === 'Not Interested' ? 'selected' : ''}>Not Interested</option>
+                        <option value="Not Qualified Lead" ${lead.disposition === 'Not Qualified Lead' ? 'selected' : ''}>Not Qualified Lead</option>
+                    </select>
+                </td>
+                <td>${getLocationDisplay(lead)}</td>
+                <td>${escapeHtml(lead.vendor_code || '')}</td>
+                <td>${formatDate(lead.timestamp, true)}</td>
+            `;
+            
+            // Add row to table
+            leadsBody.appendChild(row);
+            
+            // Add event listener for show details button
+            const detailsBtn = row.querySelector('.details-btn');
+            detailsBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent row click from firing
+                toggleLeadDetails(lead);
+            });
+            
+            // Add event listener for select dropdown
+            const dispositionSelect = row.querySelector('.disposition-select');
+            dispositionSelect.addEventListener('change', async function(e) {
+                e.stopPropagation(); // Prevent row click
+                
+                const newValue = this.value;
+                const leadId = this.dataset.leadId;
+                
+                // Find the lead in the array
+                const leadToUpdate = filteredLeads.find(l => l.lead_id === leadId);
+                
+                try {
+                    // Update without notes
+                    await updateLeadDisposition(leadId, newValue, leadToUpdate.notes || '');
+                    
+                    // Update local data
+                    leadToUpdate.disposition = newValue;
+                    
+                    // Update localStorage
+                    updateLocalStorage();
+                    
+                    // Show success toast
+                    showSuccessToast(`Disposition updated to "${newValue}"`);
+                    
+                    // Show disposition modal if needed
+                    if (newValue === 'Not Qualified Lead' || newValue === 'Not Interested') {
+                        showDispositionModal(leadToUpdate);
+                    }
+                } catch (error) {
+                    console.error('Error updating disposition:', error);
+                    // Revert UI to previous value
+                    this.value = leadToUpdate.disposition || 'New';
+                    showError('Failed to update disposition. Please try again.');
+                }
+            });
+            
+            // Make the entire row clickable
+            row.addEventListener('click', function(e) {
+                // Don't trigger if clicked on select or button
+                if (e.target.closest('select') || e.target.closest('button')) {
+                    return;
+                }
+                toggleLeadDetails(lead);
+            });
+        });
 }
 
-// Add detail row for a lead
-function addDetailRow(lead) {
-    const detailRow = document.createElement('tr');
-    detailRow.className = 'detail-row';
-    detailRow.id = `detail-${lead.lead_id}`;
+// Helper function to format date as YYYY-MM-DD
+function formatDateYMD(dateString) {
+    if (!dateString) return '';
     
-    const detailCell = document.createElement('td');
-    detailCell.colSpan = 7;
-    
-    // Create two column layout for details
-    const detailContent = document.createElement('div');
-    detailContent.className = 'detail-content';
-    
-    // Left column with lead info
-    const leadInfoColumn = document.createElement('div');
-    leadInfoColumn.className = 'lead-info-column';
-    
-    // Add disposition display in detail view
-    const currentDisposition = document.createElement('div');
-    currentDisposition.className = 'detail-disposition-section';
-    currentDisposition.innerHTML = `
-        <h4>Current Disposition</h4>
-        <div class="disposition-select-container">
-            <select id="disposition-select-${lead.lead_id}" class="disposition-select">
-                <option value="New" ${(lead.disposition || 'New') === 'New' ? 'selected' : ''}>New</option>
-                <option value="Retained for Firm" ${lead.disposition === 'Retained for Firm' ? 'selected' : ''}>Retained for Firm</option>
-                <option value="Docs Sent" ${lead.disposition === 'Docs Sent' ? 'selected' : ''}>Docs Sent</option>
-                <option value="Awaiting Proof of Claim" ${lead.disposition === 'Awaiting Proof of Claim' ? 'selected' : ''}>Awaiting Proof of Claim</option>
-                <option value="Not Interested" ${lead.disposition === 'Not Interested' ? 'selected' : ''}>Not Interested</option>
-                <option value="Not Qualified Lead" ${lead.disposition === 'Not Qualified Lead' ? 'selected' : ''}>Not Qualified Lead</option>
-            </select>
-            <button id="save-disposition-${lead.lead_id}" class="btn btn-sm">Update</button>
-        </div>
-    `;
-    
-    leadInfoColumn.appendChild(currentDisposition);
-    
-    // Add basic lead details
-    const leadDetails = document.createElement('div');
-    leadDetails.className = 'lead-basic-details';
-    
-    const fields = [
-        { label: 'Lead ID', value: lead.lead_id },
-        { label: 'Full Name', value: `${lead.first_name || ''} ${lead.last_name || ''}` },
-        { label: 'Phone', value: lead.phone_home },
-        { label: 'Email', value: lead.email },
-        { label: 'Location', value: getLocationDisplay(lead) },
-        { label: 'Vendor', value: lead.vendor_code },
-        { label: 'Received', value: formatDate(lead.timestamp, true) }
-    ];
-    
-    fields.forEach(field => {
-        const detailItem = document.createElement('div');
-        detailItem.className = 'detail-item';
+    try {
+        const date = new Date(dateString);
         
-        detailItem.innerHTML = `
-            <div class="detail-label">${field.label}</div>
-            <div class="detail-value">${escapeHtml(field.value || '')}</div>
-        `;
+        if (isNaN(date)) {
+            return dateString;
+        }
         
-        leadDetails.appendChild(detailItem);
-    });
-    
-    leadInfoColumn.appendChild(leadDetails);
-    
-    // Notes section
-    const notesSection = document.createElement('div');
-    notesSection.className = 'notes-section';
-    notesSection.innerHTML = `
-        <h4>Notes</h4>
-        <textarea id="lead-notes-${lead.lead_id}" class="lead-notes" rows="4">${escapeHtml(lead.notes || '')}</textarea>
-        <button id="save-notes-${lead.lead_id}" class="btn btn-sm">Save Notes</button>
-    `;
-    
-    leadInfoColumn.appendChild(notesSection);
-    
-    // Right column with qualification checklist
-    const qualificationColumn = document.createElement('div');
-    qualificationColumn.className = 'qualification-column';
-    
-    qualificationColumn.innerHTML = `
-        <h4>Qualification Checklist</h4>
-        <div class="qualification-form" id="qualification-form-${lead.lead_id}">
-            <div class="qualification-item">
-                <label>Where did the accident happen?</label>
-                <input type="text" id="accident-location-${lead.lead_id}" value="${escapeHtml(lead.accident_location || '')}">
-            </div>
-            
-            <div class="qualification-item">
-                <label>What was the date of the accident?</label>
-                <input type="date" id="accident-date-${lead.lead_id}" value="${lead.accident_date || ''}" onchange="checkDeadline('${lead.lead_id}')">
-                <div id="deadline-warning-${lead.lead_id}" class="deadline-warning" style="display: none;">
-                    Warning: This accident occurred more than 2 years ago. The statute of limitations has likely expired.
-                </div>
-            </div>
-            
-            <div class="qualification-item" style="display: none;">
-                <input type="hidden" id="deadline-60-days-${lead.lead_id}" value="${lead.deadline_60_days || ''}">
-            </div>
-            
-            <div class="qualification-item">
-                <label>Was the caller at fault?</label>
-                <div class="yes-no-options">
-                    <label class="yes-no-label">
-                        <input type="radio" name="at-fault-${lead.lead_id}" value="yes" ${lead.caller_at_fault === 'yes' ? 'checked' : ''}>
-                        Yes
-                    </label>
-                    <label class="yes-no-label">
-                        <input type="radio" name="at-fault-${lead.lead_id}" value="no" ${lead.caller_at_fault === 'no' ? 'checked' : ''}>
-                        No
-                    </label>
-                </div>
-            </div>
-            
-            <div class="qualification-item">
-                <label>Does the caller already have an attorney?</label>
-                <div class="yes-no-options">
-                    <label class="yes-no-label">
-                        <input type="radio" name="has-attorney-${lead.lead_id}" value="yes" ${lead.has_attorney === 'yes' ? 'checked' : ''}>
-                        Yes
-                    </label>
-                    <label class="yes-no-label">
-                        <input type="radio" name="has-attorney-${lead.lead_id}" value="no" ${lead.has_attorney === 'no' ? 'checked' : ''}>
-                        No
-                    </label>
-                </div>
-            </div>
-            
-            <div class="qualification-item">
-                <label>Was the caller injured?</label>
-                <div class="yes-no-options">
-                    <label class="yes-no-label">
-                        <input type="radio" name="injured-${lead.lead_id}" value="yes" ${lead.was_injured === 'yes' ? 'checked' : ''}>
-                        Yes
-                    </label>
-                    <label class="yes-no-label">
-                        <input type="radio" name="injured-${lead.lead_id}" value="no" ${lead.was_injured === 'no' ? 'checked' : ''}>
-                        No
-                    </label>
-                </div>
-            </div>
-            
-            <div class="qualification-item">
-                <label>Did they see a medical professional within 30 days?</label>
-                <div class="yes-no-options">
-                    <label class="yes-no-label">
-                        <input type="radio" name="medical-30-days-${lead.lead_id}" value="yes" ${lead.medical_within_30_days === 'yes' ? 'checked' : ''}>
-                        Yes
-                    </label>
-                    <label class="yes-no-label">
-                        <input type="radio" name="medical-30-days-${lead.lead_id}" value="no" ${lead.medical_within_30_days === 'no' ? 'checked' : ''}>
-                        No
-                    </label>
-                </div>
-            </div>
-            
-            <div class="qualification-item">
-                <label>Did the at-fault party have insurance?</label>
-                <div class="yes-no-options">
-                    <label class="yes-no-label">
-                        <input type="radio" name="has-insurance-${lead.lead_id}" value="yes" ${lead.at_fault_has_insurance === 'yes' ? 'checked' : ''}>
-                        Yes
-                    </label>
-                    <label class="yes-no-label">
-                        <input type="radio" name="has-insurance-${lead.lead_id}" value="no" ${lead.at_fault_has_insurance === 'no' ? 'checked' : ''}>
-                        No
-                    </label>
-                </div>
-            </div>
-            
-            <div class="qualification-item">
-                <label>Was it a commercial/government vehicle (and caller knows the entity)?</label>
-                <div class="yes-no-options">
-                    <label class="yes-no-label">
-                        <input type="radio" name="commercial-vehicle-${lead.lead_id}" value="yes" ${lead.is_commercial_vehicle === 'yes' ? 'checked' : ''}>
-                        Yes
-                    </label>
-                    <label class="yes-no-label">
-                        <input type="radio" name="commercial-vehicle-${lead.lead_id}" value="no" ${lead.is_commercial_vehicle === 'no' ? 'checked' : ''}>
-                        No
-                    </label>
-                </div>
-            </div>
-            
-            <div class="qualification-item">
-                <label>If no insurance or hit-and-run: Does the caller have UM coverage?</label>
-                <div class="yes-no-options">
-                    <label class="yes-no-label">
-                        <input type="radio" name="um-coverage-${lead.lead_id}" value="yes" ${lead.has_um_coverage === 'yes' ? 'checked' : ''}>
-                        Yes
-                    </label>
-                    <label class="yes-no-label">
-                        <input type="radio" name="um-coverage-${lead.lead_id}" value="no" ${lead.has_um_coverage === 'no' ? 'checked' : ''}>
-                        No
-                    </label>
-                </div>
-            </div>
-            
-            <div class="qualification-item">
-                <label>Does the caller have proof (photo, dashcam, etc.) that the other vehicle was commercial/government?</label>
-                <div class="yes-no-options">
-                    <label class="yes-no-label">
-                        <input type="radio" name="has-proof-${lead.lead_id}" value="yes" ${lead.has_commercial_proof === 'yes' ? 'checked' : ''}>
-                        Yes
-                    </label>
-                    <label class="yes-no-label">
-                        <input type="radio" name="has-proof-${lead.lead_id}" value="no" ${lead.has_commercial_proof === 'no' ? 'checked' : ''}>
-                        No
-                    </label>
-                </div>
-            </div>
-            
-            <button id="save-qualification-${lead.lead_id}" class="btn save-qualification-btn">Save Qualification Data</button>
-        </div>
-    `;
-    
-    // Add both columns to the detail content
-    detailContent.appendChild(leadInfoColumn);
-    detailContent.appendChild(qualificationColumn);
-    
-    detailCell.appendChild(detailContent);
-    detailRow.appendChild(detailCell);
-    
-    // Find the row after which to insert the detail row
-    const leadRow = document.querySelector(`tr[data-lead-id="${lead.lead_id}"]`);
-    if (leadRow) {
-        leadRow.parentNode.insertBefore(detailRow, leadRow.nextSibling);
+        return date.toISOString().split('T')[0]; // Returns YYYY-MM-DD
+    } catch (e) {
+        return dateString;
     }
-    
-    // Add event listeners for save buttons
-    setTimeout(() => {
-        // Disposition update handler
-        const saveDispositionBtn = document.getElementById(`save-disposition-${lead.lead_id}`);
-        if (saveDispositionBtn) {
-            saveDispositionBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const newDisposition = document.getElementById(`disposition-select-${lead.lead_id}`).value;
-                updateLeadData(lead.lead_id, { disposition: newDisposition });
-            });
-        }
-        
-        // Notes update handler
-        const saveNotesBtn = document.getElementById(`save-notes-${lead.lead_id}`);
-        if (saveNotesBtn) {
-            saveNotesBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const notes = document.getElementById(`lead-notes-${lead.lead_id}`).value;
-                updateLeadData(lead.lead_id, { notes });
-            });
-        }
-        
-        // Qualification data update handler
-        const saveQualificationBtn = document.getElementById(`save-qualification-${lead.lead_id}`);
-        if (saveQualificationBtn) {
-            saveQualificationBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                
-                // Gather all qualification data
-                const qualificationData = {
-                    accident_location: document.getElementById(`accident-location-${lead.lead_id}`).value,
-                    accident_date: document.getElementById(`accident-date-${lead.lead_id}`).value,
-                    deadline_60_days: document.getElementById(`deadline-60-days-${lead.lead_id}`).value,
-                    caller_at_fault: getRadioValue(`at-fault-${lead.lead_id}`),
-                    has_attorney: getRadioValue(`has-attorney-${lead.lead_id}`),
-                    was_injured: getRadioValue(`injured-${lead.lead_id}`),
-                    medical_within_30_days: getRadioValue(`medical-30-days-${lead.lead_id}`),
-                    at_fault_has_insurance: getRadioValue(`has-insurance-${lead.lead_id}`),
-                    is_commercial_vehicle: getRadioValue(`commercial-vehicle-${lead.lead_id}`),
-                    has_um_coverage: getRadioValue(`um-coverage-${lead.lead_id}`),
-                    has_commercial_proof: getRadioValue(`has-proof-${lead.lead_id}`)
-                };
-                
-                updateLeadData(lead.lead_id, qualificationData);
-            });
-        }
-        
-        // Check deadline based on accident date when the form is loaded
-        if (lead.accident_date) {
-            checkDeadline(lead.lead_id);
-        }
-    }, 0);
+}
+
+// Update local storage
+function updateLocalStorage() {
+    localStorage.setItem('leads', JSON.stringify(leads));
 }
 
 // Toggle lead details expansion
@@ -1095,71 +1427,6 @@ async function saveDisposition() {
     }
 }
 
-// Function to update lead data via PATCH endpoint
-async function updateLeadData(leadId, data) {
-    try {
-        showLoading(true);
-        
-        // Add the timestamp for tracking when updates occur
-        const updateData = {
-            ...data,
-            updated_at: new Date().toISOString()
-        };
-        
-        const response = await fetch(`${API_ENDPOINT}/${leadId}`, {
-            method: 'PATCH',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'x-api-key': API_KEY
-            },
-            body: JSON.stringify(updateData),
-            mode: 'cors'
-        });
-        
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || `HTTP error ${response.status}`);
-        }
-        
-        const result = await response.json();
-        
-        // Update the lead in local state
-        const leadIndex = leads.findIndex(lead => lead.lead_id === leadId);
-        
-        if (leadIndex !== -1) {
-            // Update the lead with the new data
-            leads[leadIndex] = {
-                ...leads[leadIndex],
-                ...updateData
-            };
-            
-            // Update localStorage
-            localStorage.setItem('leads', JSON.stringify(leads));
-            
-            // Re-render leads to show updated data
-            renderLeads();
-            
-            // If this lead is expanded, make sure it stays expanded
-            if (expandedLeadId === leadId) {
-                const leadRow = document.querySelector(`tr[data-lead-id="${leadId}"]`);
-                if (leadRow) {
-                    leadRow.classList.add('expanded');
-                    addDetailRow(leads[leadIndex]);
-                }
-            }
-            
-            // Show success message
-            showSuccessToast('Lead data updated successfully');
-        }
-    } catch (error) {
-        console.error('Error updating lead data:', error);
-        showError(`Error updating lead data: ${error.message}`);
-    } finally {
-        showLoading(false);
-    }
-}
-
 // Show a temporary success toast instead of alert
 function showSuccessToast(message) {
     // Create toast element
@@ -1228,5 +1495,467 @@ function checkDeadline(leadId) {
         // More than 60 days left
         deadlineWarning.style.display = 'none';
         deadlineInput.value = 'yes';
+    }
+}
+
+// Function to check insurance status and show UM coverage field when needed
+function checkInsuranceStatus(leadId) {
+    const hasInsuranceYes = document.querySelector(`input[name="has-insurance-${leadId}"][value="yes"]`);
+    const hasInsuranceNo = document.querySelector(`input[name="has-insurance-${leadId}"][value="no"]`);
+    const umCoverageSection = document.getElementById(`um-coverage-section-${leadId}`);
+    const umWarning = document.getElementById(`um-warning-${leadId}`);
+    const umCoverageYes = document.querySelector(`input[name="um-coverage-${leadId}"][value="yes"]`);
+    const umCoverageNo = document.querySelector(`input[name="um-coverage-${leadId}"][value="no"]`);
+    
+    // If no insurance, show UM coverage question
+    if (hasInsuranceNo && hasInsuranceNo.checked) {
+        umCoverageSection.style.display = 'block';
+        
+        // Check if No UM coverage is selected
+        if (umCoverageNo && umCoverageNo.checked) {
+            umWarning.style.display = 'block';
+        } else {
+            umWarning.style.display = 'none';
+        }
+    } else {
+        // If has insurance, hide UM coverage question and warning
+        umCoverageSection.style.display = 'none';
+        umWarning.style.display = 'none';
+    }
+}
+
+// Add detail row for a lead
+function addDetailRow(lead) {
+    const detailRow = document.createElement('tr');
+    detailRow.className = 'detail-row';
+    detailRow.id = `detail-${lead.lead_id}`;
+    
+    const detailCell = document.createElement('td');
+    detailCell.colSpan = 7;
+    
+    // Create two column layout for details
+    const detailContent = document.createElement('div');
+    detailContent.className = 'detail-content';
+    
+    // Left column with lead info
+    const leadInfoColumn = document.createElement('div');
+    leadInfoColumn.className = 'lead-info-column';
+    
+    // Add disposition display in detail view
+    const currentDisposition = document.createElement('div');
+    currentDisposition.className = 'detail-disposition-section';
+    currentDisposition.innerHTML = `
+        <h4>Current Disposition</h4>
+        <div class="disposition-select-container">
+            <select id="disposition-select-${lead.lead_id}" class="disposition-select">
+                <option value="New" ${(lead.disposition || 'New') === 'New' ? 'selected' : ''}>New</option>
+                <option value="Retained for Firm" ${lead.disposition === 'Retained for Firm' ? 'selected' : ''}>Retained for Firm</option>
+                <option value="Docs Sent" ${lead.disposition === 'Docs Sent' ? 'selected' : ''}>Docs Sent</option>
+                <option value="Awaiting Proof of Claim" ${lead.disposition === 'Awaiting Proof of Claim' ? 'selected' : ''}>Awaiting Proof of Claim</option>
+                <option value="Not Interested" ${lead.disposition === 'Not Interested' ? 'selected' : ''}>Not Interested</option>
+                <option value="Not Qualified Lead" ${lead.disposition === 'Not Qualified Lead' ? 'selected' : ''}>Not Qualified Lead</option>
+            </select>
+            <button id="save-disposition-${lead.lead_id}" class="btn btn-sm">Update</button>
+        </div>
+    `;
+    
+    leadInfoColumn.appendChild(currentDisposition);
+    
+    // Add basic lead details
+    const leadDetails = document.createElement('div');
+    leadDetails.className = 'lead-basic-details';
+    
+    const fields = [
+        { label: 'Lead ID', value: lead.lead_id },
+        { label: 'Full Name', value: `${lead.first_name || ''} ${lead.last_name || ''}` },
+        { label: 'Phone', value: lead.phone_home },
+        { label: 'Email', value: lead.email },
+        { label: 'Location', value: getLocationDisplay(lead) },
+        { label: 'Vendor', value: lead.vendor_code },
+        { label: 'Received', value: formatDate(lead.timestamp, true) }
+    ];
+    
+    fields.forEach(field => {
+        const detailItem = document.createElement('div');
+        detailItem.className = 'detail-item';
+        
+        detailItem.innerHTML = `
+            <div class="detail-label">${field.label}</div>
+            <div class="detail-value">${escapeHtml(field.value || '')}</div>
+        `;
+        
+        leadDetails.appendChild(detailItem);
+    });
+    
+    leadInfoColumn.appendChild(leadDetails);
+    
+    // Notes section
+    const notesSection = document.createElement('div');
+    notesSection.className = 'notes-section';
+    notesSection.innerHTML = `
+        <h4>Notes</h4>
+        <textarea id="lead-notes-${lead.lead_id}" class="lead-notes" rows="4">${escapeHtml(lead.notes || '')}</textarea>
+        <button id="save-notes-${lead.lead_id}" class="btn btn-sm">Save Notes</button>
+    `;
+    
+    leadInfoColumn.appendChild(notesSection);
+    
+    // Right column with qualification checklist
+    const qualificationColumn = document.createElement('div');
+    qualificationColumn.className = 'qualification-column';
+    
+    qualificationColumn.innerHTML = `
+        <h4>Qualification Checklist</h4>
+        <div class="qualification-form" id="qualification-form-${lead.lead_id}">
+            <div class="qualification-item">
+                <label>Where did the accident happen?</label>
+                <input type="text" id="accident-location-${lead.lead_id}" value="${escapeHtml(lead.accident_location || '')}">
+            </div>
+            
+            <div class="qualification-item">
+                <label>What was the date of the accident?</label>
+                <input type="date" id="accident-date-${lead.lead_id}" value="${lead.accident_date || ''}" onchange="checkDeadline('${lead.lead_id}')">
+                <div id="deadline-warning-${lead.lead_id}" class="deadline-warning" style="display: none;">
+                    Warning: This accident occurred more than 2 years ago. The statute of limitations has likely expired.
+                </div>
+            </div>
+            
+            <div class="qualification-item" style="display: none;">
+                <input type="hidden" id="deadline-60-days-${lead.lead_id}" value="${lead.deadline_60_days || ''}">
+            </div>
+            
+            <div class="qualification-item">
+                <label>Was the caller at fault?</label>
+                <div class="yes-no-options">
+                    <label class="yes-no-label">
+                        <input type="radio" name="at-fault-${lead.lead_id}" value="yes" ${lead.caller_at_fault === 'yes' ? 'checked' : ''}>
+                        Yes
+                    </label>
+                    <label class="yes-no-label">
+                        <input type="radio" name="at-fault-${lead.lead_id}" value="no" ${lead.caller_at_fault === 'no' ? 'checked' : ''}>
+                        No
+                    </label>
+                </div>
+            </div>
+            
+            <div class="qualification-item">
+                <label>Does the caller already have an attorney?</label>
+                <div class="yes-no-options">
+                    <label class="yes-no-label">
+                        <input type="radio" name="has-attorney-${lead.lead_id}" value="yes" ${lead.has_attorney === 'yes' ? 'checked' : ''}>
+                        Yes
+                    </label>
+                    <label class="yes-no-label">
+                        <input type="radio" name="has-attorney-${lead.lead_id}" value="no" ${lead.has_attorney === 'no' ? 'checked' : ''}>
+                        No
+                    </label>
+                </div>
+            </div>
+            
+            <div class="qualification-item">
+                <label>Was the caller injured?</label>
+                <div class="yes-no-options">
+                    <label class="yes-no-label">
+                        <input type="radio" name="injured-${lead.lead_id}" value="yes" ${lead.was_injured === 'yes' ? 'checked' : ''}>
+                        Yes
+                    </label>
+                    <label class="yes-no-label">
+                        <input type="radio" name="injured-${lead.lead_id}" value="no" ${lead.was_injured === 'no' ? 'checked' : ''}>
+                        No
+                    </label>
+                </div>
+            </div>
+            
+            <div class="qualification-item">
+                <label>Did they see a medical professional within 30 days?</label>
+                <div class="yes-no-options">
+                    <label class="yes-no-label">
+                        <input type="radio" name="medical-30-days-${lead.lead_id}" value="yes" ${lead.medical_within_30_days === 'yes' ? 'checked' : ''}>
+                        Yes
+                    </label>
+                    <label class="yes-no-label">
+                        <input type="radio" name="medical-30-days-${lead.lead_id}" value="no" ${lead.medical_within_30_days === 'no' ? 'checked' : ''}>
+                        No
+                    </label>
+                </div>
+            </div>
+            
+            <div class="qualification-item">
+                <label>Did the at-fault party have insurance?</label>
+                <div class="yes-no-options">
+                    <label class="yes-no-label">
+                        <input type="radio" name="has-insurance-${lead.lead_id}" value="yes" ${lead.at_fault_has_insurance === 'yes' ? 'checked' : ''} onchange="checkInsuranceStatus('${lead.lead_id}')">
+                        Yes
+                    </label>
+                    <label class="yes-no-label">
+                        <input type="radio" name="has-insurance-${lead.lead_id}" value="no" ${lead.at_fault_has_insurance === 'no' ? 'checked' : ''} onchange="checkInsuranceStatus('${lead.lead_id}')">
+                        No
+                    </label>
+                </div>
+            </div>
+            
+            <div class="qualification-item">
+                <label>Was it a commercial/government vehicle (and caller knows the entity)?</label>
+                <div class="yes-no-options">
+                    <label class="yes-no-label">
+                        <input type="radio" name="commercial-vehicle-${lead.lead_id}" value="yes" ${lead.is_commercial_vehicle === 'yes' ? 'checked' : ''}>
+                        Yes
+                    </label>
+                    <label class="yes-no-label">
+                        <input type="radio" name="commercial-vehicle-${lead.lead_id}" value="no" ${lead.is_commercial_vehicle === 'no' ? 'checked' : ''}>
+                        No
+                    </label>
+                </div>
+            </div>
+            
+            <div id="um-coverage-section-${lead.lead_id}" class="qualification-item" style="${lead.at_fault_has_insurance === 'no' ? 'display:block' : 'display:none'}">
+                <label>If no insurance or hit-and-run: Does the caller have UM coverage?</label>
+                <div class="yes-no-options">
+                    <label class="yes-no-label">
+                        <input type="radio" name="um-coverage-${lead.lead_id}" value="yes" ${lead.has_um_coverage === 'yes' ? 'checked' : ''} onchange="checkInsuranceStatus('${lead.lead_id}')">
+                        Yes
+                    </label>
+                    <label class="yes-no-label">
+                        <input type="radio" name="um-coverage-${lead.lead_id}" value="no" ${lead.has_um_coverage === 'no' ? 'checked' : ''} onchange="checkInsuranceStatus('${lead.lead_id}')">
+                        No
+                    </label>
+                </div>
+                <div id="um-warning-${lead.lead_id}" class="insurance-warning" style="display:none">
+                    Warning: Caller has no insurance and no UM coverage. Recommend disqualifying this lead.
+                </div>
+            </div>
+            
+            <div class="qualification-item">
+                <label>Does the caller have proof that the other vehicle was commercial/government?</label>
+                <div class="yes-no-options">
+                    <label class="yes-no-label">
+                        <input type="radio" name="has-proof-${lead.lead_id}" value="yes" ${lead.has_commercial_proof === 'yes' ? 'checked' : ''}>
+                        Yes
+                    </label>
+                    <label class="yes-no-label">
+                        <input type="radio" name="has-proof-${lead.lead_id}" value="no" ${lead.has_commercial_proof === 'no' ? 'checked' : ''}>
+                        No
+                    </label>
+                </div>
+            </div>
+            
+            <button id="save-qualification-${lead.lead_id}" class="btn save-qualification-btn">Save Qualification Data</button>
+        </div>
+    `;
+    
+    // Add both columns to the detail content
+    detailContent.appendChild(leadInfoColumn);
+    detailContent.appendChild(qualificationColumn);
+    
+    detailCell.appendChild(detailContent);
+    detailRow.appendChild(detailCell);
+    
+    // Find the row after which to insert the detail row
+    const leadRow = document.querySelector(`tr[data-lead-id="${lead.lead_id}"]`);
+    if (leadRow) {
+        leadRow.parentNode.insertBefore(detailRow, leadRow.nextSibling);
+    }
+    
+    // Add event listeners for save buttons
+    setTimeout(() => {
+        // Disposition update handler
+        const saveDispositionBtn = document.getElementById(`save-disposition-${lead.lead_id}`);
+        if (saveDispositionBtn) {
+            saveDispositionBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const newDisposition = document.getElementById(`disposition-select-${lead.lead_id}`).value;
+                updateLeadData(lead.lead_id, { disposition: newDisposition });
+            });
+        }
+        
+        // Notes update handler
+        const saveNotesBtn = document.getElementById(`save-notes-${lead.lead_id}`);
+        if (saveNotesBtn) {
+            saveNotesBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const notes = document.getElementById(`lead-notes-${lead.lead_id}`).value;
+                updateLeadData(lead.lead_id, { notes });
+            });
+        }
+        
+        // Qualification data update handler
+        const saveQualificationBtn = document.getElementById(`save-qualification-${lead.lead_id}`);
+        if (saveQualificationBtn) {
+            saveQualificationBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                
+                // Gather all qualification data
+                const qualificationData = {
+                    accident_location: document.getElementById(`accident-location-${lead.lead_id}`).value,
+                    accident_date: document.getElementById(`accident-date-${lead.lead_id}`).value,
+                    deadline_60_days: document.getElementById(`deadline-60-days-${lead.lead_id}`).value,
+                    caller_at_fault: getRadioValue(`at-fault-${lead.lead_id}`),
+                    has_attorney: getRadioValue(`has-attorney-${lead.lead_id}`),
+                    was_injured: getRadioValue(`injured-${lead.lead_id}`),
+                    medical_within_30_days: getRadioValue(`medical-30-days-${lead.lead_id}`),
+                    at_fault_has_insurance: getRadioValue(`has-insurance-${lead.lead_id}`),
+                    is_commercial_vehicle: getRadioValue(`commercial-vehicle-${lead.lead_id}`),
+                    has_um_coverage: getRadioValue(`um-coverage-${lead.lead_id}`),
+                    has_commercial_proof: getRadioValue(`has-proof-${lead.lead_id}`)
+                };
+                
+                updateLeadData(lead.lead_id, qualificationData);
+            });
+        }
+        
+        // Check deadline based on accident date when the form is loaded
+        if (lead.accident_date) {
+            checkDeadline(lead.lead_id);
+        }
+        
+        // Check insurance status when form is loaded
+        checkInsuranceStatus(lead.lead_id);
+    }, 0);
+}
+
+// Function to update lead data via PATCH endpoint
+async function updateLeadData(leadId, data) {
+    try {
+        showLoading(true);
+        
+        // Add the timestamp for tracking when updates occur
+        const updateData = {
+            ...data,
+            updated_at: new Date().toISOString()
+        };
+        
+        const response = await fetch(`${API_ENDPOINT}/${leadId}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'x-api-key': API_KEY
+            },
+            body: JSON.stringify(updateData),
+            mode: 'cors'
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `HTTP error ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        // Update the lead in local state
+        const leadIndex = leads.findIndex(lead => lead.lead_id === leadId);
+        
+        if (leadIndex !== -1) {
+            // Update the lead with the new data
+            leads[leadIndex] = {
+                ...leads[leadIndex],
+                ...updateData
+            };
+            
+            // Update localStorage
+            updateLocalStorage();
+            
+            // Re-render leads to show updated data
+            filterAndRenderLeads();
+            
+            // If this lead is expanded, make sure it stays expanded
+            if (expandedLeadId === leadId) {
+                setTimeout(() => {
+                    const leadRow = document.querySelector(`tr[data-lead-id="${leadId}"]`);
+                    if (leadRow) {
+                        addDetailRow(leads[leadIndex]);
+                    }
+                }, 0);
+            }
+            
+            // Show success message
+            showSuccessToast('Lead data updated successfully');
+        }
+    } catch (error) {
+        console.error('Error updating lead data:', error);
+        showError(`Error updating lead data: ${error.message}`);
+    } finally {
+        showLoading(false);
+    }
+}
+
+// Toggle lead details visibility
+function toggleLeadDetails(lead) {
+    const detailRow = document.getElementById(`detail-${lead.lead_id}`);
+    
+    if (detailRow) {
+        // Detail row exists, so hide it
+        detailRow.remove();
+        expandedLeadId = null;
+    } else {
+        // No detail row, create one
+        expandedLeadId = lead.lead_id;
+        addDetailRow(lead);
+    }
+}
+
+// The existing filter function now delegates to filterAndRenderLeads
+function filterLeads() {
+    filterAndRenderLeads();
+}
+
+// Toggle UM coverage section based on insurance selection in add lead form
+function toggleUmCoverageSection() {
+    const hasInsuranceYes = document.querySelector('input[name="has-insurance"][value="yes"]');
+    const hasInsuranceNo = document.querySelector('input[name="has-insurance"][value="no"]');
+    const umCoverageSection = document.getElementById('um-coverage-section');
+    const umWarning = document.getElementById('um-warning');
+    
+    // If no insurance, show UM coverage question
+    if (hasInsuranceNo && hasInsuranceNo.checked) {
+        umCoverageSection.style.display = 'block';
+        
+        // Check if No UM coverage is selected
+        const umCoverageNo = document.querySelector('input[name="um-coverage"][value="no"]');
+        if (umCoverageNo && umCoverageNo.checked) {
+            umWarning.style.display = 'block';
+        } else {
+            umWarning.style.display = 'none';
+        }
+    } else {
+        // If has insurance, hide UM coverage question and warning
+        umCoverageSection.style.display = 'none';
+        umWarning.style.display = 'none';
+    }
+}
+
+// Check deadline based on accident date in add lead form
+function checkAddLeadDeadline() {
+    const accidentDateInput = document.getElementById('lead-accident-date');
+    const deadlineWarning = document.getElementById('lead-deadline-warning');
+    
+    if (!accidentDateInput.value) {
+        deadlineWarning.style.display = 'none';
+        return;
+    }
+    
+    const accidentDate = new Date(accidentDateInput.value);
+    const today = new Date();
+    
+    // Calculate the deadline date (2 years after accident)
+    const deadlineDate = new Date(accidentDate);
+    deadlineDate.setFullYear(deadlineDate.getFullYear() + 2);
+    
+    // Calculate days left
+    const daysLeft = Math.floor((deadlineDate - today) / (1000 * 60 * 60 * 24));
+    
+    if (daysLeft < 0) {
+        // Past the 2-year deadline
+        deadlineWarning.style.display = 'block';
+        deadlineWarning.textContent = 'Warning: This accident occurred more than 2 years ago. The statute of limitations has likely expired.';
+        deadlineWarning.className = 'deadline-warning expired';
+    } else if (daysLeft < 60) {
+        // Less than 60 days left
+        deadlineWarning.style.display = 'block';
+        deadlineWarning.textContent = `Warning: Only ${daysLeft} days left before the 2-year deadline expires.`;
+        deadlineWarning.className = 'deadline-warning urgent';
+    } else {
+        // More than 60 days left
+        deadlineWarning.style.display = 'none';
     }
 } 
