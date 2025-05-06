@@ -79,18 +79,18 @@ function createAddLeadModal() {
     
     const modalHtml = `
         <div id="add-lead-modal-overlay" class="modal-overlay">
-            <div class="modal" style="width: 800px; max-width: 95%;">
-                <div class="modal-header">
+            <div class="modal" style="width: 800px; max-width: 95%; max-height: 90vh; overflow-y: auto;">
+                <div class="modal-header" style="position: sticky; top: 0; background: white; z-index: 10;">
                     <h3 class="modal-title">Add New Lead</h3>
                     <button class="modal-close" id="add-lead-modal-close">&times;</button>
                 </div>
                 <div class="modal-body">
                     <form id="add-lead-form">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                            <!-- Basic Lead Information Column -->
-                            <div>
+                        <div style="display: flex; flex-direction: column; gap: 20px;">
+                            <!-- Basic Lead Information Section -->
+                            <div class="form-section">
                                 <h4>Lead Information</h4>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
                                     <div class="modal-form-group">
                                         <label for="lead-first-name">First Name*</label>
                                         <input type="text" id="lead-first-name" required>
@@ -99,8 +99,6 @@ function createAddLeadModal() {
                                         <label for="lead-last-name">Last Name*</label>
                                         <input type="text" id="lead-last-name" required>
                                     </div>
-                                </div>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                                     <div class="modal-form-group">
                                         <label for="lead-email">Email*</label>
                                         <input type="email" id="lead-email" required>
@@ -109,8 +107,6 @@ function createAddLeadModal() {
                                         <label for="lead-phone">Phone*</label>
                                         <input type="tel" id="lead-phone" required>
                                     </div>
-                                </div>
-                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                                     <div class="modal-form-group">
                                         <label for="lead-state">State</label>
                                         <input type="text" id="lead-state">
@@ -119,27 +115,28 @@ function createAddLeadModal() {
                                         <label for="lead-zip">Zip Code</label>
                                         <input type="text" id="lead-zip">
                                     </div>
+                                    <div class="modal-form-group">
+                                        <label for="lead-city">City</label>
+                                        <input type="text" id="lead-city">
+                                    </div>
+                                    <div class="modal-form-group">
+                                        <label for="lead-vendor">Vendor Code*</label>
+                                        <select id="lead-vendor" required>
+                                            <option value="">Select Vendor</option>
+                                        </select>
+                                    </div>
                                 </div>
-                                <div class="modal-form-group">
-                                    <label for="lead-city">City</label>
-                                    <input type="text" id="lead-city">
-                                </div>
-                                <div class="modal-form-group">
-                                    <label for="lead-vendor">Vendor Code*</label>
-                                    <select id="lead-vendor" required>
-                                        <option value="">Select Vendor</option>
-                                    </select>
-                                </div>
+
                                 <div class="modal-form-group">
                                     <label for="lead-notes">Notes</label>
                                     <textarea id="lead-notes" rows="3"></textarea>
                                 </div>
                             </div>
                             
-                            <!-- Qualification Checklist Column -->
-                            <div>
+                            <!-- Qualification Checklist Section -->
+                            <div class="form-section">
                                 <h4>Qualification Checklist</h4>
-                                <div class="qualification-form">
+                                <div class="qualification-form" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px;">
                                     <div class="modal-form-group">
                                         <label for="lead-accident-location">Where did the accident happen?</label>
                                         <input type="text" id="lead-accident-location">
@@ -270,7 +267,7 @@ function createAddLeadModal() {
                         </div>
                     </form>
                 </div>
-                <div class="modal-footer">
+                <div class="modal-footer" style="position: sticky; bottom: 0; background: white; z-index: 10;">
                     <button class="btn btn-secondary" id="add-lead-cancel">Cancel</button>
                     <button class="btn" id="add-lead-submit">Add Lead</button>
                 </div>
@@ -1697,7 +1694,7 @@ function addDetailRow(lead) {
             </div>
             
             <div class="qualification-item">
-                <label>Does the caller have proof (photo, dashcam, etc.) that the other vehicle was commercial/government?</label>
+                <label>Does the caller have proof that the other vehicle was commercial/government?</label>
                 <div class="yes-no-options">
                     <label class="yes-no-label">
                         <input type="radio" name="has-proof-${lead.lead_id}" value="yes" ${lead.has_commercial_proof === 'yes' ? 'checked' : ''}>
