@@ -18,7 +18,11 @@ A simple HTML, CSS, and JavaScript dashboard for viewing and managing leads from
 const API_ENDPOINT = 'https://your-api-gateway-id.execute-api.us-east-1.amazonaws.com/dev/leads';
 ```
 
-2. Deploy the dashboard files to any static web hosting service:
+2. Set up your API key using one of these methods:
+   - For local development: Edit `config.json` and set your API key (never commit this file)
+   - For deployment: Set the API_KEY environment variable in your deployment environment
+
+3. Deploy the dashboard files to any static web hosting service:
    - AWS Amplify (recommended, see below)
    - Amazon S3
    - GitHub Pages
@@ -39,9 +43,15 @@ npm install -g @aws-amplify/cli
    - Connect your repository
    - Follow the setup wizard
 
-3. Amplify will automatically detect the `amplify.yml` configuration file and use it for deployment.
+3. Add the API_KEY environment variable in the Amplify Console:
+   - Go to your app in the Amplify Console
+   - Navigate to "Environment variables"
+   - Add a variable named "API_KEY" with your actual API key value
+   - Save the changes and redeploy your application
 
-4. After deployment, update the CORS settings in your API Gateway to allow requests from your Amplify app domain.
+4. Amplify will automatically detect the `amplify.yml` configuration file and use it for deployment.
+
+5. After deployment, update the CORS settings in your API Gateway to allow requests from your Amplify app domain.
 
 ## Deployment to S3 (Alternative)
 

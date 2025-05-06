@@ -6,7 +6,9 @@ frontend:
         - echo "No build dependencies for this static site"
     build:
       commands:
-        - echo "No build step required"
+        - echo "Creating config.json with API key from environment"
+        - echo "{\"apiKey\":\"$API_KEY\"}" > dashboard/config.json
+        - echo "Config file created successfully"
   artifacts:
     baseDirectory: dashboard
     files:
