@@ -185,8 +185,19 @@ function createAddLeadModal() {
                                     </div>
                                     
                                     <div class="modal-form-group">
-                                        <label for="lead-accident-date">What was the date of the accident?</label>
-                                        <input type="date" id="lead-accident-date">
+                                        <label for="lead-incident-type">Incident Type</label>
+                                        <select id="lead-incident-type">
+                                            <option value="">Select Type</option>
+                                            <option value="PFAS">PFAS</option>
+                                            <option value="VGA">VGA</option>
+                                            <option value="MVA">MVA</option>
+                                            <option value="CMVA">CMVA</option>
+                                            <option value="PI">PI</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="modal-form-group" style="display: none;">
+                                        <input type="hidden" id="lead-accident-date">
                                         <div id="lead-deadline-warning" class="deadline-warning" style="display: none;"></div>
                                     </div>
                                     
@@ -327,6 +338,20 @@ function createAddLeadModal() {
     
     // Add event listener for accident date to check deadline
     document.getElementById('lead-accident-date').addEventListener('change', checkAddLeadDeadline);
+    
+    // Update the table header in the leads-table element at the top of the file
+    const tableHeader = document.querySelector('#leads-table thead tr');
+    if (tableHeader) {
+        tableHeader.innerHTML = `
+            <th>Name</th>
+            <th>Contact</th>
+            <th>Incident Type</th>
+            <th>Disposition</th>
+            <th>Location</th>
+            <th>Vendor</th>
+            <th>Received</th>
+        `;
+    }
 }
 
 // Open add lead modal
@@ -408,17 +433,9 @@ async function handleLeadSubmit(e) {
         return radio ? radio.value : null;
     };
     
-    // Calculate deadline based on accident date
-    let deadline60Days = '';
-    const accidentDate = document.getElementById('lead-accident-date').value;
-    if (accidentDate) {
-        const today = new Date();
-        const accidentDateObj = new Date(accidentDate);
-        const deadlineDate = new Date(accidentDateObj);
-        deadlineDate.setFullYear(deadlineDate.getFullYear() + 2);
-        const daysLeft = Math.floor((deadlineDate - today) / (1000 * 60 * 60 * 24));
-        deadline60Days = daysLeft >= 60 ? 'yes' : 'no';
-    }
+    // Calculate deadline based on accident date (keep it for now for compatibility)
+    let deadline60Days = 'yes'; // Default to yes since we're not using accident date anymore
+    const accidentDate = new Date().toISOString().split('T')[0]; // Use today's date as a placeholder
     
     // Gather form data
     const leadData = {
@@ -434,7 +451,8 @@ async function handleLeadSubmit(e) {
         notes: document.getElementById('lead-notes').value.trim(),
         
         // Qualification data
-        accident_date: accidentDate || null,
+        incident_type: document.getElementById('lead-incident-type').value,
+        accident_date: accidentDate, // Keep for backward compatibility
         accident_location: document.getElementById('lead-accident-location').value.trim(),
         deadline_60_days: deadline60Days,
         caller_at_fault: getRadioValue('at-fault'),
@@ -1002,9 +1020,6 @@ function renderLeads() {
                 row.classList.remove('expanded');
             }
             
-            // Format the accident date as YYYY-MM-DD
-            const accidentDate = lead.accident_date ? formatDateYMD(lead.accident_date) : '';
-            
             row.innerHTML = `
                 <td class="lead-name">
                     <div class="name-cell">
@@ -1020,7 +1035,7 @@ function renderLeads() {
                         <div class="email">${escapeHtml(lead.email || '')}</div>
                     </div>
                 </td>
-                <td>${accidentDate}</td>
+                <td>${escapeHtml(lead.incident_type || '')}</td>
                 <td>
                     <select class="disposition-select" data-lead-id="${lead.lead_id}">
                         <option value="New" ${(lead.disposition || 'New') === 'New' ? 'selected' : ''}>New</option>
@@ -1637,14 +1652,19 @@ function addDetailRow(lead) {
             </div>
             
             <div class="qualification-item">
-                <label>What was the date of the accident?</label>
-                <input type="date" id="accident-date-${lead.lead_id}" value="${lead.accident_date || ''}" onchange="checkDeadline('${lead.lead_id}')">
-                <div id="deadline-warning-${lead.lead_id}" class="deadline-warning" style="display: none;">
-                    Warning: This accident occurred more than 2 years ago. The statute of limitations has likely expired.
-                </div>
+                <label>Incident Type</label>
+                <select id="incident-type-${lead.lead_id}">
+                    <option value="">Select Type</option>
+                    <option value="PFAS" ${lead.incident_type === 'PFAS' ? 'selected' : ''}>PFAS</option>
+                    <option value="VGA" ${lead.incident_type === 'VGA' ? 'selected' : ''}>VGA</option>
+                    <option value="MVA" ${lead.incident_type === 'MVA' ? 'selected' : ''}>MVA</option>
+                    <option value="CMVA" ${lead.incident_type === 'CMVA' ? 'selected' : ''}>CMVA</option>
+                    <option value="PI" ${lead.incident_type === 'PI' ? 'selected' : ''}>PI</option>
+                </select>
             </div>
             
             <div class="qualification-item" style="display: none;">
+                <input type="hidden" id="accident-date-${lead.lead_id}" value="${lead.accident_date || ''}">
                 <input type="hidden" id="deadline-60-days-${lead.lead_id}" value="${lead.deadline_60_days || ''}">
             </div>
             
@@ -1822,6 +1842,7 @@ function addDetailRow(lead) {
                 // Gather all qualification data
                 const qualificationData = {
                     accident_location: document.getElementById(`accident-location-${lead.lead_id}`).value,
+                    incident_type: document.getElementById(`incident-type-${lead.lead_id}`).value,
                     accident_date: document.getElementById(`accident-date-${lead.lead_id}`).value,
                     deadline_60_days: document.getElementById(`deadline-60-days-${lead.lead_id}`).value,
                     caller_at_fault: getRadioValue(`at-fault-${lead.lead_id}`),
