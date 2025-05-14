@@ -5,7 +5,8 @@ const {
   PutCommand, 
   QueryCommand, 
   ScanCommand,
-  UpdateCommand
+  UpdateCommand,
+  DeleteCommand
 } = require('@aws-sdk/lib-dynamodb');
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
@@ -19,74 +20,86 @@ const LEADS_TABLE = process.env.LEADS_TABLE;
 
 // Main handler function for API Gateway
 exports.handler = async (event) => {
+  console.log('Received event:', JSON.stringify(event, null, 2));
+  
+  // Extract path and HTTP method
+  const path = event.path;
+  const httpMethod = event.httpMethod;
+  
+  console.log(`Processing ${httpMethod} ${path}`);
+  
   try {
-    const { httpMethod, path, queryStringParameters, body, pathParameters, headers } = event;
-    
-    // Check if the endpoint requires authentication
-    const requiresAuth = doesEndpointRequireAuth(path, httpMethod);
-    
-    // If authentication is required, verify the API key
-    if (requiresAuth) {
-      const authResult = await authenticateRequest(headers);
-      if (!authResult.authenticated) {
-        return {
-          statusCode: 401,
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
-          },
-          body: JSON.stringify({ 
-            status: 'error', 
-            message: authResult.message || 'Unauthorized' 
-          })
-        };
-      }
-      
-      // Add vendor info to the event for later use
-      event.vendor = authResult.vendor;
+    // Handle OPTIONS requests (CORS preflight)
+    if (httpMethod === 'OPTIONS') {
+      return {
+        statusCode: 200,
+        headers: corsHeaders
+      };
     }
     
     // DocuSign webhook callback doesn't need API key auth
     if (path === '/docusign/webhook' && httpMethod === 'POST') {
-      return await handleDocusignWebhook(JSON.parse(body));
+      return await handleDocusignWebhook(JSON.parse(event.body || '{}'));
     }
+    
+    // Special admin purge endpoint with hardcoded admin API key
+    if (path === '/vendors/purge' && httpMethod === 'DELETE') {
+      const apiKey = event.headers['x-api-key'];
+      
+      // Only allow with admin API key
+      if (apiKey === 'fpoI4Uwleh63QVGGsnAUG49W7B8k67g21Gc8glIl') {
+        return await handlePurgeVendors();
+      } else {
+        return {
+          statusCode: 403,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            status: 'error',
+            message: 'Not authorized to perform this action'
+          })
+        };
+      }
+    }
+
+    // Authenticate the request
+    const vendor = await authenticateRequest(event.headers);
     
     // Route handler
     if (path === '/leads') {
       if (httpMethod === 'POST') {
-        return await handleCreateLead(JSON.parse(body), event.vendor);
+        return await handleCreateLead(JSON.parse(event.body || '{}'), vendor);
       } else if (httpMethod === 'GET') {
-        return await handleGetLeads(queryStringParameters, event.vendor);
+        return await handleGetLeads(event.queryStringParameters, vendor);
       }
     } 
     // Handle lead update and get single lead
     else if (path.match(/^\/leads\/[^\/]+$/)) {
       const leadId = pathParameters.lead_id;
       if (httpMethod === 'PATCH') {
-        return await handleUpdateLead(leadId, JSON.parse(body), event.vendor);
+        return await handleUpdateLead(leadId, JSON.parse(event.body || '{}'), vendor);
       } else if (httpMethod === 'GET') {
-        return await handleGetLead(leadId, event.vendor);
+        return await handleGetLead(leadId, vendor);
       }
     }
     // Handle sending retainer via DocuSign
     else if (path.match(/^\/leads\/[^\/]+\/send-retainer$/)) {
       const leadId = pathParameters.lead_id;
       if (httpMethod === 'POST') {
-        return await handleSendRetainer(leadId, JSON.parse(body), event.vendor);
+        return await handleSendRetainer(leadId, JSON.parse(event.body || '{}'), vendor);
       }
     } else if (path === '/stats') {
       if (httpMethod === 'GET') {
-        return await handleGetLeadStats(queryStringParameters);
+        return await handleGetLeadStats(event.queryStringParameters);
       }
     } else if (path === '/export') {
       if (httpMethod === 'GET') {
-        return await handleExportLeads(queryStringParameters);
+        return await handleExportLeads(event.queryStringParameters);
       }
     } else if (path === '/vendors') {
       if (httpMethod === 'GET') {
         return await handleGetVendors();
       } else if (httpMethod === 'POST') {
-        return await handleCreateVendor(JSON.parse(body));
+        return await handleCreateVendor(JSON.parse(event.body || '{}'));
       }
     } else if (path.match(/^\/vendors\/[^\/]+\/regenerate-key$/)) {
       if (httpMethod === 'POST') {
@@ -1262,6 +1275,51 @@ async function handleDocusignWebhook(data) {
       body: JSON.stringify({ 
         status: 'error', 
         message: 'Error processing DocuSign webhook' 
+      })
+    };
+  }
+}
+
+// Add a new function to purge all vendors
+async function handlePurgeVendors() {
+  try {
+    // Scan the vendors table to get all vendor codes
+    const vendorsResult = await dynamoDB.send(
+      new ScanCommand({
+        TableName: VENDORS_TABLE
+      })
+    );
+    
+    const vendors = vendorsResult.Items || [];
+    console.log(`Found ${vendors.length} vendors to purge`);
+    
+    // Delete each vendor one by one
+    for (const vendor of vendors) {
+      await dynamoDB.send(
+        new DeleteCommand({
+          TableName: VENDORS_TABLE,
+          Key: { vendor_code: vendor.vendor_code }
+        })
+      );
+      console.log(`Deleted vendor: ${vendor.vendor_code}`);
+    }
+    
+    return {
+      statusCode: 200,
+      headers: corsHeaders,
+      body: JSON.stringify({
+        status: 'success',
+        message: `Successfully purged ${vendors.length} vendors`
+      })
+    };
+  } catch (error) {
+    console.error('Error purging vendors:', error);
+    return {
+      statusCode: 500,
+      headers: corsHeaders,
+      body: JSON.stringify({
+        status: 'error',
+        message: 'Error purging vendors'
       })
     };
   }

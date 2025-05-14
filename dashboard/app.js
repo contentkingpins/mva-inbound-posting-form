@@ -376,12 +376,17 @@ function populateVendorDropdown() {
         vendorSelect.remove(1);
     }
     
-    // Add vendor options
-    Array.from(vendorCodes).sort().forEach(code => {
-        const option = document.createElement('option');
-        option.value = code;
-        option.textContent = code;
-        vendorSelect.appendChild(option);
+    // Add fixed vendor options
+    const options = [
+        { value: 'IN_HOUSE', text: 'In House Marketing' },
+        { value: 'VENDOR', text: 'Vendor' }
+    ];
+    
+    options.forEach(option => {
+        const optionEl = document.createElement('option');
+        optionEl.value = option.value;
+        optionEl.textContent = option.text;
+        vendorSelect.appendChild(optionEl);
     });
 }
 
@@ -754,12 +759,17 @@ function populateExportVendorSelect() {
         exportVendorSelect.remove(1);
     }
     
-    // Add vendor options
-    Array.from(vendorCodes).sort().forEach(code => {
-        const option = document.createElement('option');
-        option.value = code;
-        option.textContent = code;
-        exportVendorSelect.appendChild(option);
+    // Add fixed vendor options
+    const options = [
+        { value: 'IN_HOUSE', text: 'In House Marketing' },
+        { value: 'VENDOR', text: 'Vendor' }
+    ];
+    
+    options.forEach(option => {
+        const optionEl = document.createElement('option');
+        optionEl.value = option.value;
+        optionEl.textContent = option.text;
+        exportVendorSelect.appendChild(optionEl);
     });
 }
 
@@ -935,21 +945,11 @@ function escapeCsvValue(value) {
 
 // Update vendor filter options
 function updateVendorOptions() {
-    // Extract unique vendor codes
-    const newVendorCodes = new Set();
-    leads.forEach(lead => {
-        if (lead.vendor_code) {
-            newVendorCodes.add(lead.vendor_code);
-        }
-    });
-    
-    // Skip if no changes to vendor codes
-    if (arraysEqual(Array.from(vendorCodes), Array.from(newVendorCodes))) {
-        return;
-    }
-    
-    // Update state
-    vendorCodes = newVendorCodes;
+    // Define fixed vendor options
+    const fixedVendorOptions = [
+        { value: 'IN_HOUSE', text: 'In House Marketing' },
+        { value: 'VENDOR', text: 'Vendor' }
+    ];
     
     // Save current selection
     const currentSelection = vendorFilter.value;
@@ -959,16 +959,16 @@ function updateVendorOptions() {
         vendorFilter.remove(1);
     }
     
-    // Add vendor options
-    Array.from(vendorCodes).sort().forEach(code => {
-        const option = document.createElement('option');
-        option.value = code;
-        option.textContent = code;
-        vendorFilter.appendChild(option);
+    // Add fixed vendor options
+    fixedVendorOptions.forEach(option => {
+        const optionEl = document.createElement('option');
+        optionEl.value = option.value;
+        optionEl.textContent = option.text;
+        vendorFilter.appendChild(optionEl);
     });
     
-    // Restore selection if it still exists
-    if (currentSelection && vendorCodes.has(currentSelection)) {
+    // Restore selection if it still exists in the new options
+    if (currentSelection && fixedVendorOptions.some(opt => opt.value === currentSelection)) {
         vendorFilter.value = currentSelection;
     }
 }
