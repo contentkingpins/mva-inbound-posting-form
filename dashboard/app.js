@@ -1589,16 +1589,30 @@ function addDetailRow(lead) {
     
     leadInfoColumn.appendChild(leadDetails);
     
-    // Notes section
-    const notesSection = document.createElement('div');
-    notesSection.className = 'notes-section';
-    notesSection.innerHTML = `
+    // Create lead notes container
+    const notesContainer = document.createElement('div');
+    notesContainer.className = 'lead-detail-item lead-notes-container';
+    notesContainer.innerHTML = `
         <h4>Notes</h4>
         <textarea id="lead-notes-${lead.lead_id}" class="lead-notes" rows="4">${escapeHtml(lead.notes || '')}</textarea>
         <button id="save-notes-${lead.lead_id}" class="btn btn-sm">Save Notes</button>
     `;
+    leadInfoColumn.appendChild(notesContainer);
     
-    leadInfoColumn.appendChild(notesSection);
+    // Create DocuSign retainer section
+    const retainerContainer = document.createElement('div');
+    retainerContainer.className = 'lead-detail-item retainer-container';
+    retainerContainer.innerHTML = `
+        <h4>Retainer Agreement</h4>
+        <div class="docusign-option">
+            <label class="checkbox-container">
+                <input type="checkbox" id="send-retainer-checkbox-${lead.lead_id}">
+                <span class="checkbox-label">Send retainer agreement</span>
+            </label>
+            <button id="submit-retainer-${lead.lead_id}" class="btn btn-sm btn-docusign">Submit Retainer</button>
+        </div>
+    `;
+    leadInfoColumn.appendChild(retainerContainer);
     
     // Right column with qualification checklist
     const qualificationColumn = document.createElement('div');
@@ -1771,10 +1785,21 @@ function addDetailRow(lead) {
         // Notes update handler
         const saveNotesBtn = document.getElementById(`save-notes-${lead.lead_id}`);
         if (saveNotesBtn) {
-            saveNotesBtn.addEventListener('click', (e) => {
+            saveNotesBtn.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 const notes = document.getElementById(`lead-notes-${lead.lead_id}`).value;
-                updateLeadData(lead.lead_id, { notes });
+                
+                // Update the lead notes
+                await updateLeadData(lead.lead_id, { notes });
+            });
+        }
+        
+        // Add event listener for the Submit Retainer button
+        const submitRetainerBtn = document.getElementById(`submit-retainer-${lead.lead_id}`);
+        if (submitRetainerBtn) {
+            submitRetainerBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                showSendRetainerModal(lead);
             });
         }
         

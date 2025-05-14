@@ -849,4 +849,36 @@ textarea {
 .docusign-status-declined {
   background-color: #ffeef0;
   color: #cb2431;
+}
+
+/* DocuSign Checkbox Styles */
+.docusign-option {
+    margin: 10px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.checkbox-label {
+    margin-left: 5px;
+    font-size: 14px;
+}
+
+.checkbox-container input[type="checkbox"] {
+    cursor: pointer;
+}
+
+.btn-docusign {
+    background-color: #eb512f;
+    margin-left: 10px;
+}
+
+.btn-docusign:hover {
+    background-color: #d43a1d;
 } 
