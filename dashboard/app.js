@@ -90,12 +90,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // New Lead Listeners
     addLeadBtn.addEventListener('click', openAddLeadModal);
     
-    // Purge Leads Listener
-    const purgeLeadsBtn = document.getElementById('purge-leads-btn');
-    if (purgeLeadsBtn) {
-        purgeLeadsBtn.addEventListener('click', purgeAllLeads);
-    }
-    
     // Set default date values for export
     const today = new Date();
     const thirtyDaysAgo = new Date();
@@ -2203,51 +2197,5 @@ async function sendRetainerAgreement() {
         statusElement.className = 'status-message error';
         // Re-enable button
         document.getElementById('send-retainer-submit').disabled = false;
-    }
-}
-
-// Function to purge all leads from the system
-async function purgeAllLeads() {
-    if (!confirm('Are you sure you want to delete ALL leads? This action cannot be undone.')) {
-        return;
-    }
-    
-    if (!confirm('FINAL WARNING: All lead data will be permanently deleted. Continue?')) {
-        return;
-    }
-    
-    try {
-        showLoading(true);
-        
-        const response = await fetch(`${API_ENDPOINT.replace(/\/leads$/, '')}/leads/purge`, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'x-api-key': API_KEY
-            },
-            mode: 'cors'
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error ${response.status}`);
-        }
-        
-        // Clear local storage data
-        localStorage.removeItem('leads');
-        leads = [];
-        filteredLeads = [];
-        
-        // Refresh the page to show the leads are gone
-        showSuccessToast('All leads successfully purged from the system.');
-        setTimeout(() => {
-            renderLeads(); // Re-render with empty data
-        }, 500);
-        
-    } catch (error) {
-        console.error('Error purging leads:', error);
-        showError('Error purging leads: ' + (error.message || 'Unknown error'));
-    } finally {
-        showLoading(false);
     }
 } 

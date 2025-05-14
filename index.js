@@ -60,25 +60,6 @@ exports.handler = async (event) => {
         };
       }
     }
-    
-    // Special admin purge leads endpoint
-    if (path === '/leads/purge' && httpMethod === 'DELETE') {
-      const apiKey = event.headers['x-api-key'];
-      
-      // Only allow with admin API key
-      if (apiKey === 'fpoI4Uwleh63QVGGsnAUG49W7B8k67g21Gc8glIl') {
-        return await handlePurgeLeads();
-      } else {
-        return {
-          statusCode: 403,
-          headers: corsHeaders,
-          body: JSON.stringify({
-            status: 'error',
-            message: 'Not authorized to perform this action'
-          })
-        };
-      }
-    }
 
     // Authenticate the request
     const vendor = await authenticateRequest(event.headers);
@@ -1339,51 +1320,6 @@ async function handlePurgeVendors() {
       body: JSON.stringify({
         status: 'error',
         message: 'Error purging vendors'
-      })
-    };
-  }
-}
-
-// Add a new function to purge all leads
-async function handlePurgeLeads() {
-  try {
-    // Scan the leads table to get all lead IDs
-    const leadsResult = await dynamoDB.send(
-      new ScanCommand({
-        TableName: LEADS_TABLE
-      })
-    );
-    
-    const leads = leadsResult.Items || [];
-    console.log(`Found ${leads.length} leads to purge`);
-    
-    // Delete each lead one by one
-    for (const lead of leads) {
-      await dynamoDB.send(
-        new DeleteCommand({
-          TableName: LEADS_TABLE,
-          Key: { lead_id: lead.lead_id }
-        })
-      );
-      console.log(`Deleted lead: ${lead.lead_id}`);
-    }
-    
-    return {
-      statusCode: 200,
-      headers: corsHeaders,
-      body: JSON.stringify({
-        status: 'success',
-        message: `Successfully purged ${leads.length} leads`
-      })
-    };
-  } catch (error) {
-    console.error('Error purging leads:', error);
-    return {
-      statusCode: 500,
-      headers: corsHeaders,
-      body: JSON.stringify({
-        status: 'error',
-        message: 'Error purging leads'
       })
     };
   }
