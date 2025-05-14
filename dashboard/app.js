@@ -62,6 +62,9 @@ let searchDebounceTimer = null; // For debouncing search input
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
+    // Clear any mock data in localStorage
+    clearMockData();
+    
     // Load configuration before fetching data
     await loadConfig();
     
@@ -101,6 +104,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Create the add lead modal
     createAddLeadModal();
 });
+
+// Function to clear mock data from localStorage
+function clearMockData() {
+    localStorage.removeItem('mockDataLoaded');
+    localStorage.removeItem('leads');
+    console.log('Mock data cleared from localStorage');
+}
 
 // Create the add lead modal HTML structure
 function createAddLeadModal() {
