@@ -9,6 +9,7 @@ const {
 } = require('@aws-sdk/lib-dynamodb');
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
+const docusignService = require('./docusign-service');
 
 const client = new DynamoDBClient();
 const dynamoDB = DynamoDBDocumentClient.from(client);
@@ -45,6 +46,11 @@ exports.handler = async (event) => {
       event.vendor = authResult.vendor;
     }
     
+    // DocuSign webhook callback doesn't need API key auth
+    if (path === '/docusign/webhook' && httpMethod === 'POST') {
+      return await handleDocusignWebhook(JSON.parse(body));
+    }
+    
     // Route handler
     if (path === '/leads') {
       if (httpMethod === 'POST') {
@@ -60,6 +66,13 @@ exports.handler = async (event) => {
         return await handleUpdateLead(leadId, JSON.parse(body), event.vendor);
       } else if (httpMethod === 'GET') {
         return await handleGetLead(leadId, event.vendor);
+      }
+    }
+    // Handle sending retainer via DocuSign
+    else if (path.match(/^\/leads\/[^\/]+\/send-retainer$/)) {
+      const leadId = pathParameters.lead_id;
+      if (httpMethod === 'POST') {
+        return await handleSendRetainer(leadId, JSON.parse(body), event.vendor);
       }
     } else if (path === '/stats') {
       if (httpMethod === 'GET') {
@@ -109,6 +122,10 @@ function doesEndpointRequireAuth(path, method) {
   // Define which endpoints require authentication
   // By default, POST and PATCH operations require auth, GET may not
   if (method === 'POST' || method === 'PATCH' || method === 'PUT' || method === 'DELETE') {
+    // DocuSign webhook callback doesn't need API key auth
+    if (path === '/docusign/webhook') {
+      return false;
+    }
     return true;
   }
   
@@ -1103,6 +1120,149 @@ async function handleGetLead(leadId, vendor) {
         'Access-Control-Allow-Origin': '*'
       },
       body: JSON.stringify({ status: 'error', message: 'Error retrieving lead' })
+    };
+  }
+}
+
+// Handler for sending a retainer agreement via DocuSign
+async function handleSendRetainer(leadId, data, vendor) {
+  try {
+    // Check if lead exists and belongs to this vendor
+    const leadResult = await dynamoDB.send(
+      new GetCommand({
+        TableName: LEADS_TABLE,
+        Key: { lead_id: leadId }
+      })
+    );
+    
+    if (!leadResult.Item) {
+      return {
+        statusCode: 404,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({ 
+          status: 'error', 
+          message: 'Lead not found' 
+        })
+      };
+    }
+    
+    // Check vendor permissions (only allow if ADMIN or owner)
+    if (vendor.vendor_code !== 'ADMIN' && leadResult.Item.vendor_code !== vendor.vendor_code) {
+      return {
+        statusCode: 403,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({ 
+          status: 'error', 
+          message: 'You do not have permission to send a retainer for this lead' 
+        })
+      };
+    }
+    
+    // Check if a retainer has already been sent
+    if (leadResult.Item.docusign_info && leadResult.Item.docusign_info.envelopeId) {
+      // Determine if a new one should be sent based on options
+      if (!data.force && leadResult.Item.docusign_info.status !== 'voided') {
+        return {
+          statusCode: 400,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          },
+          body: JSON.stringify({ 
+            status: 'error', 
+            message: 'A retainer agreement has already been sent. Use force=true to send another.' 
+          })
+        };
+      }
+    }
+    
+    // Send the retainer via DocuSign service
+    const options = {
+      sendNow: data.sendNow !== false, // Default to true
+      emailSubject: data.emailSubject,
+      emailBlurb: data.emailBlurb
+    };
+    
+    const result = await docusignService.sendRetainer(leadId, options);
+    
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ 
+        status: 'success',
+        envelopeId: result.envelopeId,
+        message: 'Retainer agreement sent successfully' 
+      })
+    };
+  } catch (error) {
+    console.error('Send retainer error:', error);
+    return {
+      statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ 
+        status: 'error', 
+        message: 'Error sending retainer agreement' 
+      })
+    };
+  }
+}
+
+// Handler for DocuSign webhook callback
+async function handleDocusignWebhook(data) {
+  try {
+    // Validate the webhook payload
+    if (!data || !data.envelopeId || !data.status) {
+      return {
+        statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({ 
+          status: 'error', 
+          message: 'Invalid webhook payload' 
+        })
+      };
+    }
+    
+    // Process the webhook
+    const result = await docusignService.handleStatusCallback(data);
+    
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ 
+        status: 'success',
+        message: 'Webhook processed successfully'
+      })
+    };
+  } catch (error) {
+    console.error('DocuSign webhook error:', error);
+    return {
+      statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ 
+        status: 'error', 
+        message: 'Error processing DocuSign webhook' 
+      })
     };
   }
 } 

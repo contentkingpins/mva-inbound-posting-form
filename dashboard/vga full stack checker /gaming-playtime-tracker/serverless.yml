@@ -1,0 +1,114 @@
+service: gaming-playtime-tracker-api
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'us-east-1'}
+  memorySize: 256
+  timeout: 30
+  environment:
+    STEAM_API_KEY: ${env:STEAM_API_KEY, ''}
+    RIOT_API_KEY: ${env:RIOT_API_KEY, ''}
+    XBOX_API_KEY: ${env:XBOX_API_KEY, ''}
+    PLAYSTATION_API_KEY: ${env:PLAYSTATION_API_KEY, ''}
+    EPIC_API_KEY: ${env:EPIC_API_KEY, ''}
+    NINTENDO_API_KEY: ${env:NINTENDO_API_KEY, ''}
+    DYNAMODB_TABLE: gaming-playtime-tracker-${opt:stage, 'dev'}
+  
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: !GetAtt DynamoDBTable.Arn
+
+plugins:
+  - serverless-webpack
+  - serverless-offline
+
+custom:
+  webpack:
+    webpackConfig: 'webpack.config.js'
+    includeModules: true
+    packager: 'npm'
+  
+  serverless-offline:
+    httpPort: 4000
+    lambdaPort: 4002
+
+functions:
+  steamPlaytime:
+    handler: lambda/handlers/steam.handler
+    events:
+      - http:
+          path: steam/playtime/{steamId}
+          method: get
+          cors: true
+  
+  riotPlaytime:
+    handler: lambda/handlers/riot.handler
+    events:
+      - http:
+          path: riot/playtime/{riotId}
+          method: get
+          cors: true
+  
+  xboxPlaytime:
+    handler: lambda/handlers/xbox.handler
+    events:
+      - http:
+          path: xbox/playtime/{xboxId}
+          method: get
+          cors: true
+  
+  playstationPlaytime:
+    handler: lambda/handlers/playstation.handler
+    events:
+      - http:
+          path: playstation/playtime/{playstationId}
+          method: get
+          cors: true
+  
+  epicPlaytime:
+    handler: lambda/handlers/epic.handler
+    events:
+      - http:
+          path: epic/playtime/{epicId}
+          method: get
+          cors: true
+  
+  nintendoPlaytime:
+    handler: lambda/handlers/nintendo.handler
+    events:
+      - http:
+          path: nintendo/playtime/{nintendoId}
+          method: get
+          cors: true
+
+resources:
+  Resources:
+    DynamoDBTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.DYNAMODB_TABLE}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: ttl
+            AttributeType: N
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+          - AttributeName: ttl
+            KeyType: RANGE
+        TimeToLiveSpecification:
+          AttributeName: ttl
+          Enabled: true 

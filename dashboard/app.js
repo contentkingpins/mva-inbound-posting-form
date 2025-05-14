@@ -1811,6 +1811,60 @@ function addDetailRow(lead) {
         // Check insurance status when form is loaded
         checkInsuranceStatus(lead.lead_id);
     }, 0);
+
+    // Add Send Retainer button
+    const sendRetainerButton = document.createElement('button');
+    sendRetainerButton.className = 'btn btn-secondary btn-sm';
+    sendRetainerButton.textContent = 'Send Retainer';
+    sendRetainerButton.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent toggling the lead row
+        showSendRetainerModal(lead);
+    });
+    
+    // Find the update disposition button to place our new button next to it
+    const dispositionButton = detailRow.querySelector('.btn-update-disposition');
+    if (dispositionButton && dispositionButton.parentNode) {
+        // Insert button after disposition button
+        dispositionButton.parentNode.insertBefore(sendRetainerButton, dispositionButton.nextSibling);
+        
+        // Add a space between buttons
+        dispositionButton.parentNode.insertBefore(document.createTextNode(' '), sendRetainerButton);
+    }
+    
+    // Add DocuSign status if available
+    if (lead.docusign_info) {
+        const dsInfo = lead.docusign_info;
+        const dsStatusCell = document.createElement('div');
+        dsStatusCell.className = 'lead-detail-item';
+        
+        let dsStatusHtml = `
+            <h4>Retainer Status</h4>
+            <p><strong>Status:</strong> ${dsInfo.status || 'Unknown'}</p>
+        `;
+        
+        if (dsInfo.sentAt) {
+            dsStatusHtml += `<p><strong>Sent:</strong> ${formatDate(dsInfo.sentAt, true)}</p>`;
+        }
+        
+        if (dsInfo.deliveredAt) {
+            dsStatusHtml += `<p><strong>Delivered:</strong> ${formatDate(dsInfo.deliveredAt, true)}</p>`;
+        }
+        
+        if (dsInfo.viewedAt) {
+            dsStatusHtml += `<p><strong>Viewed:</strong> ${formatDate(dsInfo.viewedAt, true)}</p>`;
+        }
+        
+        if (dsInfo.completedAt) {
+            dsStatusHtml += `<p><strong>Completed:</strong> ${formatDate(dsInfo.completedAt, true)}</p>`;
+        }
+        
+        if (dsInfo.declinedAt) {
+            dsStatusHtml += `<p><strong>Declined:</strong> ${formatDate(dsInfo.declinedAt, true)}</p>`;
+        }
+        
+        dsStatusCell.innerHTML = dsStatusHtml;
+        detailContent.appendChild(dsStatusCell);
+    }
 }
 
 // Function to update lead data via PATCH endpoint
@@ -1957,5 +2011,135 @@ function checkAddLeadDeadline() {
     } else {
         // More than 60 days left
         deadlineWarning.style.display = 'none';
+    }
+}
+
+// Add function to show the send retainer modal
+function showSendRetainerModal(lead) {
+    // Create the modal if it doesn't exist
+    if (!document.getElementById('send-retainer-modal-overlay')) {
+        createSendRetainerModal();
+    }
+    
+    // Set the lead ID in a data attribute
+    const modal = document.getElementById('send-retainer-modal');
+    modal.dataset.leadId = lead.lead_id;
+    
+    // Set recipient info in modal
+    document.getElementById('retainer-recipient').textContent = `${lead.first_name} ${lead.last_name} (${lead.email})`;
+    
+    // Show the modal
+    document.getElementById('send-retainer-modal-overlay').style.display = 'flex';
+}
+
+// Create the send retainer modal
+function createSendRetainerModal() {
+    const modalHtml = `
+        <div id="send-retainer-modal-overlay" class="modal-overlay">
+            <div id="send-retainer-modal" class="modal" style="width: 600px; max-width: 95%;">
+                <div class="modal-header">
+                    <h3 class="modal-title">Send Retainer Agreement</h3>
+                    <button class="modal-close" id="send-retainer-modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p>You are about to send a retainer agreement to:</p>
+                    <p><strong id="retainer-recipient"></strong></p>
+                    
+                    <div class="modal-form-group">
+                        <label for="retainer-subject">Email Subject:</label>
+                        <input type="text" id="retainer-subject" value="Please sign your retainer agreement">
+                    </div>
+                    
+                    <div class="modal-form-group">
+                        <label for="retainer-message">Email Message:</label>
+                        <textarea id="retainer-message" rows="3">Please review and sign the attached retainer agreement at your earliest convenience.</textarea>
+                    </div>
+                    
+                    <div id="retainer-status-message" class="status-message" style="display: none;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="send-retainer-cancel">Cancel</button>
+                    <button class="btn" id="send-retainer-submit">Send Agreement</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Append modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Add event listeners
+    document.getElementById('send-retainer-modal-close').addEventListener('click', closeSendRetainerModal);
+    document.getElementById('send-retainer-cancel').addEventListener('click', closeSendRetainerModal);
+    document.getElementById('send-retainer-submit').addEventListener('click', sendRetainerAgreement);
+}
+
+// Close send retainer modal
+function closeSendRetainerModal() {
+    const modalOverlay = document.getElementById('send-retainer-modal-overlay');
+    modalOverlay.style.display = 'none';
+    
+    // Reset form and status message
+    document.getElementById('retainer-status-message').style.display = 'none';
+    document.getElementById('retainer-status-message').className = 'status-message';
+    document.getElementById('send-retainer-submit').disabled = false;
+}
+
+// Send retainer agreement
+async function sendRetainerAgreement() {
+    const modal = document.getElementById('send-retainer-modal');
+    const leadId = modal.dataset.leadId;
+    const subject = document.getElementById('retainer-subject').value;
+    const message = document.getElementById('retainer-message').value;
+    
+    // Disable submit button
+    document.getElementById('send-retainer-submit').disabled = true;
+    
+    // Show loading message
+    const statusElement = document.getElementById('retainer-status-message');
+    statusElement.textContent = 'Sending agreement...';
+    statusElement.className = 'status-message info';
+    statusElement.style.display = 'block';
+    
+    try {
+        const response = await fetch(`${API_ENDPOINT}/${leadId}/send-retainer`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': API_KEY
+            },
+            body: JSON.stringify({
+                emailSubject: subject,
+                emailBlurb: message,
+                sendNow: true
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            // Show success message
+            statusElement.textContent = 'Agreement sent successfully!';
+            statusElement.className = 'status-message success';
+            
+            // Close modal after delay
+            setTimeout(() => {
+                closeSendRetainerModal();
+                // Refresh leads to show updated status
+                fetchLeads();
+            }, 2000);
+        } else {
+            // Show error message
+            statusElement.textContent = `Error: ${data.message || 'Failed to send agreement'}`;
+            statusElement.className = 'status-message error';
+            // Re-enable button
+            document.getElementById('send-retainer-submit').disabled = false;
+        }
+    } catch (error) {
+        console.error('Error sending retainer agreement:', error);
+        statusElement.textContent = 'Error: Could not connect to server';
+        statusElement.className = 'status-message error';
+        // Re-enable button
+        document.getElementById('send-retainer-submit').disabled = false;
     }
 } 

@@ -3,7 +3,13 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "jest",
+    "test:e2e": "cypress run",
+    "deploy": "serverless deploy",
+    "offline": "serverless offline"
   },
   "keywords": [],
   "author": "",
@@ -13,6 +19,7 @@
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
     "@types/react-dom": "^19.1.3",
+    "aws-sdk": "^2.1413.0",
     "axios": "^1.9.0",
     "express": "^5.1.0",
     "jest": "^29.7.0",
@@ -23,6 +30,8 @@
     "typescript": "^5.8.3"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.5",
+    "@types/aws-lambda": "^8.10.119",
     "@types/cypress": "^0.1.6",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.15.14",
@@ -30,6 +39,12 @@
     "autoprefixer": "^10.4.21",
     "cypress": "^14.3.3",
     "postcss": "^8.5.3",
+    "serverless": "^3.36.0",
+    "serverless-offline": "^12.0.4",
+    "serverless-webpack": "^5.13.0",
+    "ts-loader": "^9.4.4",
+    "webpack": "^5.89.0",
+    "webpack-node-externals": "^3.0.0",
     "tailwindcss": "^4.1.5"
   }
 }
