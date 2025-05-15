@@ -1918,8 +1918,23 @@ function addDetailRow(lead) {
             dsStatusHtml += `<p><strong>Declined:</strong> ${formatDate(dsInfo.declinedAt, true)}</p>`;
         }
         
+        dsStatusHtml += `
+            <button id="resend-retainer-${lead.lead_id}" class="btn btn-secondary btn-sm">Resend Retainer</button>
+        `;
+        
         dsStatusCell.innerHTML = dsStatusHtml;
         detailContent.appendChild(dsStatusCell);
+        
+        // Add event listener for the resend button
+        setTimeout(() => {
+            const resendBtn = document.getElementById(`resend-retainer-${lead.lead_id}`);
+            if (resendBtn) {
+                resendBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    showSendRetainerModal(lead, true);
+                });
+            }
+        }, 0);
     }
 }
 
@@ -2071,7 +2086,7 @@ function checkAddLeadDeadline() {
 }
 
 // Add function to show the send retainer modal
-function showSendRetainerModal(lead) {
+function showSendRetainerModal(lead, isResend = false) {
     // Create the modal if it doesn't exist
     if (!document.getElementById('send-retainer-modal-overlay')) {
         createSendRetainerModal();
@@ -2080,9 +2095,19 @@ function showSendRetainerModal(lead) {
     // Set the lead ID in a data attribute
     const modal = document.getElementById('send-retainer-modal');
     modal.dataset.leadId = lead.lead_id;
+    modal.dataset.isResend = isResend ? 'true' : 'false';
     
     // Set recipient info in modal
     document.getElementById('retainer-recipient').textContent = `${lead.first_name} ${lead.last_name} (${lead.email})`;
+    
+    // Update title and button text for resend cases
+    if (isResend) {
+        document.querySelector('#send-retainer-modal .modal-title').textContent = 'Resend Retainer Agreement';
+        document.getElementById('send-retainer-submit').textContent = 'Resend Agreement';
+    } else {
+        document.querySelector('#send-retainer-modal .modal-title').textContent = 'Send Retainer Agreement';
+        document.getElementById('send-retainer-submit').textContent = 'Send Agreement';
+    }
     
     // Show the modal
     document.getElementById('send-retainer-modal-overlay').style.display = 'flex';
@@ -2145,6 +2170,7 @@ function closeSendRetainerModal() {
 async function sendRetainerAgreement() {
     const modal = document.getElementById('send-retainer-modal');
     const leadId = modal.dataset.leadId;
+    const isResend = modal.dataset.isResend === 'true';
     const subject = document.getElementById('retainer-subject').value;
     const message = document.getElementById('retainer-message').value;
     
@@ -2153,7 +2179,7 @@ async function sendRetainerAgreement() {
     
     // Show loading message
     const statusElement = document.getElementById('retainer-status-message');
-    statusElement.textContent = 'Sending agreement...';
+    statusElement.textContent = isResend ? 'Resending agreement...' : 'Sending agreement...';
     statusElement.className = 'status-message info';
     statusElement.style.display = 'block';
     
@@ -2167,7 +2193,8 @@ async function sendRetainerAgreement() {
             body: JSON.stringify({
                 emailSubject: subject,
                 emailBlurb: message,
-                sendNow: true
+                sendNow: true,
+                force: isResend // Set force to true when resending
             })
         });
         
@@ -2175,7 +2202,7 @@ async function sendRetainerAgreement() {
         
         if (response.ok) {
             // Show success message
-            statusElement.textContent = 'Agreement sent successfully!';
+            statusElement.textContent = isResend ? 'Agreement resent successfully!' : 'Agreement sent successfully!';
             statusElement.className = 'status-message success';
             
             // Close modal after delay

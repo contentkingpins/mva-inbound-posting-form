@@ -881,4 +881,15 @@ textarea {
 
 .btn-docusign:hover {
     background-color: #d43a1d;
+}
+
+/* DocuSign Retainer Status Styles */
+.lead-detail-item button.btn-secondary {
+    margin-top: 10px;
+    background-color: #6c757d;
+    color: white;
+}
+
+.lead-detail-item button.btn-secondary:hover {
+    background-color: #5a6268;
 } 

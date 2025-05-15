@@ -119,8 +119,8 @@ async function sendRetainer(leadId, options = {}) {
       lastUpdated: timestamp
     };
     
-    // Update the lead in DynamoDB
-    await updateLeadWithRetainerInfo(leadId, docusignInfo);
+    // Update the lead status to "completed" and store DocuSign info
+    await updateLeadWithRetainerInfo(leadId, docusignInfo, true);
     
     return {
       status: 'success',
@@ -252,6 +252,11 @@ async function handleStatusCallback(payload) {
     // Update the lead in DynamoDB
     await updateLeadWithRetainerInfo(lead.lead_id, docusignInfo);
     
+    // If the envelope is completed, update the lead status
+    if (envelopeStatus === 'completed') {
+      await updateLeadStatus(lead.lead_id, 'completed');
+    }
+    
     return {
       status: 'success',
       message: 'Lead updated with new document status'
@@ -263,7 +268,7 @@ async function handleStatusCallback(payload) {
 }
 
 // Update the lead record with retainer information
-async function updateLeadWithRetainerInfo(leadId, docusignInfo) {
+async function updateLeadWithRetainerInfo(leadId, docusignInfo, updateStatus = false) {
   try {
     // Prepare update expression parts
     const updateExpressionParts = [];
@@ -312,9 +317,36 @@ async function updateLeadWithRetainerInfo(leadId, docusignInfo) {
       })
     );
     
+    if (updateStatus) {
+      // Update lead status to "completed"
+      await updateLeadStatus(leadId, 'completed');
+    }
+    
     return true;
   } catch (error) {
     console.error('Error updating lead with retainer info:', error);
+    throw error;
+  }
+}
+
+// Update the lead status
+async function updateLeadStatus(leadId, status) {
+  try {
+    await dynamoDB.send(
+      new UpdateCommand({
+        TableName: LEADS_TABLE,
+        Key: { lead_id: leadId },
+        UpdateExpression: 'SET disposition = :status, updated_at = :timestamp',
+        ExpressionAttributeValues: {
+          ':status': status,
+          ':timestamp': new Date().toISOString()
+        }
+      })
+    );
+    
+    return true;
+  } catch (error) {
+    console.error('Error updating lead status:', error);
     throw error;
   }
 }
