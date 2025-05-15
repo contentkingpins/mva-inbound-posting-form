@@ -3,6 +3,53 @@ const API_ENDPOINT = 'https://nv01uveape.execute-api.us-east-1.amazonaws.com/pro
 const EXPORT_ENDPOINT = 'https://nv01uveape.execute-api.us-east-1.amazonaws.com/prod/export';
 const REFRESH_INTERVAL = 10000; // 10 seconds
 
+// Check authentication
+document.addEventListener('DOMContentLoaded', () => {
+    // Check if user is logged in
+    const token = localStorage.getItem('auth_token');
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    
+    if (!token || !user.username) {
+        // Not logged in, redirect to login page
+        window.location.href = 'login.html';
+        return;
+    }
+    
+    // Add user info to header
+    const headerControls = document.querySelector('.controls');
+    if (headerControls) {
+        const userInfo = document.createElement('div');
+        userInfo.className = 'user-info';
+        userInfo.innerHTML = `
+            <span>Welcome, <strong>${user.name || user.username}</strong></span>
+            <span class="role-badge ${user.role === 'admin' ? 'role-admin' : 'role-agent'}">
+                ${user.role === 'admin' ? 'Admin' : 'Agent'}
+            </span>
+            <button id="logout-btn" class="btn btn-sm btn-secondary" style="margin-left: 10px;">Logout</button>
+        `;
+        headerControls.appendChild(userInfo);
+        
+        // Add logout handler
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user');
+            window.location.href = 'login.html';
+        });
+        
+        // Show admin link if user is admin
+        if (user.role === 'admin') {
+            const adminLink = document.createElement('a');
+            adminLink.href = 'admin.html';
+            adminLink.className = 'btn';
+            adminLink.textContent = 'Admin Panel';
+            headerControls.insertBefore(adminLink, headerControls.firstChild);
+        }
+    }
+    
+    // Initialize the app
+    initializeApp();
+});
+
 // Config initialization
 let API_KEY = '';
 
@@ -22,6 +69,12 @@ async function loadConfig() {
                 console.warn('Using development settings');
                 // Don't set a default API key - leave it blank to force proper configuration
             }
+        }
+        
+        // If we have a token, use it in the API key
+        const token = localStorage.getItem('auth_token');
+        if (token) {
+            API_KEY = token;
         }
     } catch (error) {
         console.error('Error loading configuration:', error);
@@ -665,12 +718,14 @@ async function fetchLeads() {
             url += `?vendor_code=${vendorCode}`;
         }
         
+        const token = localStorage.getItem('auth_token');
+        
         const response = await fetch(url, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
-                'x-api-key': API_KEY
+                'Authorization': `Bearer ${token}`
             },
             mode: 'cors'  // Explicitly state CORS mode for Amplify hosting
         });
@@ -678,6 +733,14 @@ async function fetchLeads() {
         let newLeads = [];
         
         if (!response.ok) {
+            if (response.status === 401) {
+                // Token expired or invalid, redirect to login
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('user');
+                window.location.href = 'login.html';
+                return;
+            }
+            
             // If API fails, show error but continue with data from localStorage
             console.error(`HTTP error ${response.status}`);
             showError('Failed to fetch leads from API. Showing cached data instead.');
@@ -696,7 +759,8 @@ async function fetchLeads() {
             }
         } else {
             // API worked, get leads from it
-            newLeads = await response.json();
+            const data = await response.json();
+            newLeads = data;
         }
         
         // Get existing leads from localStorage to preserve disposition and notes
@@ -1949,18 +2013,28 @@ async function updateLeadData(leadId, data) {
             updated_at: new Date().toISOString()
         };
         
+        const token = localStorage.getItem('auth_token');
+        
         const response = await fetch(`${API_ENDPOINT}/${leadId}`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
-                'x-api-key': API_KEY
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify(updateData),
             mode: 'cors'
         });
         
         if (!response.ok) {
+            if (response.status === 401) {
+                // Token expired or invalid, redirect to login
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('user');
+                window.location.href = 'login.html';
+                return;
+            }
+            
             const errorData = await response.json();
             throw new Error(errorData.message || `HTTP error ${response.status}`);
         }
@@ -2184,11 +2258,13 @@ async function sendRetainerAgreement() {
     statusElement.style.display = 'block';
     
     try {
+        const token = localStorage.getItem('auth_token');
+        
         const response = await fetch(`${API_ENDPOINT}/${leadId}/send-retainer`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'x-api-key': API_KEY
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({
                 emailSubject: subject,
@@ -2200,24 +2276,33 @@ async function sendRetainerAgreement() {
         
         const data = await response.json();
         
-        if (response.ok) {
-            // Show success message
-            statusElement.textContent = isResend ? 'Agreement resent successfully!' : 'Agreement sent successfully!';
-            statusElement.className = 'status-message success';
+        if (!response.ok) {
+            if (response.status === 401) {
+                // Token expired or invalid, redirect to login
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('user');
+                window.location.href = 'login.html';
+                return;
+            }
             
-            // Close modal after delay
-            setTimeout(() => {
-                closeSendRetainerModal();
-                // Refresh leads to show updated status
-                fetchLeads();
-            }, 2000);
-        } else {
             // Show error message
             statusElement.textContent = `Error: ${data.message || 'Failed to send agreement'}`;
             statusElement.className = 'status-message error';
             // Re-enable button
             document.getElementById('send-retainer-submit').disabled = false;
+            return;
         }
+        
+        // Show success message
+        statusElement.textContent = isResend ? 'Agreement resent successfully!' : 'Agreement sent successfully!';
+        statusElement.className = 'status-message success';
+        
+        // Close modal after delay
+        setTimeout(() => {
+            closeSendRetainerModal();
+            // Refresh leads to show updated status
+            fetchLeads();
+        }, 2000);
     } catch (error) {
         console.error('Error sending retainer agreement:', error);
         statusElement.textContent = 'Error: Could not connect to server';

@@ -11,6 +11,7 @@ const {
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
 const docusignService = require('./docusign-service');
+const authRoutes = require('./auth-routes');
 
 const client = new DynamoDBClient();
 const dynamoDB = DynamoDBDocumentClient.from(client);
@@ -42,6 +43,11 @@ exports.handler = async (event) => {
       return await handleDocusignWebhook(JSON.parse(event.body || '{}'));
     }
     
+    // Handle authentication routes
+    if (path.startsWith('/auth')) {
+      return await handleAuthRoutes(path, httpMethod, event);
+    }
+    
     // Special admin purge endpoint with hardcoded admin API key
     if (path === '/vendors/purge' && httpMethod === 'DELETE') {
       const apiKey = event.headers['x-api-key'];
@@ -61,31 +67,79 @@ exports.handler = async (event) => {
       }
     }
 
-    // Authenticate the request
-    const vendor = await authenticateRequest(event.headers);
+    // For routes that need JWT authentication instead of API key
+    if (isJwtProtectedRoute(path)) {
+      const authHeader = event.headers.Authorization || event.headers.authorization;
+      const authResult = authRoutes.verifyAuthToken(authHeader);
+      
+      if (!authResult.authenticated) {
+        return {
+          statusCode: 401,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            status: 'error',
+            message: authResult.message || 'Authentication required'
+          })
+        };
+      }
+      
+      // For admin-only routes, check role
+      if (isAdminRoute(path) && authResult.user.role !== 'admin') {
+        return {
+          statusCode: 403,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            status: 'error',
+            message: 'Admin access required'
+          })
+        };
+      }
+      
+      // Set authenticated user in event for later use
+      event.user = authResult.user;
+    }
+    
+    // For other routes requiring API key auth
+    if (doesEndpointRequireAuth(path, httpMethod) && !event.user) {
+      const vendor = await authenticateRequest(event.headers);
+      
+      if (!vendor.authenticated) {
+        return {
+          statusCode: 401,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            status: 'error',
+            message: vendor.message
+          })
+        };
+      }
+      
+      // Set vendor in the event
+      event.vendor = vendor.vendor;
+    }
     
     // Route handler
     if (path === '/leads') {
       if (httpMethod === 'POST') {
-        return await handleCreateLead(JSON.parse(event.body || '{}'), vendor);
+        return await handleCreateLead(JSON.parse(event.body || '{}'), event.vendor);
       } else if (httpMethod === 'GET') {
-        return await handleGetLeads(event.queryStringParameters, vendor);
+        return await handleGetLeads(event.queryStringParameters, event.vendor);
       }
     } 
     // Handle lead update and get single lead
     else if (path.match(/^\/leads\/[^\/]+$/)) {
       const leadId = pathParameters.lead_id;
       if (httpMethod === 'PATCH') {
-        return await handleUpdateLead(leadId, JSON.parse(event.body || '{}'), vendor);
+        return await handleUpdateLead(leadId, JSON.parse(event.body || '{}'), event.vendor);
       } else if (httpMethod === 'GET') {
-        return await handleGetLead(leadId, vendor);
+        return await handleGetLead(leadId, event.vendor);
       }
     }
     // Handle sending retainer via DocuSign
     else if (path.match(/^\/leads\/[^\/]+\/send-retainer$/)) {
       const leadId = pathParameters.lead_id;
       if (httpMethod === 'POST') {
-        return await handleSendRetainer(leadId, JSON.parse(event.body || '{}'), vendor);
+        return await handleSendRetainer(leadId, JSON.parse(event.body || '{}'), event.vendor);
       }
     } else if (path === '/stats') {
       if (httpMethod === 'GET') {
@@ -1323,4 +1377,152 @@ async function handlePurgeVendors() {
       })
     };
   }
+}
+
+// Handle authentication routes
+async function handleAuthRoutes(path, httpMethod, event) {
+  const body = event.body ? JSON.parse(event.body) : {};
+  
+  // Login endpoint - POST /auth/login
+  if (path === '/auth/login' && httpMethod === 'POST') {
+    return await authRoutes.handleLogin(body);
+  }
+  
+  // Register endpoint - POST /auth/register
+  if (path === '/auth/register' && httpMethod === 'POST') {
+    // Only admins can register new users
+    const authHeader = event.headers.Authorization || event.headers.authorization;
+    const authResult = authRoutes.verifyAuthToken(authHeader);
+    
+    if (!authResult.authenticated || authResult.user.role !== 'admin') {
+      return {
+        statusCode: 403,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          status: 'error',
+          message: 'Only administrators can register new users'
+        })
+      };
+    }
+    
+    return await authRoutes.handleRegister(body, authResult.user);
+  }
+  
+  // User profile endpoints
+  const profileMatch = path.match(/^\/auth\/users\/([^\/]+)$/);
+  if (profileMatch && profileMatch[1]) {
+    const username = profileMatch[1];
+    
+    // Get user profile - GET /auth/users/:username
+    if (httpMethod === 'GET') {
+      const authHeader = event.headers.Authorization || event.headers.authorization;
+      const authResult = authRoutes.verifyAuthToken(authHeader);
+      
+      if (!authResult.authenticated) {
+        return {
+          statusCode: 401,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            status: 'error',
+            message: 'Authentication required'
+          })
+        };
+      }
+      
+      return await authRoutes.handleGetProfile(username, authResult.user);
+    }
+    
+    // Update user profile - PATCH /auth/users/:username
+    if (httpMethod === 'PATCH') {
+      const authHeader = event.headers.Authorization || event.headers.authorization;
+      const authResult = authRoutes.verifyAuthToken(authHeader);
+      
+      if (!authResult.authenticated) {
+        return {
+          statusCode: 401,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            status: 'error',
+            message: 'Authentication required'
+          })
+        };
+      }
+      
+      return await authRoutes.handleUpdateProfile(username, body, authResult.user);
+    }
+  }
+  
+  // Change password endpoint - POST /auth/users/:username/change-password
+  const passwordMatch = path.match(/^\/auth\/users\/([^\/]+)\/change-password$/);
+  if (passwordMatch && passwordMatch[1] && httpMethod === 'POST') {
+    const username = passwordMatch[1];
+    const authHeader = event.headers.Authorization || event.headers.authorization;
+    const authResult = authRoutes.verifyAuthToken(authHeader);
+    
+    if (!authResult.authenticated) {
+      return {
+        statusCode: 401,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          status: 'error',
+          message: 'Authentication required'
+        })
+      };
+    }
+    
+    return await authRoutes.handleChangePassword(username, body, authResult.user);
+  }
+  
+  // List users endpoint - GET /auth/users
+  if (path === '/auth/users' && httpMethod === 'GET') {
+    const authHeader = event.headers.Authorization || event.headers.authorization;
+    const authResult = authRoutes.verifyAuthToken(authHeader);
+    
+    if (!authResult.authenticated) {
+      return {
+        statusCode: 401,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          status: 'error',
+          message: 'Authentication required'
+        })
+      };
+    }
+    
+    return await authRoutes.handleListUsers(authResult.user);
+  }
+  
+  // Auth route not found
+  return {
+    statusCode: 404,
+    headers: corsHeaders,
+    body: JSON.stringify({
+      status: 'error',
+      message: 'Auth route not found'
+    })
+  };
+}
+
+// Check if a route requires JWT authentication
+function isJwtProtectedRoute(path) {
+  const jwtProtectedPaths = [
+    '/leads/sensitive',
+    '/admin',
+    '/stats',
+    '/auth/users',
+    '/auth/register'
+  ];
+  
+  // All paths starting with these prefixes require JWT auth
+  return jwtProtectedPaths.some(prefix => path.startsWith(prefix));
+}
+
+// Check if a route is admin-only
+function isAdminRoute(path) {
+  const adminRoutes = [
+    '/admin',
+    '/auth/register'
+  ];
+  
+  return adminRoutes.some(route => path.startsWith(route));
 } 
