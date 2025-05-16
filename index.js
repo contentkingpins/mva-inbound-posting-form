@@ -10,8 +10,12 @@ const {
 } = require('@aws-sdk/lib-dynamodb');
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
+ resolve-conflicts
+const docusignUtils = require('./docusign-utils');
+
 const docusignService = require('./docusign-service');
 const authRoutes = require('./auth-routes');
+ main
 
 const client = new DynamoDBClient();
 const dynamoDB = DynamoDBDocumentClient.from(client);
@@ -135,11 +139,25 @@ exports.handler = async (event) => {
         return await handleGetLead(leadId, event.vendor);
       }
     }
+ resolve-conflicts
+    // Handle DocuSign retainer sending
+    else if (path.match(/^\/leads\/[^\/]+\/send-retainer$/)) {
+      if (httpMethod === 'POST') {
+        const leadId = pathParameters.lead_id;
+        return await handleSendRetainer(leadId, body ? JSON.parse(body) : {});
+      }
+    }
+    // Handle DocuSign webhook
+    else if (path === '/docusign/webhook') {
+      if (httpMethod === 'POST') {
+        return await handleDocuSignWebhook(JSON.parse(body));
+
     // Handle sending retainer via DocuSign
     else if (path.match(/^\/leads\/[^\/]+\/send-retainer$/)) {
       const leadId = pathParameters.lead_id;
       if (httpMethod === 'POST') {
         return await handleSendRetainer(leadId, JSON.parse(event.body || '{}'), event.vendor);
+ main
       }
     } else if (path === '/stats') {
       if (httpMethod === 'GET') {
@@ -1191,10 +1209,17 @@ async function handleGetLead(leadId, vendor) {
   }
 }
 
+ resolve-conflicts
+// Function for handling DocuSign retainer agreements
+async function handleSendRetainer(leadId, options = {}) {
+  try {
+    // Get the lead data
+
 // Handler for sending a retainer agreement via DocuSign
 async function handleSendRetainer(leadId, data, vendor) {
   try {
     // Check if lead exists and belongs to this vendor
+ main
     const leadResult = await dynamoDB.send(
       new GetCommand({
         TableName: LEADS_TABLE,
@@ -1209,6 +1234,21 @@ async function handleSendRetainer(leadId, data, vendor) {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*'
         },
+ resolve-conflicts
+        body: JSON.stringify({ status: 'error', message: 'Lead not found' })
+      };
+    }
+    
+    const lead = leadResult.Item;
+    
+    // Check if lead already has an envelope ID
+    if (lead.envelope_id) {
+      // Get the envelope status
+      const envelopeStatus = await docusignUtils.getEnvelopeStatus(lead.envelope_id);
+      
+      return {
+        statusCode: 200,
+
         body: JSON.stringify({ 
           status: 'error', 
           message: 'Lead not found' 
@@ -1220,11 +1260,51 @@ async function handleSendRetainer(leadId, data, vendor) {
     if (vendor.vendor_code !== 'ADMIN' && leadResult.Item.vendor_code !== vendor.vendor_code) {
       return {
         statusCode: 403,
+ main
         headers: {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*'
         },
         body: JSON.stringify({ 
+ resolve-conflicts
+          status: 'success', 
+          message: 'Retainer agreement already sent',
+          data: {
+            envelopeId: lead.envelope_id,
+            envelopeStatus: envelopeStatus
+          }
+        })
+      };
+    }
+    
+    // Send the retainer agreement
+    const envelopeResult = await docusignUtils.sendRetainerAgreement(lead);
+    
+    // Update the lead record with the envelope ID
+    await dynamoDB.send(
+      new UpdateCommand({
+        TableName: LEADS_TABLE,
+        Key: { lead_id: leadId },
+        UpdateExpression: 'set envelope_id = :envelope_id, docusign_info = :docusign_info, last_updated = :last_updated',
+        ExpressionAttributeValues: {
+          ':envelope_id': envelopeResult.envelopeId,
+          ':docusign_info': {
+            status: envelopeResult.status,
+            created: envelopeResult.created,
+            last_updated: new Date().toISOString()
+          },
+          ':last_updated': new Date().toISOString()
+        },
+        ReturnValues: 'UPDATED_NEW'
+      })
+    );
+    
+    // Add an entry to the lead history
+    await addLeadHistoryEntry(leadId, 'DocuSign retainer agreement sent', {
+      envelope_id: envelopeResult.envelopeId,
+      status: envelopeResult.status
+    });
+
           status: 'error', 
           message: 'You do not have permission to send a retainer for this lead' 
         })
@@ -1257,6 +1337,7 @@ async function handleSendRetainer(leadId, data, vendor) {
     };
     
     const result = await docusignService.sendRetainer(leadId, options);
+ main
     
     return {
       statusCode: 200,
@@ -1265,6 +1346,18 @@ async function handleSendRetainer(leadId, data, vendor) {
         'Access-Control-Allow-Origin': '*'
       },
       body: JSON.stringify({ 
+ resolve-conflicts
+        status: 'success', 
+        message: 'Retainer agreement sent successfully',
+        data: {
+          envelopeId: envelopeResult.envelopeId,
+          status: envelopeResult.status
+        }
+      })
+    };
+  } catch (error) {
+    console.error('Error sending retainer:', error);
+
         status: 'success',
         envelopeId: result.envelopeId,
         message: 'Retainer agreement sent successfully' 
@@ -1272,12 +1365,28 @@ async function handleSendRetainer(leadId, data, vendor) {
     };
   } catch (error) {
     console.error('Send retainer error:', error);
+ main
     return {
       statusCode: 500,
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*'
       },
+ resolve-conflicts
+      body: JSON.stringify({ status: 'error', message: `Failed to send retainer agreement: ${error.message}` })
+    };
+  }
+}
+
+// Function for handling DocuSign webhooks
+async function handleDocuSignWebhook(webhookData) {
+  try {
+    // Process the webhook data
+    const envelopeStatus = await docusignUtils.processWebhookNotification(webhookData);
+    const envelopeId = envelopeStatus.envelopeId;
+    
+    if (!envelopeId) {
+
       body: JSON.stringify({ 
         status: 'error', 
         message: 'Error sending retainer agreement' 
@@ -1291,12 +1400,67 @@ async function handleDocusignWebhook(data) {
   try {
     // Validate the webhook payload
     if (!data || !data.envelopeId || !data.status) {
+ main
       return {
         statusCode: 400,
         headers: {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*'
         },
+ resolve-conflicts
+        body: JSON.stringify({ status: 'error', message: 'Missing envelope ID in webhook data' })
+      };
+    }
+    
+    // Query the lead by envelope ID
+    const leadResults = await dynamoDB.send(
+      new QueryCommand({
+        TableName: LEADS_TABLE,
+        IndexName: 'EnvelopeIdIndex',
+        KeyConditionExpression: 'envelope_id = :envelope_id',
+        ExpressionAttributeValues: {
+          ':envelope_id': envelopeId
+        }
+      })
+    );
+    
+    if (!leadResults.Items || leadResults.Items.length === 0) {
+      console.warn(`Webhook received for unknown envelope ID: ${envelopeId}`);
+      return {
+        statusCode: 404,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({ status: 'error', message: 'No lead found with the given envelope ID' })
+      };
+    }
+    
+    const lead = leadResults.Items[0];
+    const leadId = lead.lead_id;
+    
+    // Update the lead's DocuSign info
+    await dynamoDB.send(
+      new UpdateCommand({
+        TableName: LEADS_TABLE,
+        Key: { lead_id: leadId },
+        UpdateExpression: 'set docusign_info = :docusign_info, last_updated = :last_updated',
+        ExpressionAttributeValues: {
+          ':docusign_info': {
+            ...lead.docusign_info || {},
+            status: envelopeStatus.status,
+            last_updated: new Date().toISOString(),
+            ...envelopeStatus
+          },
+          ':last_updated': new Date().toISOString()
+        },
+        ReturnValues: 'UPDATED_NEW'
+      })
+    );
+    
+    // Add an entry to the lead history
+    await addLeadHistoryEntry(leadId, `DocuSign status updated: ${envelopeStatus.status}`, envelopeStatus);
+
         body: JSON.stringify({ 
           status: 'error', 
           message: 'Invalid webhook payload' 
@@ -1306,6 +1470,7 @@ async function handleDocusignWebhook(data) {
     
     // Process the webhook
     const result = await docusignService.handleStatusCallback(data);
+ main
     
     return {
       statusCode: 200,
@@ -1314,18 +1479,59 @@ async function handleDocusignWebhook(data) {
         'Access-Control-Allow-Origin': '*'
       },
       body: JSON.stringify({ 
+ resolve-conflicts
+        status: 'success', 
+
         status: 'success',
+ main
         message: 'Webhook processed successfully'
       })
     };
   } catch (error) {
+ resolve-conflicts
+    console.error('Error processing DocuSign webhook:', error);
+
     console.error('DocuSign webhook error:', error);
+ main
     return {
       statusCode: 500,
       headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*'
       },
+ resolve-conflicts
+      body: JSON.stringify({ status: 'error', message: `Failed to process webhook: ${error.message}` })
+    };
+  }
+}
+
+// Function to add an entry to the lead history
+async function addLeadHistoryEntry(leadId, action, data = {}) {
+  try {
+    const historyEntry = {
+      timestamp: new Date().toISOString(),
+      action: action,
+      data: data
+    };
+    
+    await dynamoDB.send(
+      new UpdateCommand({
+        TableName: LEADS_TABLE,
+        Key: { lead_id: leadId },
+        UpdateExpression: 'set history = list_append(if_not_exists(history, :empty_list), :history_entry)',
+        ExpressionAttributeValues: {
+          ':empty_list': [],
+          ':history_entry': [historyEntry]
+        }
+      })
+    );
+    
+    return true;
+  } catch (error) {
+    console.error('Error adding history entry:', error);
+    return false;
+  }
+
       body: JSON.stringify({ 
         status: 'error', 
         message: 'Error processing DocuSign webhook' 
@@ -1525,4 +1731,5 @@ function isAdminRoute(path) {
   ];
   
   return adminRoutes.some(route => path.startsWith(route));
+ main
 } 
