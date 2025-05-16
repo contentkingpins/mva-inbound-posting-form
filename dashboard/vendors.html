@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vendor Management Dashboard</title>
+    <title>Claim Connectors CRM - Vendors</title>
     <link rel="stylesheet" href="styles.css">
     <!-- Add jsPDF library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -160,6 +160,14 @@
             background-color: #feebc8;
             color: #c05621;
         }
+        
+        .btn-danger {
+            background-color: #e53e3e;
+        }
+        
+        .btn-danger:hover {
+            background-color: #c53030;
+        }
     </style>
 </head>
 <body>
@@ -169,6 +177,7 @@
             <div class="controls">
                 <a href="index.html" class="btn">Back to Leads Dashboard</a>
                 <a href="stats.html" class="btn">Vendor Activity</a>
+                <button id="purge-vendors-btn" class="btn btn-danger">Purge All Vendors</button>
             </div>
         </header>
 
@@ -412,6 +421,9 @@ Success Response (200):
             closeInstructionsBtn.addEventListener('click', () => {
                 instructionsSection.style.display = 'none';
             });
+            
+            // Add purge vendors button listener
+            document.getElementById('purge-vendors-btn').addEventListener('click', purgeAllVendors);
         });
 
         // Load vendors from API
@@ -742,6 +754,45 @@ Success Response (200):
                 .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#039;');
+        }
+
+        // Purge all vendors from the system
+        async function purgeAllVendors() {
+            if (!confirm('Are you sure you want to delete ALL vendors? This action cannot be undone.')) {
+                return;
+            }
+            
+            if (!confirm('FINAL WARNING: All vendor data will be permanently deleted. Continue?')) {
+                return;
+            }
+            
+            try {
+                showLoading(true);
+                
+                const response = await fetch(`${API_ENDPOINT}/vendors/purge`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'x-api-key': 'fpoI4Uwleh63QVGGsnAUG49W7B8k67g21Gc8glIl'
+                    },
+                    mode: 'cors'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error ${response.status}`);
+                }
+                
+                // Refresh the page to show the vendors are gone
+                alert('All vendors successfully purged from the system.');
+                window.location.reload();
+                
+            } catch (error) {
+                console.error('Error purging vendors:', error);
+                alert('Error purging vendors: ' + (error.message || 'Unknown error'));
+            } finally {
+                showLoading(false);
+            }
         }
     </script>
 </body>

@@ -1,0 +1,103 @@
+service: gaming-playtime-tracker
+
+frameworkVersion: '3'
+
+plugins:
+  - serverless-webpack
+  - serverless-offline
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: us-east-1
+  memorySize: 1024
+  stage: ${opt:stage, 'dev'}
+  tracing:
+    apiGateway: true
+    lambda: true
+  environment:
+    NODE_ENV: production
+    # Configure these in AWS console or using secure parameters
+    STEAM_API_KEY: ${ssm:/gaming-playtime/steam-api-key, ''}
+    RIOT_API_KEY: ${ssm:/gaming-playtime/riot-api-key, ''}
+    XBOX_CLIENT_ID: ${ssm:/gaming-playtime/xbox-client-id, ''}
+    XBOX_CLIENT_SECRET: ${ssm:/gaming-playtime/xbox-client-secret, ''}
+    PLAYSTATION_API_KEY: ${ssm:/gaming-playtime/playstation-api-key, ''}
+    EPIC_CLIENT_ID: ${ssm:/gaming-playtime/epic-client-id, ''}
+    EPIC_CLIENT_SECRET: ${ssm:/gaming-playtime/epic-client-secret, ''}
+    NINTENDO_CLIENT_ID: ${ssm:/gaming-playtime/nintendo-client-id, ''}
+    NINTENDO_CLIENT_SECRET: ${ssm:/gaming-playtime/nintendo-client-secret, ''}
+    # Use DynamoDB cache in production
+    USE_DYNAMO_CACHE: '1'
+    CACHE_TTL: '300'
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+            - dynamodb:Query
+          Resource: 
+            - !GetAtt PlaytimeCache.Arn
+            - !GetAtt RateLimiter.Arn
+        - Effect: Allow
+          Action:
+            - xray:PutTraceSegments
+            - xray:PutTelemetryRecords
+          Resource: "*"
+
+functions:
+  api:
+    handler: serverless-lambda-handler.handler
+    events:
+      - httpApi: '*'
+    timeout: 30
+    provisionedConcurrency: ${self:custom.provisionedConcurrency.${self:provider.stage}, 0}
+
+resources:
+  Resources:
+    PlaytimeCache:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-${self:provider.stage}-cache
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: key
+            AttributeType: S
+        KeySchema:
+          - AttributeName: key
+            KeyType: HASH
+        TimeToLiveSpecification:
+          AttributeName: ttl
+          Enabled: true
+          
+    RateLimiter:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-${self:provider.stage}-rate-limits
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: key
+            AttributeType: S
+        KeySchema:
+          - AttributeName: key
+            KeyType: HASH
+        TimeToLiveSpecification:
+          AttributeName: ttl
+          Enabled: true
+          
+custom:
+  # Adjust these settings based on your requirements
+  webpack:
+    packager: 'npm'
+    includeModules: true
+  provisionedConcurrency:
+    dev: 0
+    staging: 5
+    production: 10
+  serverless-offline:
+    httpPort: 3000
+    noPrependStageInUrl: true 
