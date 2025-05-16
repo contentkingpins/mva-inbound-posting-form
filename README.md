@@ -10,6 +10,9 @@ A serverless Node.js application for managing sales leads using AWS Lambda, API 
 - Vendor verification against a Vendors DynamoDB table
 - API key protection for POST endpoint
 - Full request logging to CloudWatch
+- DocuSign integration for sending retainer agreements
+- Lead status updates when retainers are sent/completed
+- Option to resend retainer agreements
 
 ## API Documentation
 
@@ -97,6 +100,49 @@ Retrieves lead records.
 
 Results are sorted by timestamp in descending order (newest first).
 
+### POST /leads/{lead_id}/send-retainer
+
+Sends a retainer agreement to a lead via DocuSign.
+
+**Authentication:**
+This endpoint requires an API key to be included in the `x-api-key` header.
+
+**Request Body:**
+
+```json
+{
+  "emailSubject": "Your Retainer Agreement",
+  "emailBlurb": "Please review and sign the attached retainer agreement.",
+  "sendNow": true,
+  "force": false
+}
+```
+
+**Optional Fields:**
+- `emailSubject` (string): Custom subject line for the email
+- `emailBlurb` (string): Custom message for the email
+- `sendNow` (boolean): Whether to send immediately (defaults to true)
+- `force` (boolean): Whether to resend even if already sent (defaults to false)
+
+**Success Response (200):**
+
+```json
+{
+  "status": "success",
+  "envelopeId": "docusign-envelope-id",
+  "message": "Retainer agreement sent successfully"
+}
+```
+
+**Error Response (400):**
+
+```json
+{
+  "status": "error",
+  "message": "A retainer agreement has already been sent. Use force=true to send another."
+}
+```
+
 ## Deployment Information
 
 The API is deployed at: 
@@ -129,6 +175,12 @@ API_KEY=your_api_key node scripts/test-api.js
 - Global Secondary Index: `VendorTimestampIndex`
   - Partition Key: `vendor_code`
   - Sort Key: `timestamp`
+- Global Secondary Index: `EmailIndex`
+  - Partition Key: `email`
+- Global Secondary Index: `PhoneIndex`
+  - Partition Key: `phone_home`
+- Global Secondary Index: `EnvelopeIdIndex`
+  - Partition Key: `envelope_id`
 
 ## Monitoring
 
@@ -252,3 +304,86 @@ Retrieves leads with optional filtering for export purposes.
 ```
 
 Results are sorted by timestamp in descending order (newest first).
+
+# DocuSign Integration
+
+The system now includes integration with DocuSign to send and track retainer agreements to leads. This enhancement allows for a streamlined client onboarding process.
+
+## Features
+
+- Send retainer agreements directly from the lead management interface
+- Auto-populate client information in DocuSign template
+- Track document status (sent, delivered, viewed, completed, declined)
+- Automatically update lead status to "completed" when retainer is sent or signed
+- Ability to resend retainer agreements when needed
+
+## AWS Backend Requirements
+
+To implement the DocuSign integration, the following AWS resources and configurations are required:
+
+### Environment Variables
+
+The Lambda function requires these additional environment variables:
+
+- `DS_INTEGRATION_KEY`: DocuSign integration key from the developer account
+- `DS_USER_ID`: DocuSign API user ID
+- `DS_ACCOUNT_ID`: DocuSign account ID
+- `DS_RETAINER_TEMPLATE_ID`: ID of the DocuSign template for retainer agreements
+- `DS_PRIVATE_KEY`: RSA private key for JWT authentication (Base64 encoded)
+- `DS_AUTH_SERVER`: DocuSign authentication server URL (defaults to demo server)
+- `DS_API_URL`: DocuSign API URL (defaults to demo API)
+
+### DynamoDB Updates
+
+The Leads table requires the following updates:
+
+1. Add a new Global Secondary Index:
+   - `EnvelopeIdIndex`: For looking up leads by DocuSign envelope ID
+   - Partition Key: `envelope_id`
+
+2. The Leads table now stores additional fields for each lead:
+   - `docusign_info`: Object containing DocuSign status information
+     - `envelopeId`: The DocuSign envelope ID
+     - `status`: Current status of the document
+     - `sentAt`: Timestamp when the document was sent
+     - `deliveredAt`: Timestamp when email was delivered
+     - `viewedAt`: Timestamp when document was first viewed
+     - `completedAt`: Timestamp when document was completed
+     - `declinedAt`: Timestamp if document was declined
+     - `lastUpdated`: Timestamp of the last status update
+   - `envelope_id`: Copy of the envelope ID at root level for the GSI
+   - `disposition`: Updated to "completed" when a retainer is sent or completed
+
+### Lambda Function Dependencies
+
+Add these npm packages to the Lambda function:
+
+```bash
+npm install docusign-esign jsonwebtoken moment
+```
+
+### API Gateway Updates
+
+Add a new route to the API Gateway:
+
+- `POST /leads/{lead_id}/send-retainer`: Endpoint to send retainer agreements
+- `POST /docusign/webhook`: Webhook endpoint for DocuSign status callbacks
+
+### DocuSign Setup
+
+1. Create a DocuSign developer account if you don't have one
+2. Create a retainer agreement template in DocuSign
+3. Set up a DocuSign Connect configuration to send webhooks to the `/docusign/webhook` endpoint
+4. Configure the integration key and RSA key pair for JWT authentication
+
+## Deployment
+
+1. Add the required environment variables to your Lambda function
+2. Update the DynamoDB table with the new GSI
+3. Deploy the updated Lambda code with DocuSign dependencies
+4. Configure the API Gateway with the new routes
+5. Set up the DocuSign template and webhook
+
+## JWT Authentication
+
+The system uses JWT (JSON Web Token) authentication with DocuSign. The private key is stored as an environment variable, and a token is requested when needed with a 1-hour expiration time. The system caches the token until it expires to minimize authentication requests.

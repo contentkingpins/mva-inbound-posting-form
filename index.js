@@ -5,10 +5,13 @@ const {
   PutCommand, 
   QueryCommand, 
   ScanCommand,
-  UpdateCommand
+  UpdateCommand,
+  DeleteCommand
 } = require('@aws-sdk/lib-dynamodb');
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
+const docusignService = require('./docusign-service');
+const authRoutes = require('./auth-routes');
 
 const client = new DynamoDBClient();
 const dynamoDB = DynamoDBDocumentClient.from(client);
@@ -18,62 +21,139 @@ const LEADS_TABLE = process.env.LEADS_TABLE;
 
 // Main handler function for API Gateway
 exports.handler = async (event) => {
+  console.log('Received event:', JSON.stringify(event, null, 2));
+  
+  // Extract path and HTTP method
+  const path = event.path;
+  const httpMethod = event.httpMethod;
+  
+  console.log(`Processing ${httpMethod} ${path}`);
+  
   try {
-    const { httpMethod, path, queryStringParameters, body, pathParameters, headers } = event;
+    // Handle OPTIONS requests (CORS preflight)
+    if (httpMethod === 'OPTIONS') {
+      return {
+        statusCode: 200,
+        headers: corsHeaders
+      };
+    }
     
-    // Check if the endpoint requires authentication
-    const requiresAuth = doesEndpointRequireAuth(path, httpMethod);
+    // DocuSign webhook callback doesn't need API key auth
+    if (path === '/docusign/webhook' && httpMethod === 'POST') {
+      return await handleDocusignWebhook(JSON.parse(event.body || '{}'));
+    }
     
-    // If authentication is required, verify the API key
-    if (requiresAuth) {
-      const authResult = await authenticateRequest(headers);
+    // Handle authentication routes
+    if (path.startsWith('/auth')) {
+      return await handleAuthRoutes(path, httpMethod, event);
+    }
+    
+    // Special admin purge endpoint with hardcoded admin API key
+    if (path === '/vendors/purge' && httpMethod === 'DELETE') {
+      const apiKey = event.headers['x-api-key'];
+      
+      // Only allow with admin API key
+      if (apiKey === 'fpoI4Uwleh63QVGGsnAUG49W7B8k67g21Gc8glIl') {
+        return await handlePurgeVendors();
+      } else {
+        return {
+          statusCode: 403,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            status: 'error',
+            message: 'Not authorized to perform this action'
+          })
+        };
+      }
+    }
+
+    // For routes that need JWT authentication instead of API key
+    if (isJwtProtectedRoute(path)) {
+      const authHeader = event.headers.Authorization || event.headers.authorization;
+      const authResult = authRoutes.verifyAuthToken(authHeader);
+      
       if (!authResult.authenticated) {
         return {
           statusCode: 401,
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*'
-          },
-          body: JSON.stringify({ 
-            status: 'error', 
-            message: authResult.message || 'Unauthorized' 
+          headers: corsHeaders,
+          body: JSON.stringify({
+            status: 'error',
+            message: authResult.message || 'Authentication required'
           })
         };
       }
       
-      // Add vendor info to the event for later use
-      event.vendor = authResult.vendor;
+      // For admin-only routes, check role
+      if (isAdminRoute(path) && authResult.user.role !== 'admin') {
+        return {
+          statusCode: 403,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            status: 'error',
+            message: 'Admin access required'
+          })
+        };
+      }
+      
+      // Set authenticated user in event for later use
+      event.user = authResult.user;
+    }
+    
+    // For other routes requiring API key auth
+    if (doesEndpointRequireAuth(path, httpMethod) && !event.user) {
+      const vendor = await authenticateRequest(event.headers);
+      
+      if (!vendor.authenticated) {
+        return {
+          statusCode: 401,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            status: 'error',
+            message: vendor.message
+          })
+        };
+      }
+      
+      // Set vendor in the event
+      event.vendor = vendor.vendor;
     }
     
     // Route handler
     if (path === '/leads') {
       if (httpMethod === 'POST') {
-        return await handleCreateLead(JSON.parse(body), event.vendor);
+        return await handleCreateLead(JSON.parse(event.body || '{}'), event.vendor);
       } else if (httpMethod === 'GET') {
-        return await handleGetLeads(queryStringParameters, event.vendor);
+        return await handleGetLeads(event.queryStringParameters, event.vendor);
       }
     } 
     // Handle lead update and get single lead
     else if (path.match(/^\/leads\/[^\/]+$/)) {
       const leadId = pathParameters.lead_id;
       if (httpMethod === 'PATCH') {
-        return await handleUpdateLead(leadId, JSON.parse(body), event.vendor);
+        return await handleUpdateLead(leadId, JSON.parse(event.body || '{}'), event.vendor);
       } else if (httpMethod === 'GET') {
         return await handleGetLead(leadId, event.vendor);
       }
+    }
+    // Handle sending retainer via DocuSign
+    else if (path.match(/^\/leads\/[^\/]+\/send-retainer$/)) {
+      const leadId = pathParameters.lead_id;
+      if (httpMethod === 'POST') {
+        return await handleSendRetainer(leadId, JSON.parse(event.body || '{}'), event.vendor);
+      }
     } else if (path === '/stats') {
       if (httpMethod === 'GET') {
-        return await handleGetLeadStats(queryStringParameters);
+        return await handleGetLeadStats(event.queryStringParameters);
       }
     } else if (path === '/export') {
       if (httpMethod === 'GET') {
-        return await handleExportLeads(queryStringParameters);
+        return await handleExportLeads(event.queryStringParameters);
       }
     } else if (path === '/vendors') {
       if (httpMethod === 'GET') {
         return await handleGetVendors();
       } else if (httpMethod === 'POST') {
-        return await handleCreateVendor(JSON.parse(body));
+        return await handleCreateVendor(JSON.parse(event.body || '{}'));
       }
     } else if (path.match(/^\/vendors\/[^\/]+\/regenerate-key$/)) {
       if (httpMethod === 'POST') {
@@ -109,6 +189,10 @@ function doesEndpointRequireAuth(path, method) {
   // Define which endpoints require authentication
   // By default, POST and PATCH operations require auth, GET may not
   if (method === 'POST' || method === 'PATCH' || method === 'PUT' || method === 'DELETE') {
+    // DocuSign webhook callback doesn't need API key auth
+    if (path === '/docusign/webhook') {
+      return false;
+    }
     return true;
   }
   
@@ -1105,4 +1189,340 @@ async function handleGetLead(leadId, vendor) {
       body: JSON.stringify({ status: 'error', message: 'Error retrieving lead' })
     };
   }
+}
+
+// Handler for sending a retainer agreement via DocuSign
+async function handleSendRetainer(leadId, data, vendor) {
+  try {
+    // Check if lead exists and belongs to this vendor
+    const leadResult = await dynamoDB.send(
+      new GetCommand({
+        TableName: LEADS_TABLE,
+        Key: { lead_id: leadId }
+      })
+    );
+    
+    if (!leadResult.Item) {
+      return {
+        statusCode: 404,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({ 
+          status: 'error', 
+          message: 'Lead not found' 
+        })
+      };
+    }
+    
+    // Check vendor permissions (only allow if ADMIN or owner)
+    if (vendor.vendor_code !== 'ADMIN' && leadResult.Item.vendor_code !== vendor.vendor_code) {
+      return {
+        statusCode: 403,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({ 
+          status: 'error', 
+          message: 'You do not have permission to send a retainer for this lead' 
+        })
+      };
+    }
+    
+    // Check if a retainer has already been sent
+    if (leadResult.Item.docusign_info && leadResult.Item.docusign_info.envelopeId) {
+      // Determine if a new one should be sent based on options
+      if (!data.force && leadResult.Item.docusign_info.status !== 'voided') {
+        return {
+          statusCode: 400,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          },
+          body: JSON.stringify({ 
+            status: 'error', 
+            message: 'A retainer agreement has already been sent. Use force=true to send another.' 
+          })
+        };
+      }
+    }
+    
+    // Send the retainer via DocuSign service
+    const options = {
+      sendNow: data.sendNow !== false, // Default to true
+      emailSubject: data.emailSubject,
+      emailBlurb: data.emailBlurb
+    };
+    
+    const result = await docusignService.sendRetainer(leadId, options);
+    
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ 
+        status: 'success',
+        envelopeId: result.envelopeId,
+        message: 'Retainer agreement sent successfully' 
+      })
+    };
+  } catch (error) {
+    console.error('Send retainer error:', error);
+    return {
+      statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ 
+        status: 'error', 
+        message: 'Error sending retainer agreement' 
+      })
+    };
+  }
+}
+
+// Handler for DocuSign webhook callback
+async function handleDocusignWebhook(data) {
+  try {
+    // Validate the webhook payload
+    if (!data || !data.envelopeId || !data.status) {
+      return {
+        statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({ 
+          status: 'error', 
+          message: 'Invalid webhook payload' 
+        })
+      };
+    }
+    
+    // Process the webhook
+    const result = await docusignService.handleStatusCallback(data);
+    
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ 
+        status: 'success',
+        message: 'Webhook processed successfully'
+      })
+    };
+  } catch (error) {
+    console.error('DocuSign webhook error:', error);
+    return {
+      statusCode: 500,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({ 
+        status: 'error', 
+        message: 'Error processing DocuSign webhook' 
+      })
+    };
+  }
+}
+
+// Add a new function to purge all vendors
+async function handlePurgeVendors() {
+  try {
+    // Scan the vendors table to get all vendor codes
+    const vendorsResult = await dynamoDB.send(
+      new ScanCommand({
+        TableName: VENDORS_TABLE
+      })
+    );
+    
+    const vendors = vendorsResult.Items || [];
+    console.log(`Found ${vendors.length} vendors to purge`);
+    
+    // Delete each vendor one by one
+    for (const vendor of vendors) {
+      await dynamoDB.send(
+        new DeleteCommand({
+          TableName: VENDORS_TABLE,
+          Key: { vendor_code: vendor.vendor_code }
+        })
+      );
+      console.log(`Deleted vendor: ${vendor.vendor_code}`);
+    }
+    
+    return {
+      statusCode: 200,
+      headers: corsHeaders,
+      body: JSON.stringify({
+        status: 'success',
+        message: `Successfully purged ${vendors.length} vendors`
+      })
+    };
+  } catch (error) {
+    console.error('Error purging vendors:', error);
+    return {
+      statusCode: 500,
+      headers: corsHeaders,
+      body: JSON.stringify({
+        status: 'error',
+        message: 'Error purging vendors'
+      })
+    };
+  }
+}
+
+// Handle authentication routes
+async function handleAuthRoutes(path, httpMethod, event) {
+  const body = event.body ? JSON.parse(event.body) : {};
+  
+  // Login endpoint - POST /auth/login
+  if (path === '/auth/login' && httpMethod === 'POST') {
+    return await authRoutes.handleLogin(body);
+  }
+  
+  // Register endpoint - POST /auth/register
+  if (path === '/auth/register' && httpMethod === 'POST') {
+    // Only admins can register new users
+    const authHeader = event.headers.Authorization || event.headers.authorization;
+    const authResult = authRoutes.verifyAuthToken(authHeader);
+    
+    if (!authResult.authenticated || authResult.user.role !== 'admin') {
+      return {
+        statusCode: 403,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          status: 'error',
+          message: 'Only administrators can register new users'
+        })
+      };
+    }
+    
+    return await authRoutes.handleRegister(body, authResult.user);
+  }
+  
+  // User profile endpoints
+  const profileMatch = path.match(/^\/auth\/users\/([^\/]+)$/);
+  if (profileMatch && profileMatch[1]) {
+    const username = profileMatch[1];
+    
+    // Get user profile - GET /auth/users/:username
+    if (httpMethod === 'GET') {
+      const authHeader = event.headers.Authorization || event.headers.authorization;
+      const authResult = authRoutes.verifyAuthToken(authHeader);
+      
+      if (!authResult.authenticated) {
+        return {
+          statusCode: 401,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            status: 'error',
+            message: 'Authentication required'
+          })
+        };
+      }
+      
+      return await authRoutes.handleGetProfile(username, authResult.user);
+    }
+    
+    // Update user profile - PATCH /auth/users/:username
+    if (httpMethod === 'PATCH') {
+      const authHeader = event.headers.Authorization || event.headers.authorization;
+      const authResult = authRoutes.verifyAuthToken(authHeader);
+      
+      if (!authResult.authenticated) {
+        return {
+          statusCode: 401,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            status: 'error',
+            message: 'Authentication required'
+          })
+        };
+      }
+      
+      return await authRoutes.handleUpdateProfile(username, body, authResult.user);
+    }
+  }
+  
+  // Change password endpoint - POST /auth/users/:username/change-password
+  const passwordMatch = path.match(/^\/auth\/users\/([^\/]+)\/change-password$/);
+  if (passwordMatch && passwordMatch[1] && httpMethod === 'POST') {
+    const username = passwordMatch[1];
+    const authHeader = event.headers.Authorization || event.headers.authorization;
+    const authResult = authRoutes.verifyAuthToken(authHeader);
+    
+    if (!authResult.authenticated) {
+      return {
+        statusCode: 401,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          status: 'error',
+          message: 'Authentication required'
+        })
+      };
+    }
+    
+    return await authRoutes.handleChangePassword(username, body, authResult.user);
+  }
+  
+  // List users endpoint - GET /auth/users
+  if (path === '/auth/users' && httpMethod === 'GET') {
+    const authHeader = event.headers.Authorization || event.headers.authorization;
+    const authResult = authRoutes.verifyAuthToken(authHeader);
+    
+    if (!authResult.authenticated) {
+      return {
+        statusCode: 401,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          status: 'error',
+          message: 'Authentication required'
+        })
+      };
+    }
+    
+    return await authRoutes.handleListUsers(authResult.user);
+  }
+  
+  // Auth route not found
+  return {
+    statusCode: 404,
+    headers: corsHeaders,
+    body: JSON.stringify({
+      status: 'error',
+      message: 'Auth route not found'
+    })
+  };
+}
+
+// Check if a route requires JWT authentication
+function isJwtProtectedRoute(path) {
+  const jwtProtectedPaths = [
+    '/leads/sensitive',
+    '/admin',
+    '/stats',
+    '/auth/users',
+    '/auth/register'
+  ];
+  
+  // All paths starting with these prefixes require JWT auth
+  return jwtProtectedPaths.some(prefix => path.startsWith(prefix));
+}
+
+// Check if a route is admin-only
+function isAdminRoute(path) {
+  const adminRoutes = [
+    '/admin',
+    '/auth/register'
+  ];
+  
+  return adminRoutes.some(route => path.startsWith(route));
 } 

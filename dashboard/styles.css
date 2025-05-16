@@ -786,4 +786,110 @@ textarea {
     .modal-form-group {
         margin-bottom: 20px;
     }
+}
+
+/* DocuSign Status Styles */
+.status-message {
+  padding: 10px;
+  border-radius: 4px;
+  margin: 15px 0;
+}
+
+.status-message.info {
+  background-color: #e8f4fd;
+  color: #0366d6;
+  border: 1px solid #0366d6;
+}
+
+.status-message.success {
+  background-color: #e6ffed;
+  color: #22863a;
+  border: 1px solid #22863a;
+}
+
+.status-message.error {
+  background-color: #ffeef0;
+  color: #cb2431;
+  border: 1px solid #cb2431;
+}
+
+.lead-docusign-status {
+  margin-top: 5px;
+  font-size: 0.85em;
+}
+
+.docusign-status-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.85em;
+  font-weight: bold;
+}
+
+.docusign-status-sent {
+  background-color: #e8f4fd;
+  color: #0366d6;
+}
+
+.docusign-status-delivered {
+  background-color: #fff4e1;
+  color: #e36209;
+}
+
+.docusign-status-viewed {
+  background-color: #f1e7fe;
+  color: #6f42c1;
+}
+
+.docusign-status-completed {
+  background-color: #e6ffed;
+  color: #22863a;
+}
+
+.docusign-status-declined {
+  background-color: #ffeef0;
+  color: #cb2431;
+}
+
+/* DocuSign Checkbox Styles */
+.docusign-option {
+    margin: 10px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.checkbox-label {
+    margin-left: 5px;
+    font-size: 14px;
+}
+
+.checkbox-container input[type="checkbox"] {
+    cursor: pointer;
+}
+
+.btn-docusign {
+    background-color: #eb512f;
+    margin-left: 10px;
+}
+
+.btn-docusign:hover {
+    background-color: #d43a1d;
+}
+
+/* DocuSign Retainer Status Styles */
+.lead-detail-item button.btn-secondary {
+    margin-top: 10px;
+    background-color: #6c757d;
+    color: white;
+}
+
+.lead-detail-item button.btn-secondary:hover {
+    background-color: #5a6268;
 } 
