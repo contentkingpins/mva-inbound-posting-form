@@ -3,6 +3,53 @@ const API_ENDPOINT = 'https://nv01uveape.execute-api.us-east-1.amazonaws.com/pro
 const EXPORT_ENDPOINT = 'https://nv01uveape.execute-api.us-east-1.amazonaws.com/prod/export';
 const REFRESH_INTERVAL = 10000; // 10 seconds
 
+// Check authentication
+document.addEventListener('DOMContentLoaded', () => {
+    // Check if user is logged in
+    const token = localStorage.getItem('auth_token');
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    
+    if (!token || !user.username) {
+        // Not logged in, redirect to login page
+        window.location.href = 'login.html';
+        return;
+    }
+    
+    // Add user info to header
+    const headerControls = document.querySelector('.controls');
+    if (headerControls) {
+        const userInfo = document.createElement('div');
+        userInfo.className = 'user-info';
+        userInfo.innerHTML = `
+            <span>Welcome, <strong>${user.name || user.username}</strong></span>
+            <span class="role-badge ${user.role === 'admin' ? 'role-admin' : 'role-agent'}">
+                ${user.role === 'admin' ? 'Admin' : 'Agent'}
+            </span>
+            <button id="logout-btn" class="btn btn-sm btn-secondary" style="margin-left: 10px;">Logout</button>
+        `;
+        headerControls.appendChild(userInfo);
+        
+        // Add logout handler
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user');
+            window.location.href = 'login.html';
+        });
+        
+        // Show admin link if user is admin
+        if (user.role === 'admin') {
+            const adminLink = document.createElement('a');
+            adminLink.href = 'admin.html';
+            adminLink.className = 'btn';
+            adminLink.textContent = 'Admin Panel';
+            headerControls.insertBefore(adminLink, headerControls.firstChild);
+        }
+    }
+    
+    // Initialize the app
+    initializeApp();
+});
+
 // Config initialization
 let API_KEY = '';
 
@@ -22,6 +69,12 @@ async function loadConfig() {
                 console.warn('Using development settings');
                 // Don't set a default API key - leave it blank to force proper configuration
             }
+        }
+        
+        // If we have a token, use it in the API key
+        const token = localStorage.getItem('auth_token');
+        if (token) {
+            API_KEY = token;
         }
     } catch (error) {
         console.error('Error loading configuration:', error);
@@ -62,6 +115,9 @@ let searchDebounceTimer = null; // For debouncing search input
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async () => {
+    // Clear any mock data in localStorage
+    clearMockData();
+    
     // Load configuration before fetching data
     await loadConfig();
     
@@ -101,6 +157,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Create the add lead modal
     createAddLeadModal();
 });
+
+// Function to clear mock data from localStorage
+function clearMockData() {
+    localStorage.removeItem('mockDataLoaded');
+    localStorage.removeItem('leads');
+    console.log('Mock data cleared from localStorage');
+}
 
 // Create the add lead modal HTML structure
 function createAddLeadModal() {
@@ -175,8 +238,19 @@ function createAddLeadModal() {
                                     </div>
                                     
                                     <div class="modal-form-group">
-                                        <label for="lead-accident-date">What was the date of the accident?</label>
-                                        <input type="date" id="lead-accident-date">
+                                        <label for="lead-incident-type">Incident Type</label>
+                                        <select id="lead-incident-type">
+                                            <option value="">Select Type</option>
+                                            <option value="PFAS">PFAS</option>
+                                            <option value="VGA">VGA</option>
+                                            <option value="MVA">MVA</option>
+                                            <option value="CMVA">CMVA</option>
+                                            <option value="PI">PI</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="modal-form-group" style="display: none;">
+                                        <input type="hidden" id="lead-accident-date">
                                         <div id="lead-deadline-warning" class="deadline-warning" style="display: none;"></div>
                                     </div>
                                     
@@ -317,6 +391,20 @@ function createAddLeadModal() {
     
     // Add event listener for accident date to check deadline
     document.getElementById('lead-accident-date').addEventListener('change', checkAddLeadDeadline);
+    
+    // Update the table header in the leads-table element at the top of the file
+    const tableHeader = document.querySelector('#leads-table thead tr');
+    if (tableHeader) {
+        tableHeader.innerHTML = `
+            <th>Name</th>
+            <th>Contact</th>
+            <th>Incident Type</th>
+            <th>Disposition</th>
+            <th>Location</th>
+            <th>Vendor</th>
+            <th>Received</th>
+        `;
+    }
 }
 
 // Open add lead modal
@@ -366,12 +454,17 @@ function populateVendorDropdown() {
         vendorSelect.remove(1);
     }
     
-    // Add vendor options
-    Array.from(vendorCodes).sort().forEach(code => {
-        const option = document.createElement('option');
-        option.value = code;
-        option.textContent = code;
-        vendorSelect.appendChild(option);
+    // Add fixed vendor options
+    const options = [
+        { value: 'IN_HOUSE', text: 'In House Marketing' },
+        { value: 'VENDOR', text: 'Vendor' }
+    ];
+    
+    options.forEach(option => {
+        const optionEl = document.createElement('option');
+        optionEl.value = option.value;
+        optionEl.textContent = option.text;
+        vendorSelect.appendChild(optionEl);
     });
 }
 
@@ -393,17 +486,9 @@ async function handleLeadSubmit(e) {
         return radio ? radio.value : null;
     };
     
-    // Calculate deadline based on accident date
-    let deadline60Days = '';
-    const accidentDate = document.getElementById('lead-accident-date').value;
-    if (accidentDate) {
-        const today = new Date();
-        const accidentDateObj = new Date(accidentDate);
-        const deadlineDate = new Date(accidentDateObj);
-        deadlineDate.setFullYear(deadlineDate.getFullYear() + 2);
-        const daysLeft = Math.floor((deadlineDate - today) / (1000 * 60 * 60 * 24));
-        deadline60Days = daysLeft >= 60 ? 'yes' : 'no';
-    }
+    // Calculate deadline based on accident date (keep it for now for compatibility)
+    let deadline60Days = 'yes'; // Default to yes since we're not using accident date anymore
+    const accidentDate = new Date().toISOString().split('T')[0]; // Use today's date as a placeholder
     
     // Gather form data
     const leadData = {
@@ -419,7 +504,8 @@ async function handleLeadSubmit(e) {
         notes: document.getElementById('lead-notes').value.trim(),
         
         // Qualification data
-        accident_date: accidentDate || null,
+        incident_type: document.getElementById('lead-incident-type').value,
+        accident_date: accidentDate, // Keep for backward compatibility
         accident_location: document.getElementById('lead-accident-location').value.trim(),
         deadline_60_days: deadline60Days,
         caller_at_fault: getRadioValue('at-fault'),
@@ -632,12 +718,14 @@ async function fetchLeads() {
             url += `?vendor_code=${vendorCode}`;
         }
         
+        const token = localStorage.getItem('auth_token');
+        
         const response = await fetch(url, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
-                'x-api-key': API_KEY
+                'Authorization': `Bearer ${token}`
             },
             mode: 'cors'  // Explicitly state CORS mode for Amplify hosting
         });
@@ -645,6 +733,14 @@ async function fetchLeads() {
         let newLeads = [];
         
         if (!response.ok) {
+            if (response.status === 401) {
+                // Token expired or invalid, redirect to login
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('user');
+                window.location.href = 'login.html';
+                return;
+            }
+            
             // If API fails, show error but continue with data from localStorage
             console.error(`HTTP error ${response.status}`);
             showError('Failed to fetch leads from API. Showing cached data instead.');
@@ -663,7 +759,8 @@ async function fetchLeads() {
             }
         } else {
             // API worked, get leads from it
-            newLeads = await response.json();
+            const data = await response.json();
+            newLeads = data;
         }
         
         // Get existing leads from localStorage to preserve disposition and notes
@@ -744,12 +841,17 @@ function populateExportVendorSelect() {
         exportVendorSelect.remove(1);
     }
     
-    // Add vendor options
-    Array.from(vendorCodes).sort().forEach(code => {
-        const option = document.createElement('option');
-        option.value = code;
-        option.textContent = code;
-        exportVendorSelect.appendChild(option);
+    // Add fixed vendor options
+    const options = [
+        { value: 'IN_HOUSE', text: 'In House Marketing' },
+        { value: 'VENDOR', text: 'Vendor' }
+    ];
+    
+    options.forEach(option => {
+        const optionEl = document.createElement('option');
+        optionEl.value = option.value;
+        optionEl.textContent = option.text;
+        exportVendorSelect.appendChild(optionEl);
     });
 }
 
@@ -925,21 +1027,11 @@ function escapeCsvValue(value) {
 
 // Update vendor filter options
 function updateVendorOptions() {
-    // Extract unique vendor codes
-    const newVendorCodes = new Set();
-    leads.forEach(lead => {
-        if (lead.vendor_code) {
-            newVendorCodes.add(lead.vendor_code);
-        }
-    });
-    
-    // Skip if no changes to vendor codes
-    if (arraysEqual(Array.from(vendorCodes), Array.from(newVendorCodes))) {
-        return;
-    }
-    
-    // Update state
-    vendorCodes = newVendorCodes;
+    // Define fixed vendor options
+    const fixedVendorOptions = [
+        { value: 'IN_HOUSE', text: 'In House Marketing' },
+        { value: 'VENDOR', text: 'Vendor' }
+    ];
     
     // Save current selection
     const currentSelection = vendorFilter.value;
@@ -949,16 +1041,16 @@ function updateVendorOptions() {
         vendorFilter.remove(1);
     }
     
-    // Add vendor options
-    Array.from(vendorCodes).sort().forEach(code => {
-        const option = document.createElement('option');
-        option.value = code;
-        option.textContent = code;
-        vendorFilter.appendChild(option);
+    // Add fixed vendor options
+    fixedVendorOptions.forEach(option => {
+        const optionEl = document.createElement('option');
+        optionEl.value = option.value;
+        optionEl.textContent = option.text;
+        vendorFilter.appendChild(optionEl);
     });
     
-    // Restore selection if it still exists
-    if (currentSelection && vendorCodes.has(currentSelection)) {
+    // Restore selection if it still exists in the new options
+    if (currentSelection && fixedVendorOptions.some(opt => opt.value === currentSelection)) {
         vendorFilter.value = currentSelection;
     }
 }
@@ -992,9 +1084,6 @@ function renderLeads() {
                 row.classList.remove('expanded');
             }
             
-            // Format the accident date as YYYY-MM-DD
-            const accidentDate = lead.accident_date ? formatDateYMD(lead.accident_date) : '';
-            
             row.innerHTML = `
                 <td class="lead-name">
                     <div class="name-cell">
@@ -1010,7 +1099,7 @@ function renderLeads() {
                         <div class="email">${escapeHtml(lead.email || '')}</div>
                     </div>
                 </td>
-                <td>${accidentDate}</td>
+                <td>${escapeHtml(lead.incident_type || '')}</td>
                 <td>
                     <select class="disposition-select" data-lead-id="${lead.lead_id}">
                         <option value="New" ${(lead.disposition || 'New') === 'New' ? 'selected' : ''}>New</option>
@@ -1589,16 +1678,30 @@ function addDetailRow(lead) {
     
     leadInfoColumn.appendChild(leadDetails);
     
-    // Notes section
-    const notesSection = document.createElement('div');
-    notesSection.className = 'notes-section';
-    notesSection.innerHTML = `
+    // Create lead notes container
+    const notesContainer = document.createElement('div');
+    notesContainer.className = 'lead-detail-item lead-notes-container';
+    notesContainer.innerHTML = `
         <h4>Notes</h4>
         <textarea id="lead-notes-${lead.lead_id}" class="lead-notes" rows="4">${escapeHtml(lead.notes || '')}</textarea>
         <button id="save-notes-${lead.lead_id}" class="btn btn-sm">Save Notes</button>
     `;
+    leadInfoColumn.appendChild(notesContainer);
     
-    leadInfoColumn.appendChild(notesSection);
+    // Create DocuSign retainer section
+    const retainerContainer = document.createElement('div');
+    retainerContainer.className = 'lead-detail-item retainer-container';
+    retainerContainer.innerHTML = `
+        <h4>Retainer Agreement</h4>
+        <div class="docusign-option">
+            <label class="checkbox-container">
+                <input type="checkbox" id="send-retainer-checkbox-${lead.lead_id}">
+                <span class="checkbox-label">Send retainer agreement</span>
+            </label>
+            <button id="submit-retainer-${lead.lead_id}" class="btn btn-sm btn-docusign">Submit Retainer</button>
+        </div>
+    `;
+    leadInfoColumn.appendChild(retainerContainer);
     
     // Right column with qualification checklist
     const qualificationColumn = document.createElement('div');
@@ -1613,14 +1716,19 @@ function addDetailRow(lead) {
             </div>
             
             <div class="qualification-item">
-                <label>What was the date of the accident?</label>
-                <input type="date" id="accident-date-${lead.lead_id}" value="${lead.accident_date || ''}" onchange="checkDeadline('${lead.lead_id}')">
-                <div id="deadline-warning-${lead.lead_id}" class="deadline-warning" style="display: none;">
-                    Warning: This accident occurred more than 2 years ago. The statute of limitations has likely expired.
-                </div>
+                <label>Incident Type</label>
+                <select id="incident-type-${lead.lead_id}">
+                    <option value="">Select Type</option>
+                    <option value="PFAS" ${lead.incident_type === 'PFAS' ? 'selected' : ''}>PFAS</option>
+                    <option value="VGA" ${lead.incident_type === 'VGA' ? 'selected' : ''}>VGA</option>
+                    <option value="MVA" ${lead.incident_type === 'MVA' ? 'selected' : ''}>MVA</option>
+                    <option value="CMVA" ${lead.incident_type === 'CMVA' ? 'selected' : ''}>CMVA</option>
+                    <option value="PI" ${lead.incident_type === 'PI' ? 'selected' : ''}>PI</option>
+                </select>
             </div>
             
             <div class="qualification-item" style="display: none;">
+                <input type="hidden" id="accident-date-${lead.lead_id}" value="${lead.accident_date || ''}">
                 <input type="hidden" id="deadline-60-days-${lead.lead_id}" value="${lead.deadline_60_days || ''}">
             </div>
             
@@ -1771,10 +1879,21 @@ function addDetailRow(lead) {
         // Notes update handler
         const saveNotesBtn = document.getElementById(`save-notes-${lead.lead_id}`);
         if (saveNotesBtn) {
-            saveNotesBtn.addEventListener('click', (e) => {
+            saveNotesBtn.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 const notes = document.getElementById(`lead-notes-${lead.lead_id}`).value;
-                updateLeadData(lead.lead_id, { notes });
+                
+                // Update the lead notes
+                await updateLeadData(lead.lead_id, { notes });
+            });
+        }
+        
+        // Add event listener for the Submit Retainer button
+        const submitRetainerBtn = document.getElementById(`submit-retainer-${lead.lead_id}`);
+        if (submitRetainerBtn) {
+            submitRetainerBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                showSendRetainerModal(lead);
             });
         }
         
@@ -1787,6 +1906,7 @@ function addDetailRow(lead) {
                 // Gather all qualification data
                 const qualificationData = {
                     accident_location: document.getElementById(`accident-location-${lead.lead_id}`).value,
+                    incident_type: document.getElementById(`incident-type-${lead.lead_id}`).value,
                     accident_date: document.getElementById(`accident-date-${lead.lead_id}`).value,
                     deadline_60_days: document.getElementById(`deadline-60-days-${lead.lead_id}`).value,
                     caller_at_fault: getRadioValue(`at-fault-${lead.lead_id}`),
@@ -1811,6 +1931,75 @@ function addDetailRow(lead) {
         // Check insurance status when form is loaded
         checkInsuranceStatus(lead.lead_id);
     }, 0);
+
+    // Add Send Retainer button
+    const sendRetainerButton = document.createElement('button');
+    sendRetainerButton.className = 'btn btn-secondary btn-sm';
+    sendRetainerButton.textContent = 'Send Retainer';
+    sendRetainerButton.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent toggling the lead row
+        showSendRetainerModal(lead);
+    });
+    
+    // Find the update disposition button to place our new button next to it
+    const dispositionButton = detailRow.querySelector('.btn-update-disposition');
+    if (dispositionButton && dispositionButton.parentNode) {
+        // Insert button after disposition button
+        dispositionButton.parentNode.insertBefore(sendRetainerButton, dispositionButton.nextSibling);
+        
+        // Add a space between buttons
+        dispositionButton.parentNode.insertBefore(document.createTextNode(' '), sendRetainerButton);
+    }
+    
+    // Add DocuSign status if available
+    if (lead.docusign_info) {
+        const dsInfo = lead.docusign_info;
+        const dsStatusCell = document.createElement('div');
+        dsStatusCell.className = 'lead-detail-item';
+        
+        let dsStatusHtml = `
+            <h4>Retainer Status</h4>
+            <p><strong>Status:</strong> ${dsInfo.status || 'Unknown'}</p>
+        `;
+        
+        if (dsInfo.sentAt) {
+            dsStatusHtml += `<p><strong>Sent:</strong> ${formatDate(dsInfo.sentAt, true)}</p>`;
+        }
+        
+        if (dsInfo.deliveredAt) {
+            dsStatusHtml += `<p><strong>Delivered:</strong> ${formatDate(dsInfo.deliveredAt, true)}</p>`;
+        }
+        
+        if (dsInfo.viewedAt) {
+            dsStatusHtml += `<p><strong>Viewed:</strong> ${formatDate(dsInfo.viewedAt, true)}</p>`;
+        }
+        
+        if (dsInfo.completedAt) {
+            dsStatusHtml += `<p><strong>Completed:</strong> ${formatDate(dsInfo.completedAt, true)}</p>`;
+        }
+        
+        if (dsInfo.declinedAt) {
+            dsStatusHtml += `<p><strong>Declined:</strong> ${formatDate(dsInfo.declinedAt, true)}</p>`;
+        }
+        
+        dsStatusHtml += `
+            <button id="resend-retainer-${lead.lead_id}" class="btn btn-secondary btn-sm">Resend Retainer</button>
+        `;
+        
+        dsStatusCell.innerHTML = dsStatusHtml;
+        detailContent.appendChild(dsStatusCell);
+        
+        // Add event listener for the resend button
+        setTimeout(() => {
+            const resendBtn = document.getElementById(`resend-retainer-${lead.lead_id}`);
+            if (resendBtn) {
+                resendBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    showSendRetainerModal(lead, true);
+                });
+            }
+        }, 0);
+    }
 }
 
 // Function to update lead data via PATCH endpoint
@@ -1824,18 +2013,28 @@ async function updateLeadData(leadId, data) {
             updated_at: new Date().toISOString()
         };
         
+        const token = localStorage.getItem('auth_token');
+        
         const response = await fetch(`${API_ENDPOINT}/${leadId}`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
-                'x-api-key': API_KEY
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify(updateData),
             mode: 'cors'
         });
         
         if (!response.ok) {
+            if (response.status === 401) {
+                // Token expired or invalid, redirect to login
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('user');
+                window.location.href = 'login.html';
+                return;
+            }
+            
             const errorData = await response.json();
             throw new Error(errorData.message || `HTTP error ${response.status}`);
         }
@@ -1957,5 +2156,158 @@ function checkAddLeadDeadline() {
     } else {
         // More than 60 days left
         deadlineWarning.style.display = 'none';
+    }
+}
+
+// Add function to show the send retainer modal
+function showSendRetainerModal(lead, isResend = false) {
+    // Create the modal if it doesn't exist
+    if (!document.getElementById('send-retainer-modal-overlay')) {
+        createSendRetainerModal();
+    }
+    
+    // Set the lead ID in a data attribute
+    const modal = document.getElementById('send-retainer-modal');
+    modal.dataset.leadId = lead.lead_id;
+    modal.dataset.isResend = isResend ? 'true' : 'false';
+    
+    // Set recipient info in modal
+    document.getElementById('retainer-recipient').textContent = `${lead.first_name} ${lead.last_name} (${lead.email})`;
+    
+    // Update title and button text for resend cases
+    if (isResend) {
+        document.querySelector('#send-retainer-modal .modal-title').textContent = 'Resend Retainer Agreement';
+        document.getElementById('send-retainer-submit').textContent = 'Resend Agreement';
+    } else {
+        document.querySelector('#send-retainer-modal .modal-title').textContent = 'Send Retainer Agreement';
+        document.getElementById('send-retainer-submit').textContent = 'Send Agreement';
+    }
+    
+    // Show the modal
+    document.getElementById('send-retainer-modal-overlay').style.display = 'flex';
+}
+
+// Create the send retainer modal
+function createSendRetainerModal() {
+    const modalHtml = `
+        <div id="send-retainer-modal-overlay" class="modal-overlay">
+            <div id="send-retainer-modal" class="modal" style="width: 600px; max-width: 95%;">
+                <div class="modal-header">
+                    <h3 class="modal-title">Send Retainer Agreement</h3>
+                    <button class="modal-close" id="send-retainer-modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p>You are about to send a retainer agreement to:</p>
+                    <p><strong id="retainer-recipient"></strong></p>
+                    
+                    <div class="modal-form-group">
+                        <label for="retainer-subject">Email Subject:</label>
+                        <input type="text" id="retainer-subject" value="Please sign your retainer agreement">
+                    </div>
+                    
+                    <div class="modal-form-group">
+                        <label for="retainer-message">Email Message:</label>
+                        <textarea id="retainer-message" rows="3">Please review and sign the attached retainer agreement at your earliest convenience.</textarea>
+                    </div>
+                    
+                    <div id="retainer-status-message" class="status-message" style="display: none;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="send-retainer-cancel">Cancel</button>
+                    <button class="btn" id="send-retainer-submit">Send Agreement</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Append modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Add event listeners
+    document.getElementById('send-retainer-modal-close').addEventListener('click', closeSendRetainerModal);
+    document.getElementById('send-retainer-cancel').addEventListener('click', closeSendRetainerModal);
+    document.getElementById('send-retainer-submit').addEventListener('click', sendRetainerAgreement);
+}
+
+// Close send retainer modal
+function closeSendRetainerModal() {
+    const modalOverlay = document.getElementById('send-retainer-modal-overlay');
+    modalOverlay.style.display = 'none';
+    
+    // Reset form and status message
+    document.getElementById('retainer-status-message').style.display = 'none';
+    document.getElementById('retainer-status-message').className = 'status-message';
+    document.getElementById('send-retainer-submit').disabled = false;
+}
+
+// Send retainer agreement
+async function sendRetainerAgreement() {
+    const modal = document.getElementById('send-retainer-modal');
+    const leadId = modal.dataset.leadId;
+    const isResend = modal.dataset.isResend === 'true';
+    const subject = document.getElementById('retainer-subject').value;
+    const message = document.getElementById('retainer-message').value;
+    
+    // Disable submit button
+    document.getElementById('send-retainer-submit').disabled = true;
+    
+    // Show loading message
+    const statusElement = document.getElementById('retainer-status-message');
+    statusElement.textContent = isResend ? 'Resending agreement...' : 'Sending agreement...';
+    statusElement.className = 'status-message info';
+    statusElement.style.display = 'block';
+    
+    try {
+        const token = localStorage.getItem('auth_token');
+        
+        const response = await fetch(`${API_ENDPOINT}/${leadId}/send-retainer`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                emailSubject: subject,
+                emailBlurb: message,
+                sendNow: true,
+                force: isResend // Set force to true when resending
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            if (response.status === 401) {
+                // Token expired or invalid, redirect to login
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('user');
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            // Show error message
+            statusElement.textContent = `Error: ${data.message || 'Failed to send agreement'}`;
+            statusElement.className = 'status-message error';
+            // Re-enable button
+            document.getElementById('send-retainer-submit').disabled = false;
+            return;
+        }
+        
+        // Show success message
+        statusElement.textContent = isResend ? 'Agreement resent successfully!' : 'Agreement sent successfully!';
+        statusElement.className = 'status-message success';
+        
+        // Close modal after delay
+        setTimeout(() => {
+            closeSendRetainerModal();
+            // Refresh leads to show updated status
+            fetchLeads();
+        }, 2000);
+    } catch (error) {
+        console.error('Error sending retainer agreement:', error);
+        statusElement.textContent = 'Error: Could not connect to server';
+        statusElement.className = 'status-message error';
+        // Re-enable button
+        document.getElementById('send-retainer-submit').disabled = false;
     }
 } 

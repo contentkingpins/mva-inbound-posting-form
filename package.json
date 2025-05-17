@@ -9,11 +9,22 @@
     "deploy": "aws s3 sync dist/ s3://your-bucket-name/ --delete"
   },
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.810.0",
+    "@aws-sdk/lib-dynamodb": "^3.810.0",
     "aws-sdk": "^2.1150.0",
+ resolve-conflicts
     "uuid": "^8.3.2",
     "jspdf": "^2.5.1",
     "docusign-esign": "^6.5.0",
     "jsonwebtoken": "^9.0.0",
     "moment": "^2.29.4"
+
+    "bcryptjs": "^2.4.3",
+    "docusign-esign": "^8.1.0",
+    "jsonwebtoken": "^9.0.0",
+    "jspdf": "^2.5.1",
+    "moment": "^2.29.4",
+    "uuid": "^8.3.2"
+ main
   }
-} 
+}
