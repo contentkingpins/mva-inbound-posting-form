@@ -252,3 +252,11 @@ Retrieves leads with optional filtering for export purposes.
 ```
 
 Results are sorted by timestamp in descending order (newest first).
+
+## Deployment
+
+This application is deployed using AWS Amplify. The configuration is specified in the amplify.yml file in the project root.
+
+## Recent Fixes
+
+- Fixed AWS Amplify deployment issue caused by corrupted Git configuration
