@@ -305,6 +305,15 @@ Retrieves leads with optional filtering for export purposes.
 
 Results are sorted by timestamp in descending order (newest first).
 
+ fix-amplify-config
+## Deployment
+
+This application is deployed using AWS Amplify. The configuration is specified in the amplify.yml file in the project root.
+
+## Recent Fixes
+
+- Fixed AWS Amplify deployment issue caused by corrupted Git configuration
+
 # DocuSign Integration
 
 The system now includes integration with DocuSign to send and track retainer agreements to leads. This enhancement allows for a streamlined client onboarding process.
@@ -387,3 +396,4 @@ Add a new route to the API Gateway:
 ## JWT Authentication
 
 The system uses JWT (JSON Web Token) authentication with DocuSign. The private key is stored as an environment variable, and a token is requested when needed with a 1-hour expiration time. The system caches the token until it expires to minimize authentication requests.
+ main
