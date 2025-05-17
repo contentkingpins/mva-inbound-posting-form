@@ -106,4 +106,8 @@ temp/
 # Local config
 serverless-config-local.js
 local-env.js
-checkTables.js 
+checkTables.js
+
+# Make sure Amplify configuration is NOT ignored
+!amplify/
+!buildspec.yml 

@@ -1,0 +1,25 @@
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      nodejs: 16
+    commands:
+      - echo Installing dependencies...
+      - npm install -g n
+      - n 16.13.0
+  build:
+    commands:
+      - echo Starting build...
+      - echo "{\"apiKey\":\"$API_KEY\"}" > dashboard/config.json
+      - mkdir -p dist
+      - cp -R dashboard/* dist/
+  post_build:
+    commands:
+      - echo Build completed on `date`
+artifacts:
+  base-directory: dist
+  files:
+    - '**/*'
+cache:
+  paths:
+    - 'node_modules/**/*' 

@@ -1,0 +1,9 @@
+{
+  "dev": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-mvainboundpostingform-dev-auth",
+      "UnauthRoleName": "amplify-mvainboundpostingform-dev-unauth",
+      "Region": "us-east-1"
+    }
+  }
+} 
