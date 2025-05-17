@@ -3,6 +3,14 @@ phases:
   install:
     runtime-versions:
       nodejs: 16
+ main
+  build:
+    commands:
+      - echo "Building static site"
+      - echo '{"apiKey":"$API_KEY"}' > dashboard/config.json
+      - mkdir -p dist
+      - cp -R dashboard/* dist/
+
     commands:
       - echo Installing dependencies...
       - npm install -g n
@@ -16,6 +24,7 @@ phases:
   post_build:
     commands:
       - echo Build completed on `date`
+ main
 artifacts:
   base-directory: dist
   files:
