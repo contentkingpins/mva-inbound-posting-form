@@ -4,13 +4,14 @@ frontend:
     preBuild:
       commands:
         - echo "Setting up build environment"
+        - npm install -g n
+        - n 16.13.0
     build:
       commands:
         - echo "Creating config.json with API key from environment"
         - echo "{\"apiKey\":\"$API_KEY\"}" > dashboard/config.json
         - echo "Config file created successfully"
         - echo "Deploying from dashboard directory"
-        - ls -la
         - mkdir -p dist
         - cp -R dashboard/* dist/
         - echo "Build completed successfully"
