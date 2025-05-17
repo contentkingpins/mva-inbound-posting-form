@@ -80,7 +80,6 @@ Desktop.ini
 config.js
 config.json
 credentials.json
-**/aws-exports.js
 *secrets*
 
 # Serverless Framework
