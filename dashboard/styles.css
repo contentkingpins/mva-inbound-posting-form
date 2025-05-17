@@ -32,16 +32,22 @@ h1 {
 
 .controls {
     display: flex;
-    justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: 16px;
+    gap: 10px;
+    margin-bottom: 20px;
 }
 
 .filter-group {
     display: flex;
     align-items: center;
-    gap: 8px;
+    margin-right: 0;
+}
+
+.filter-group label,
+.auto-refresh label {
+    margin-right: 8px;
+    font-weight: 600;
 }
 
 select, .btn {
@@ -58,6 +64,7 @@ select, .btn {
     border: none;
     cursor: pointer;
     transition: background-color 0.2s;
+    margin-left: 5px;
 }
 
 .btn:hover {
@@ -86,15 +93,19 @@ thead {
 }
 
 th, td {
-    padding: 12px 16px;
+    padding: 8px 12px;
     text-align: left;
     border-bottom: 1px solid #e2e8f0;
+    font-size: 14px;
+    vertical-align: middle;
 }
 
 th {
     font-weight: 600;
     font-size: 14px;
     color: #4a5568;
+    padding-top: 10px;
+    padding-bottom: 10px;
 }
 
 tr.lead-row {
@@ -181,11 +192,36 @@ tr.detail-row td {
     
     .controls {
         flex-direction: column;
-        align-items: flex-start;
+        align-items: stretch;
+        gap: 15px;
+    }
+    
+    .search-group, 
+    .filter-group {
+        width: 100%;
+        margin: 0;
+    }
+    
+    .search-group input {
+        width: 100%;
+    }
+    
+    .btn {
+        margin: 5px 0;
     }
     
     .detail-content {
         grid-template-columns: 1fr;
+    }
+    
+    .search-group {
+        width: 100%;
+        margin: 0 0 10px 0;
+        max-width: 100%;
+    }
+    
+    .search-group input {
+        width: 100%;
     }
 }
 
@@ -327,14 +363,18 @@ textarea {
 }
 
 .disposition-select {
-    flex-grow: 1;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid #e2e8f0;
+    background-color: white;
+    font-size: 14px;
+    width: 100%;
+    max-width: 200px;
 }
 
 /* Qualification form styling */
 .qualification-form {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
+    margin-bottom: 10px;
 }
 
 .qualification-item {
@@ -358,7 +398,8 @@ textarea {
 
 .yes-no-options {
     display: flex;
-    gap: 15px;
+    gap: 20px;
+    margin-top: 5px;
 }
 
 .yes-no-label {
@@ -425,4 +466,430 @@ textarea {
     background-color: #feebc8;
     color: #c05621;
     border-left: 4px solid #dd6b20;
+}
+
+/* Insurance warning styles */
+.insurance-warning {
+    margin-top: 8px;
+    font-size: 13px;
+}
+
+/* Disposition dropdown in main table */
+.disposition-cell {
+    min-width: 160px;
+}
+
+.disposition-dropdown-container {
+    position: relative;
+    width: 100%;
+}
+
+.disposition-dropdown {
+    width: 100%;
+    padding: 5px 8px;
+    border-radius: 4px;
+    border: 1px solid #e2e8f0;
+    background-color: white;
+    font-size: 13px;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 16px;
+    padding-right: 30px;
+}
+
+/* Add color indicators to the dropdown based on selected value */
+.disposition-dropdown option[value="New"] {
+    background-color: #e2e8f0;
+    color: #4a5568;
+}
+
+.disposition-dropdown option[value="Retained for Firm"] {
+    background-color: #c6f6d5;
+    color: #276749;
+}
+
+.disposition-dropdown option[value="Docs Sent"] {
+    background-color: #bee3f8;
+    color: #2b6cb0;
+}
+
+.disposition-dropdown option[value="Awaiting Proof of Claim"] {
+    background-color: #feebc8;
+    color: #c05621;
+}
+
+.disposition-dropdown option[value="Not Interested"] {
+    background-color: #fed7d7;
+    color: #c53030;
+}
+
+.disposition-dropdown option[value="Not Qualified Lead"] {
+    background-color: #e2e8f0;
+    color: #718096;
+}
+
+/* Add colored border to the dropdown based on selected value */
+.disposition-dropdown[data-value="New"] {
+    border-left: 3px solid #a0aec0;
+}
+
+.disposition-dropdown[data-value="Retained for Firm"] {
+    border-left: 3px solid #48bb78;
+}
+
+.disposition-dropdown[data-value="Docs Sent"] {
+    border-left: 3px solid #4299e1;
+}
+
+.disposition-dropdown[data-value="Awaiting Proof of Claim"] {
+    border-left: 3px solid #ed8936;
+}
+
+.disposition-dropdown[data-value="Not Interested"] {
+    border-left: 3px solid #f56565;
+}
+
+.disposition-dropdown[data-value="Not Qualified Lead"] {
+    border-left: 3px solid #718096;
+}
+
+/* Update search bar styles to make it more prominent */
+.search-group {
+    display: flex !important;
+    align-items: center !important;
+    margin: 0 15px !important;
+    background-color: #fff !important;
+    border-radius: 6px !important;
+    border: 2px solid #4299e1 !important;
+    padding: 8px 12px !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+    flex: 1 !important;
+    max-width: 400px !important;
+    position: relative !important;
+    z-index: 10 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.search-group::before {
+    content: "🔍" !important;
+    margin-right: 8px !important;
+    color: #4299e1 !important;
+    font-size: 16px !important;
+    display: inline-block !important;
+    visibility: visible !important;
+}
+
+.search-group label {
+    margin-right: 8px !important;
+    font-weight: 600 !important;
+    color: #4a5568 !important;
+}
+
+.search-group input {
+    padding: 8px 12px !important;
+    border: none !important;
+    width: 100% !important;
+    font-size: 15px !important;
+    outline: none !important;
+    visibility: visible !important;
+    display: block !important;
+}
+
+.search-group input:focus {
+    outline: none !important;
+}
+
+/* Contact info styling */
+.contact-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.contact-info .phone,
+.contact-info .email {
+    font-size: 13px;
+}
+
+/* Make name column more compact */
+.lead-name {
+    white-space: nowrap;
+}
+
+.name-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.details-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #4299e1;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.details-icon {
+    font-size: 10px;
+}
+
+/* Modal Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: none; /* Hidden by default */
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal {
+    background-color: white;
+    border-radius: 6px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    max-width: 500px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.modal-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2d3748;
+    margin: 0;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    color: #718096;
+}
+
+.modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 15px;
+}
+
+.modal-form-group {
+    margin-bottom: 16px;
+}
+
+.modal-form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+    color: #4a5568;
+}
+
+.date-range-inputs {
+    display: flex;
+    gap: 10px;
+}
+
+.date-range-inputs div {
+    flex: 1;
+}
+
+.modal-form-group input,
+.modal-form-group textarea,
+.modal-form-group select {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid #cbd5e0;
+    font-family: inherit;
+    font-size: 14px;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.btn-secondary {
+    background-color: #a0aec0;
+}
+
+.btn-secondary:hover {
+    background-color: #718096;
+}
+
+.form-section {
+    background-color: #f8fafc;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    margin-bottom: 15px;
+}
+
+.form-section h4 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #2d3748;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+/* Make modal more responsive */
+@media screen and (max-width: 768px) {
+    .modal {
+        width: 95% !important;
+    }
+}
+
+/* Style submit/cancel buttons better */
+.modal-footer .btn {
+    padding: 8px 20px;
+    min-width: 100px;
+}
+
+/* Further responsive adjustments */
+@media screen and (max-width: 640px) {
+    .yes-no-options {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .modal-form-group {
+        margin-bottom: 20px;
+    }
+}
+
+/* DocuSign Status Styles */
+.status-message {
+  padding: 10px;
+  border-radius: 4px;
+  margin: 15px 0;
+}
+
+.status-message.info {
+  background-color: #e8f4fd;
+  color: #0366d6;
+  border: 1px solid #0366d6;
+}
+
+.status-message.success {
+  background-color: #e6ffed;
+  color: #22863a;
+  border: 1px solid #22863a;
+}
+
+.status-message.error {
+  background-color: #ffeef0;
+  color: #cb2431;
+  border: 1px solid #cb2431;
+}
+
+.lead-docusign-status {
+  margin-top: 5px;
+  font-size: 0.85em;
+}
+
+.docusign-status-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.85em;
+  font-weight: bold;
+}
+
+.docusign-status-sent {
+  background-color: #e8f4fd;
+  color: #0366d6;
+}
+
+.docusign-status-delivered {
+  background-color: #fff4e1;
+  color: #e36209;
+}
+
+.docusign-status-viewed {
+  background-color: #f1e7fe;
+  color: #6f42c1;
+}
+
+.docusign-status-completed {
+  background-color: #e6ffed;
+  color: #22863a;
+}
+
+.docusign-status-declined {
+  background-color: #ffeef0;
+  color: #cb2431;
+}
+
+/* DocuSign Checkbox Styles */
+.docusign-option {
+    margin: 10px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.checkbox-label {
+    margin-left: 5px;
+    font-size: 14px;
+}
+
+.checkbox-container input[type="checkbox"] {
+    cursor: pointer;
+}
+
+.btn-docusign {
+    background-color: #eb512f;
+    margin-left: 10px;
+}
+
+.btn-docusign:hover {
+    background-color: #d43a1d;
+}
+
+/* DocuSign Retainer Status Styles */
+.lead-detail-item button.btn-secondary {
+    margin-top: 10px;
+    background-color: #6c757d;
+    color: white;
+}
+
+.lead-detail-item button.btn-secondary:hover {
+    background-color: #5a6268;
 } 

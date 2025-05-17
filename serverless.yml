@@ -7,6 +7,22 @@ provider:
   environment:
     VENDORS_TABLE: Vendors
     LEADS_TABLE: Leads
+ resolve-conflicts
+    # Add DocuSign environment variables
+    DS_INTEGRATION_KEY: ${ssm:/docusign/integration_key}
+    DS_SECRET_KEY: ${ssm:/docusign/secret_key}
+    DS_ACCOUNT_ID: ${ssm:/docusign/account_id}
+    DS_USER_ID: ${ssm:/docusign/user_id}
+    DS_RETAINER_TEMPLATE_ID: ${ssm:/docusign/retainer_template_id}
+    DS_PRIVATE_KEY: ${ssm:/docusign/private_key}
+
+    DS_INTEGRATION_KEY: ${ssm:/docusign/integration_key~true}
+    DS_SECRET_KEY: ${ssm:/docusign/secret_key~true}
+    DS_ACCOUNT_ID: ${ssm:/docusign/account_id~true}
+    DS_USER_ID: ${ssm:/docusign/user_id~true}
+    DS_RETAINER_TEMPLATE_ID: ${ssm:/docusign/retainer_template_id~true}
+    DS_PRIVATE_KEY: ${ssm:/docusign/private_key~true}
+ main
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -18,6 +34,17 @@ provider:
       Resource: 
         - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.VENDORS_TABLE}"
         - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.LEADS_TABLE}"
+        - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.LEADS_TABLE}/index/*"
+ resolve-conflicts
+    # Add SSM permissions
+    - Effect: Allow
+      Action:
+        - ssm:GetParameter
+        - ssm:GetParameters
+      Resource: 
+        - "arn:aws:ssm:${self:provider.region}:*:parameter/docusign/*"
+
+ main
     # Add CloudWatch logs permissions
     - Effect: Allow
       Action:
@@ -25,6 +52,13 @@ provider:
         - logs:CreateLogStream
         - logs:PutLogEvents
       Resource: arn:aws:logs:${self:provider.region}:*:*
+    # Add SSM Parameter Store permissions
+    - Effect: Allow
+      Action:
+        - ssm:GetParameter
+        - ssm:GetParameters
+      Resource: 
+        - "arn:aws:ssm:${self:provider.region}:*:parameter/docusign/*"
   # Configure API Gateway access logs
   apiGateway:
     restApiId: !Ref ApiGateway
@@ -65,6 +99,17 @@ functions:
           path: /leads/{lead_id}
           method: get
           cors: true
+      # DocuSign Retainer Sending
+      - http:
+          path: /leads/{lead_id}/send-retainer
+          method: post
+          cors: true
+          private: true # Require API key
+      # DocuSign Webhook (Connect) endpoint
+      - http:
+          path: /docusign/webhook
+          method: post
+          cors: true
       # Adding Vendor Endpoints
       - http:
           path: /vendors
@@ -80,6 +125,16 @@ functions:
           method: post
           cors: true
           private: true # Require API key
+      # New DocuSign endpoints
+      - http:
+          path: /leads/{lead_id}/send-retainer
+          method: post
+          cors: true
+          private: true
+      - http:
+          path: /docusign/webhook
+          method: post
+          cors: true
 
 resources:
   Resources:
@@ -111,6 +166,8 @@ resources:
             AttributeType: S
           - AttributeName: phone_home
             AttributeType: S
+          - AttributeName: envelope_id
+            AttributeType: S
         KeySchema:
           - AttributeName: lead_id
             KeyType: HASH
@@ -132,6 +189,12 @@ resources:
           - IndexName: PhoneIndex
             KeySchema:
               - AttributeName: phone_home
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+          - IndexName: EnvelopeIdIndex
+            KeySchema:
+              - AttributeName: envelope_id
                 KeyType: HASH
             Projection:
               ProjectionType: ALL

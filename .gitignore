@@ -80,7 +80,6 @@ Desktop.ini
 config.js
 config.json
 credentials.json
-**/aws-exports.js
 *secrets*
 
 # Serverless Framework
@@ -107,4 +106,8 @@ temp/
 # Local config
 serverless-config-local.js
 local-env.js
-checkTables.js 
+checkTables.js
+
+# Make sure Amplify configuration is NOT ignored
+!amplify/
+!buildspec.yml 
