@@ -1381,148 +1381,80 @@ async function handlePurgeVendors() {
 
 // Handle authentication routes
 async function handleAuthRoutes(path, httpMethod, event) {
-  const body = event.body ? JSON.parse(event.body) : {};
+  // Check if path matches one of our auth endpoints
+  const authPattern = /^\/auth\/(.+)$/;
+  const match = path.match(authPattern);
   
-  // Login endpoint - POST /auth/login
-  if (path === '/auth/login' && httpMethod === 'POST') {
-    return await authRoutes.handleLogin(body);
+  if (!match) {
+    return createResponse(404, { status: 'error', message: 'Auth endpoint not found' });
   }
   
-  // Register endpoint - POST /auth/register
-  if (path === '/auth/register' && httpMethod === 'POST') {
-    // Only admins can register new users
-    const authHeader = event.headers.Authorization || event.headers.authorization;
-    const authResult = authRoutes.verifyAuthToken(authHeader);
-    
-    if (!authResult.authenticated || authResult.user.role !== 'admin') {
-      return {
-        statusCode: 403,
-        headers: corsHeaders,
-        body: JSON.stringify({
-          status: 'error',
-          message: 'Only administrators can register new users'
-        })
-      };
-    }
-    
-    return await authRoutes.handleRegister(body, authResult.user);
+  const authPath = match[1];
+  
+  // Handle login
+  if (authPath === 'login' && httpMethod === 'POST') {
+    return authRoutes.handleLogin(event);
   }
   
-  // User profile endpoints
-  const profileMatch = path.match(/^\/auth\/users\/([^\/]+)$/);
-  if (profileMatch && profileMatch[1]) {
-    const username = profileMatch[1];
-    
-    // Get user profile - GET /auth/users/:username
-    if (httpMethod === 'GET') {
-      const authHeader = event.headers.Authorization || event.headers.authorization;
-      const authResult = authRoutes.verifyAuthToken(authHeader);
-      
-      if (!authResult.authenticated) {
-        return {
-          statusCode: 401,
-          headers: corsHeaders,
-          body: JSON.stringify({
-            status: 'error',
-            message: 'Authentication required'
-          })
-        };
-      }
-      
-      return await authRoutes.handleGetProfile(username, authResult.user);
-    }
-    
-    // Update user profile - PATCH /auth/users/:username
-    if (httpMethod === 'PATCH') {
-      const authHeader = event.headers.Authorization || event.headers.authorization;
-      const authResult = authRoutes.verifyAuthToken(authHeader);
-      
-      if (!authResult.authenticated) {
-        return {
-          statusCode: 401,
-          headers: corsHeaders,
-          body: JSON.stringify({
-            status: 'error',
-            message: 'Authentication required'
-          })
-        };
-      }
-      
-      return await authRoutes.handleUpdateProfile(username, body, authResult.user);
-    }
+  // Handle user registration (admin only)
+  if (authPath === 'register' && httpMethod === 'POST') {
+    return authRoutes.handleRegister(event);
   }
   
-  // Change password endpoint - POST /auth/users/:username/change-password
-  const passwordMatch = path.match(/^\/auth\/users\/([^\/]+)\/change-password$/);
-  if (passwordMatch && passwordMatch[1] && httpMethod === 'POST') {
-    const username = passwordMatch[1];
-    const authHeader = event.headers.Authorization || event.headers.authorization;
-    const authResult = authRoutes.verifyAuthToken(authHeader);
-    
-    if (!authResult.authenticated) {
-      return {
-        statusCode: 401,
-        headers: corsHeaders,
-        body: JSON.stringify({
-          status: 'error',
-          message: 'Authentication required'
-        })
-      };
-    }
-    
-    return await authRoutes.handleChangePassword(username, body, authResult.user);
+  // Handle password reset request
+  if (authPath === 'forgot-password' && httpMethod === 'POST') {
+    return authRoutes.handleForgotPassword(event);
   }
   
-  // List users endpoint - GET /auth/users
-  if (path === '/auth/users' && httpMethod === 'GET') {
-    const authHeader = event.headers.Authorization || event.headers.authorization;
-    const authResult = authRoutes.verifyAuthToken(authHeader);
-    
-    if (!authResult.authenticated) {
-      return {
-        statusCode: 401,
-        headers: corsHeaders,
-        body: JSON.stringify({
-          status: 'error',
-          message: 'Authentication required'
-        })
-      };
-    }
-    
-    return await authRoutes.handleListUsers(authResult.user);
+  // Handle reset token verification
+  if (authPath === 'verify-reset-token' && httpMethod === 'GET') {
+    return authRoutes.handleVerifyResetToken(event);
   }
   
-  // Auth route not found
-  return {
-    statusCode: 404,
-    headers: corsHeaders,
-    body: JSON.stringify({
-      status: 'error',
-      message: 'Auth route not found'
-    })
-  };
+  // Handle password reset
+  if (authPath === 'reset-password' && httpMethod === 'POST') {
+    return authRoutes.handleResetPassword(event);
+  }
+  
+  // Handle user listing (admin only)
+  if (authPath === 'users' && httpMethod === 'GET') {
+    return authRoutes.handleListUsers(event);
+  }
+  
+  // Handle getting a specific user
+  const userMatch = authPath.match(/^users\/([^\/]+)$/);
+  if (userMatch && httpMethod === 'GET') {
+    event.pathParameters = { username: userMatch[1] };
+    return authRoutes.handleGetUser(event);
+  }
+  
+  // Handle updating a specific user
+  if (userMatch && httpMethod === 'PATCH') {
+    event.pathParameters = { username: userMatch[1] };
+    return authRoutes.handleUpdateUser(event);
+  }
+  
+  // Handle password change
+  const passwordChangeMatch = authPath.match(/^users\/([^\/]+)\/change-password$/);
+  if (passwordChangeMatch && httpMethod === 'POST') {
+    event.pathParameters = { username: passwordChangeMatch[1] };
+    return authRoutes.handleChangePassword(event);
+  }
+  
+  // Auth endpoint not found
+  return createResponse(404, { status: 'error', message: 'Auth endpoint not found' });
 }
 
-// Check if a route requires JWT authentication
+// Helper function to determine if a route requires JWT authentication
 function isJwtProtectedRoute(path) {
-  const jwtProtectedPaths = [
-    '/leads/sensitive',
-    '/admin',
-    '/stats',
-    '/auth/users',
-    '/auth/register'
-  ];
-  
-  // All paths starting with these prefixes require JWT auth
-  return jwtProtectedPaths.some(prefix => path.startsWith(prefix));
+  // Add routes that require authentication here
+  // Exclude login, register, and password recovery endpoints
+  return !path.match(/^\/auth\/(login|register|forgot-password|verify-reset-token|reset-password)$/);
 }
 
-// Check if a route is admin-only
+// Helper function to determine if a route requires admin role
 function isAdminRoute(path) {
-  const adminRoutes = [
-    '/admin',
-    '/auth/register'
-  ];
-  
-  return adminRoutes.some(route => path.startsWith(route));
+  // Routes that require admin access
+  return path.match(/^\/auth\/users\/?$/) || // List all users
+         path.match(/^\/auth\/register\/?$/); // Register new users
 } 

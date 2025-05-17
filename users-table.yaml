@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: 'CloudFormation template for Users table in DynamoDB'
+Description: 'CloudFormation template for the Users DynamoDB table'
 
 Resources:
   UsersTable:
@@ -12,6 +12,8 @@ Resources:
           AttributeType: S
         - AttributeName: email
           AttributeType: S
+        - AttributeName: reset_token
+          AttributeType: S
       KeySchema:
         - AttributeName: username
           KeyType: HASH
@@ -22,16 +24,24 @@ Resources:
               KeyType: HASH
           Projection:
             ProjectionType: ALL
+        - IndexName: ResetTokenIndex
+          KeySchema:
+            - AttributeName: reset_token
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
       SSESpecification:
         SSEEnabled: true
       Tags:
         - Key: Application
-          Value: ClaimConnectorsCRM
+          Value: CRM
+        - Key: Environment
+          Value: Production
 
 Outputs:
   UsersTableName:
-    Description: Name of the Users table
+    Description: Name of the Users DynamoDB table
     Value: !Ref UsersTable
   UsersTableArn:
-    Description: ARN of the Users table
+    Description: ARN of the Users DynamoDB table
     Value: !GetAtt UsersTable.Arn 

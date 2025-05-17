@@ -892,4 +892,267 @@ textarea {
 
 .lead-detail-item button.btn-secondary:hover {
     background-color: #5a6268;
+}
+
+/* Add styles for lead event history */
+.lead-history-container {
+    margin-top: 20px;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 15px;
+}
+
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    margin-top: 10px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.history-table th {
+    background-color: #f7fafc;
+    text-align: left;
+    padding: 8px 12px;
+    font-weight: 600;
+    color: #4a5568;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.history-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #e2e8f0;
+    vertical-align: top;
+}
+
+.history-table tr:hover {
+    background-color: #f7fafc;
+}
+
+.history-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Create a scrollable container for the history table */
+.lead-history-container {
+    max-height: 350px;
+    overflow-y: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.lead-history-container h4 {
+    position: sticky;
+    top: 0;
+    background-color: white;
+    margin-top: 0;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+/* Admin panel styles */
+.admin-panel {
+    background-color: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.status-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 24px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+    background-color: #48bb78;
+}
+
+input:checked + .toggle-slider:before {
+    transform: translateX(26px);
+}
+
+.user-row-disabled {
+    opacity: 0.65;
+    background-color: #f7fafc;
+}
+
+.status-label {
+    font-weight: 600;
+    font-size: 12px;
+}
+
+.status-enabled {
+    color: #48bb78;
+}
+
+.status-disabled {
+    color: #e53e3e;
+}
+
+/* Forgot password link styling */
+.forgot-password-link {
+    text-align: center;
+    margin-top: 15px;
+    font-size: 14px;
+}
+
+.forgot-password-link a {
+    color: #4a5568;
+    text-decoration: none;
+}
+
+.forgot-password-link a:hover {
+    color: #2d3748;
+    text-decoration: underline;
+}
+
+/* Forgot password and reset password forms */
+.password-reset-container {
+    max-width: 450px;
+    margin: 100px auto;
+    padding: 30px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.password-reset-container h2 {
+    text-align: center;
+    margin-bottom: 25px;
+    color: #2d3748;
+}
+
+.password-reset-container .form-group {
+    margin-bottom: 20px;
+}
+
+.password-reset-container label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #4a5568;
+}
+
+.password-reset-container input[type="email"],
+.password-reset-container input[type="password"] {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.password-reset-container input[type="email"]:focus,
+.password-reset-container input[type="password"]:focus {
+    border-color: #4a5568;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(74, 85, 104, 0.2);
+}
+
+.password-reset-container button {
+    width: 100%;
+    padding: 12px;
+    background-color: #4a5568;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.password-reset-container button:hover {
+    background-color: #2d3748;
+}
+
+.password-reset-container .back-to-login {
+    display: block;
+    text-align: center;
+    margin-top: 20px;
+    color: #4a5568;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.password-reset-container .back-to-login:hover {
+    text-decoration: underline;
+}
+
+.password-message {
+    margin-top: 20px;
+    padding: 12px;
+    border-radius: 4px;
+    display: none;
+}
+
+.password-message.success {
+    background-color: #c6f6d5;
+    color: #276749;
+    border: 1px solid #9ae6b4;
+    display: block;
+}
+
+.password-message.error {
+    background-color: #fed7d7;
+    color: #c53030;
+    border: 1px solid #feb2b2;
+    display: block;
+}
+
+.password-requirements {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #718096;
+}
+
+.password-requirements ul {
+    padding-left: 20px;
+    margin-top: 5px;
+}
+
+.password-requirements li {
+    margin-bottom: 3px;
 } 

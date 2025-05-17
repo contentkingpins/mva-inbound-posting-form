@@ -398,6 +398,143 @@ async function listUsers() {
   }
 }
 
+/**
+ * Get a user by email
+ * @param {string} email - User email
+ * @returns {Object|null} - User object or null if not found
+ */
+async function getUserByEmail(email) {
+    const params = {
+        TableName: process.env.USERS_TABLE,
+        IndexName: 'EmailIndex',
+        KeyConditionExpression: 'email = :email',
+        ExpressionAttributeValues: {
+            ':email': email
+        }
+    };
+
+    try {
+        const result = await dynamoDB.query(params).promise();
+        return result.Items.length > 0 ? result.Items[0] : null;
+    } catch (error) {
+        console.error('Error getting user by email:', error);
+        return null;
+    }
+}
+
+/**
+ * Update user's reset token and expiration
+ * @param {string} username - Username
+ * @param {string} resetToken - Generated reset token
+ * @param {string} expiryTimestamp - Token expiration timestamp (ISO format)
+ * @returns {boolean} - Success status
+ */
+async function updateUserResetToken(username, resetToken, expiryTimestamp) {
+    const params = {
+        TableName: process.env.USERS_TABLE,
+        Key: { username },
+        UpdateExpression: 'SET reset_token = :token, reset_token_expires = :expiry, updated_at = :updatedAt',
+        ExpressionAttributeValues: {
+            ':token': resetToken,
+            ':expiry': expiryTimestamp,
+            ':updatedAt': new Date().toISOString()
+        },
+        ReturnValues: 'UPDATED_NEW'
+    };
+
+    try {
+        await dynamoDB.update(params).promise();
+        return true;
+    } catch (error) {
+        console.error('Error updating reset token:', error);
+        return false;
+    }
+}
+
+/**
+ * Verify if a reset token is valid and not expired
+ * @param {string} token - Reset token to verify
+ * @returns {boolean} - Whether token is valid
+ */
+async function verifyResetToken(token) {
+    try {
+        const user = await getUserByResetToken(token);
+        
+        if (!user) {
+            return false;
+        }
+
+        // Check if token is expired
+        const tokenExpiry = new Date(user.reset_token_expires);
+        if (tokenExpiry < new Date()) {
+            return false;
+        }
+
+        return true;
+    } catch (error) {
+        console.error('Error verifying reset token:', error);
+        return false;
+    }
+}
+
+/**
+ * Get a user by reset token
+ * @param {string} token - Reset token
+ * @returns {Object|null} - User object or null if not found
+ */
+async function getUserByResetToken(token) {
+    const params = {
+        TableName: process.env.USERS_TABLE,
+        IndexName: 'ResetTokenIndex',
+        KeyConditionExpression: 'reset_token = :token',
+        ExpressionAttributeValues: {
+            ':token': token
+        }
+    };
+
+    try {
+        const result = await dynamoDB.query(params).promise();
+        return result.Items.length > 0 ? result.Items[0] : null;
+    } catch (error) {
+        console.error('Error getting user by reset token:', error);
+        return null;
+    }
+}
+
+/**
+ * Reset a user's password and clear reset token
+ * @param {string} username - Username
+ * @param {string} newPassword - New password (plain text)
+ * @returns {boolean} - Success status
+ */
+async function resetPassword(username, newPassword) {
+    try {
+        // Hash the new password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+        // Update user record with new password and clear reset token
+        const params = {
+            TableName: process.env.USERS_TABLE,
+            Key: { username },
+            UpdateExpression: 'SET password = :password, reset_token = :nullToken, reset_token_expires = :nullExpiry, updated_at = :updatedAt',
+            ExpressionAttributeValues: {
+                ':password': hashedPassword,
+                ':nullToken': null,
+                ':nullExpiry': null,
+                ':updatedAt': new Date().toISOString()
+            },
+            ReturnValues: 'UPDATED_NEW'
+        };
+
+        await dynamoDB.update(params).promise();
+        return true;
+    } catch (error) {
+        console.error('Error resetting password:', error);
+        return false;
+    }
+}
+
 module.exports = {
   registerUser,
   loginUser,
@@ -405,5 +542,10 @@ module.exports = {
   getUser,
   updateUser,
   changePassword,
-  listUsers
+  listUsers,
+  getUserByEmail,
+  updateUserResetToken,
+  verifyResetToken,
+  getUserByResetToken,
+  resetPassword
 }; 

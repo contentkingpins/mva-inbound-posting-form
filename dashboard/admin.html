@@ -201,6 +201,75 @@
             color: #c53030;
             border: 1px solid #feb2b2;
         }
+        
+        .status-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .toggle-slider {
+            background-color: #48bb78;
+        }
+        
+        input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+        
+        .user-row-disabled {
+            opacity: 0.65;
+            background-color: #f7fafc;
+        }
+        
+        .status-label {
+            font-weight: 600;
+            font-size: 12px;
+        }
+        
+        .status-enabled {
+            color: #48bb78;
+        }
+        
+        .status-disabled {
+            color: #e53e3e;
+        }
     </style>
 </head>
 <body>
@@ -290,10 +359,14 @@
                 
                 <div id="active-container" class="admin-form-group" style="display: none;">
                     <label for="active">Status</label>
-                    <select id="active">
-                        <option value="true">Active</option>
-                        <option value="false">Inactive</option>
-                    </select>
+                    <div class="status-toggle">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="active-toggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span id="status-text" class="status-label">Active</span>
+                        <input type="hidden" id="active" value="true">
+                    </div>
                 </div>
                 
                 <div class="admin-modal-actions">
@@ -462,6 +535,11 @@
         function addUserToTable(user) {
             const row = document.createElement('tr');
             
+            // Add disabled class if user is inactive
+            if (!user.active) {
+                row.classList.add('user-row-disabled');
+            }
+            
             // Format the last login time
             const lastLogin = user.last_login 
                 ? new Date(user.last_login).toLocaleString() 
@@ -481,14 +559,22 @@
                     </span>
                 </td>
                 <td>
-                    <span class="user-status ${user.active ? 'user-active' : 'user-inactive'}"></span>
-                    ${user.active ? 'Active' : 'Inactive'}
+                    <div class="status-toggle">
+                        <label class="toggle-switch">
+                            <input type="checkbox" class="status-toggle-input" data-username="${user.username}" 
+                                ${user.active ? 'checked' : ''} ${user.role === 'admin' ? 'disabled' : ''}>
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span class="status-label ${user.active ? 'status-enabled' : 'status-disabled'}">
+                            ${user.active ? 'Active' : 'Inactive'}
+                        </span>
+                    </div>
                 </td>
                 <td>${lastLogin}</td>
                 <td>
                     <div class="user-actions">
                         <button class="btn btn-sm edit-user" data-username="${user.username}">Edit</button>
-                        <button class="btn btn-sm change-password" data-username="${user.username}">Password</button>
+                        <button class="btn btn-sm reset-password" data-username="${user.username}">Reset Password</button>
                     </div>
                 </td>
             `;
@@ -497,10 +583,40 @@
             
             // Add event listeners for the buttons
             const editButton = row.querySelector('.edit-user');
-            const passwordButton = row.querySelector('.change-password');
+            const resetPasswordButton = row.querySelector('.reset-password');
             
             editButton.addEventListener('click', () => showEditUserModal(user));
-            passwordButton.addEventListener('click', () => showPasswordModal(user.username));
+            resetPasswordButton.addEventListener('click', () => showPasswordModal(user.username));
+            
+            // Add event listener for status toggle
+            const statusToggle = row.querySelector('.status-toggle-input');
+            if (statusToggle && user.role !== 'admin') {
+                statusToggle.addEventListener('change', async () => {
+                    try {
+                        const newStatus = statusToggle.checked;
+                        await updateUserStatus(user.username, newStatus);
+                        
+                        // Update UI without reloading
+                        const statusLabel = statusToggle.closest('.status-toggle').querySelector('.status-label');
+                        statusLabel.textContent = newStatus ? 'Active' : 'Inactive';
+                        statusLabel.className = `status-label ${newStatus ? 'status-enabled' : 'status-disabled'}`;
+                        
+                        // Toggle disabled class on the row
+                        if (newStatus) {
+                            row.classList.remove('user-row-disabled');
+                        } else {
+                            row.classList.add('user-row-disabled');
+                        }
+                        
+                        showMessage(`User ${user.username} ${newStatus ? 'activated' : 'deactivated'} successfully`);
+                    } catch (error) {
+                        console.error('Error updating user status:', error);
+                        // Revert toggle if update failed
+                        statusToggle.checked = !statusToggle.checked;
+                        showMessage(`Failed to update user status: ${error.message}`, true);
+                    }
+                });
+            }
         }
         
         // Show the create user modal
@@ -537,7 +653,33 @@
             firstNameInput.value = user.first_name || '';
             lastNameInput.value = user.last_name || '';
             roleInput.value = user.role || 'agent';
+            
+            // Set active status with toggle switch
+            const activeToggle = document.getElementById('active-toggle');
+            const statusText = document.getElementById('status-text');
+            const activeInput = document.getElementById('active');
+            
+            activeToggle.checked = user.active;
+            statusText.textContent = user.active ? 'Active' : 'Inactive';
+            statusText.className = `status-label ${user.active ? 'status-enabled' : 'status-disabled'}`;
             activeInput.value = user.active ? 'true' : 'false';
+            
+            // Add event listener for the toggle
+            activeToggle.addEventListener('change', function() {
+                const isActive = this.checked;
+                statusText.textContent = isActive ? 'Active' : 'Inactive';
+                statusText.className = `status-label ${isActive ? 'status-enabled' : 'status-disabled'}`;
+                activeInput.value = isActive ? 'true' : 'false';
+            });
+            
+            // Disable toggle if user is admin
+            if (user.role === 'admin') {
+                activeToggle.disabled = true;
+                activeToggle.checked = true;
+                statusText.textContent = 'Active (Admin)';
+            } else {
+                activeToggle.disabled = false;
+            }
             
             // Disable username field (cannot be changed)
             usernameInput.disabled = true;
@@ -566,6 +708,10 @@
             // Reset the form
             passwordForm.reset();
             passwordUsername.value = username;
+            
+            // Set a title that indicates this is an admin reset
+            document.querySelector('#password-modal .admin-modal-title').textContent = 
+                `Reset Password for ${username}`;
             
             // Show the modal
             passwordModal.style.display = 'flex';
@@ -675,6 +821,11 @@
             }
             
             try {
+                // Show loading state
+                const saveButton = passwordForm.querySelector('button[type="submit"]');
+                saveButton.textContent = 'Saving...';
+                saveButton.disabled = true;
+                
                 const token = localStorage.getItem('auth_token');
                 const url = `${API_ENDPOINT}/auth/users/${username}/change-password`;
                 
@@ -698,13 +849,18 @@
                 }
                 
                 // Show success message
-                showMessage('Password changed successfully');
+                showMessage(`Password for ${username} reset successfully`);
                 
                 // Close the modal
                 closePasswordModal();
             } catch (error) {
                 console.error('Error changing password:', error);
                 showMessage('Error changing password: ' + error.message, true);
+            } finally {
+                // Reset button state
+                const saveButton = passwordForm.querySelector('button[type="submit"]');
+                saveButton.textContent = 'Save';
+                saveButton.disabled = false;
             }
         }
         
@@ -722,6 +878,31 @@
             
             // Redirect to login page
             window.location.href = 'login.html';
+        }
+        
+        // Add function to update user status
+        async function updateUserStatus(username, isActive) {
+            const token = localStorage.getItem('auth_token');
+            const url = `${API_ENDPOINT}/auth/users/${username}`;
+            
+            const response = await fetch(url, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    active: isActive
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.message || 'Operation failed');
+            }
+            
+            return data;
         }
     </script>
 </body>

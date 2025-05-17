@@ -1703,6 +1703,78 @@ function addDetailRow(lead) {
     `;
     leadInfoColumn.appendChild(retainerContainer);
     
+    // Add Lead Event History section
+    const historyContainer = document.createElement('div');
+    historyContainer.className = 'lead-detail-item lead-history-container';
+    
+    // Create history header
+    historyContainer.innerHTML = `<h4>Lead Event History</h4>`;
+    
+    // Create history table
+    const historyTable = document.createElement('table');
+    historyTable.className = 'history-table';
+    historyTable.innerHTML = `
+        <thead>
+            <tr>
+                <th>Date/Time</th>
+                <th>Action</th>
+                <th>Details</th>
+            </tr>
+        </thead>
+        <tbody id="history-body-${lead.lead_id}">
+        </tbody>
+    `;
+    
+    // Add history entries if available
+    const historyBody = historyTable.querySelector(`#history-body-${lead.lead_id}`);
+    if (lead.update_history && lead.update_history.length > 0) {
+        // Sort history with newest first
+        const sortedHistory = [...lead.update_history].sort((a, b) => 
+            new Date(b.timestamp) - new Date(a.timestamp)
+        );
+        
+        sortedHistory.forEach(entry => {
+            const historyRow = document.createElement('tr');
+            
+            // Format the details based on action type
+            let details = '';
+            if (entry.action === 'created') {
+                details = 'Lead created';
+            } else if (entry.action === 'updated') {
+                if (entry.disposition) {
+                    details += `Disposition: ${escapeHtml(entry.disposition)}<br>`;
+                }
+                if (entry.checklist_updated) {
+                    details += 'Qualification data updated<br>';
+                }
+                if (entry.notes) {
+                    const truncatedNotes = entry.notes.length > 50 
+                        ? entry.notes.substring(0, 50) + '...' 
+                        : entry.notes;
+                    details += `Notes: ${escapeHtml(truncatedNotes)}`;
+                }
+            } else if (entry.action === 'docusign_status_update') {
+                details = `DocuSign Status: ${escapeHtml(entry.status || 'Unknown')}`;
+            }
+            
+            historyRow.innerHTML = `
+                <td>${formatDate(entry.timestamp, true)}</td>
+                <td>${escapeHtml(entry.action)}</td>
+                <td>${details}</td>
+            `;
+            
+            historyBody.appendChild(historyRow);
+        });
+    } else {
+        // No history available
+        const emptyRow = document.createElement('tr');
+        emptyRow.innerHTML = `<td colspan="3">No event history available</td>`;
+        historyBody.appendChild(emptyRow);
+    }
+    
+    historyContainer.appendChild(historyTable);
+    leadInfoColumn.appendChild(historyContainer);
+    
     // Right column with qualification checklist
     const qualificationColumn = document.createElement('div');
     qualificationColumn.className = 'qualification-column';
