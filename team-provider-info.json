@@ -1,0 +1,13 @@
+{
+  "prod": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-mva-inbound-posting-form-prod-auth",
+      "UnauthRoleArn": "arn:aws:iam::ACCOUNT_ID:role/amplify-mva-inbound-posting-form-prod-unauth",
+      "AuthRoleArn": "arn:aws:iam::ACCOUNT_ID:role/amplify-mva-inbound-posting-form-prod-auth",
+      "Region": "us-east-1",
+      "DeploymentBucketName": "amplify-mva-inbound-posting-form-prod-deployment",
+      "UnauthRoleName": "amplify-mva-inbound-posting-form-prod-unauth",
+      "StackName": "amplify-mva-inbound-posting-form-prod"
+    }
+  }
+} 
