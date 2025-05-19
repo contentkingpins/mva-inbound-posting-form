@@ -366,6 +366,27 @@
             }
         };
         
+        // Initialize configuration
+        let API_ENDPOINT = '';
+        
+        // Load config from config.json
+        async function loadConfig() {
+            try {
+                // Try to load config from config.json if it exists
+                const response = await fetch('config.json');
+                if (response.ok) {
+                    const config = await response.json();
+                    // Store API endpoint for non-auth endpoints
+                    API_ENDPOINT = config.apiEndpoint || 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod';
+                    console.log('Configuration loaded');
+                } else {
+                    console.warn('Could not load config.json, using default configuration');
+                }
+            } catch (error) {
+                console.error('Error loading configuration:', error);
+            }
+        }
+        
         // Sign Up Service
         const SignUpService = {
             // Sign up user
@@ -389,7 +410,12 @@
                     const data = await response.json();
                     
                     if (!response.ok) {
-                        throw new Error(data.message || 'Registration failed');
+                        // Better error handling for authentication failures
+                        if (response.status === 401) {
+                            throw new Error('Authentication failed. Please check your credentials.');
+                        } else {
+                            throw new Error(data.message || 'Registration failed');
+                        }
                     }
                     
                     return data;
@@ -401,7 +427,10 @@
         };
         
         // Initialization and Event Listeners
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Load configuration first
+            await loadConfig();
+        
             const signupForm = document.getElementById('signup-form');
             const errorMessage = document.getElementById('error-message');
             const successMessage = document.getElementById('success-message');
