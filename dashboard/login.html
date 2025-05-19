@@ -190,24 +190,6 @@
             }
         }
         
-        // Create auth details with secretHash
-        function createAuthDetails(username, password) {
-            const secretHash = calculateSecretHash(username);
-            console.log('Creating auth details with SECRET_HASH:', secretHash);
-            
-            const authDetails = {
-                Username: username,
-                Password: password
-            };
-            
-            if (secretHash) {
-                authDetails.SecretHash = secretHash;
-            }
-            
-            console.log('Final auth details:', JSON.stringify(authDetails));
-            return new AmazonCognitoIdentity.AuthenticationDetails(authDetails);
-        }
-        
         // Handle login form submission
         document.getElementById('login-form').addEventListener('submit', function(event) {
             event.preventDefault();
@@ -240,11 +222,33 @@
             // Hide any previous error
             errorMessage.style.display = 'none';
             
+            // Get the secret hash
+            const secretHash = calculateSecretHash(username);
+            
             // Create Cognito user pool
             const userPool = new AmazonCognitoIdentity.CognitoUserPool({
                 UserPoolId: cognitoConfig.userPoolId,
                 ClientId: cognitoConfig.clientId
             });
+            
+            // Use the CognitoIdentityServiceProvider approach - this is more reliable
+            const authData = {
+                Username: username,
+                Password: password
+            };
+            
+            if (secretHash) {
+                authData.SecretHash = secretHash;
+            }
+            
+            // Create the full parameter object for initiateAuth
+            const authParameters = {
+                AuthFlow: 'USER_PASSWORD_AUTH',
+                ClientId: cognitoConfig.clientId,
+                AuthParameters: authData
+            };
+            
+            console.log('Authentication parameters:', JSON.stringify(authParameters));
             
             // Create Cognito user
             const cognitoUser = new AmazonCognitoIdentity.CognitoUser({
@@ -252,16 +256,19 @@
                 Pool: userPool
             });
             
-            // Add logging for user creation
-            console.log('Cognito user created for username:', username);
+            const authDetails = new AmazonCognitoIdentity.AuthenticationDetails({
+                Username: username,
+                Password: password,
+                ValidationData: null,
+                SecretHash: secretHash
+            });
+            
+            // Explicitly override the client metadata
+            cognitoUser.setClientMetadata({SecretHash: secretHash});
             
             // Try to authenticate
             try {
-                // Create auth details with SECRET_HASH included
-                const authDetails = createAuthDetails(username, password);
-                
-                // Authentication options
-                const authOptions = {
+                cognitoUser.authenticateUser(authDetails, {
                     onSuccess: function(result) {
                         // Get tokens
                         const idToken = result.getIdToken().getJwtToken();
@@ -276,7 +283,7 @@
                                 username: username,
                                 role: payload['custom:role'] || payload['cognito:groups']?.[0] || 'agent',
                                 name: payload.given_name && payload.family_name ? 
-                                    `${payload.given_name} ${payload.family_name}` : username
+                                      `${payload.given_name} ${payload.family_name}` : username
                             };
                             localStorage.setItem('user', JSON.stringify(userInfo));
                         } catch (e) {
@@ -298,11 +305,7 @@
                         submitButton.disabled = false;
                         inputs.forEach(input => input.disabled = false);
                     }
-                };
-                
-                // Attempt authentication
-                console.log('Attempting authentication for user:', username);
-                cognitoUser.authenticateUser(authDetails, authOptions);
+                });
             } catch (e) {
                 console.error('Error during authentication:', e);
                 errorMessage.textContent = e.message || 'An error occurred during login.';
