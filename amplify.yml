@@ -8,7 +8,7 @@ frontend:
     build:
       commands:
         - echo "Creating config.json with Cognito and API configuration"
-        - echo "{\"region\":\"us-east-1\",\"userPoolId\":\"us-east-1_Lhc964tLD\",\"clientId\":\"357mvn7k2nkjhl5nsq8h00o9tr\",\"apiKey\":\"${API_KEY}\",\"apiEndpoint\":\"https://nv01uveape.execute-api.us-east-1.amazonaws.com/prod\"}" > dashboard/config.json
+        - echo "{\"region\":\"us-east-1\",\"userPoolId\":\"us-east-1_Lhc964tLD\",\"clientId\":\"357mvn7k2nkjhl5nsq8h00o9tr\",\"clientSecret\":\"7h6a92cinn7i5im0l0rpusuna0dpsqc4ha7f7nog0oocc318m46\",\"apiKey\":\"${API_KEY}\",\"apiEndpoint\":\"https://nv01uveape.execute-api.us-east-1.amazonaws.com/prod\"}" > dashboard/config.json
         - echo "Config file created successfully"
         - echo "Deploying from dashboard directory"
         - mkdir -p dist

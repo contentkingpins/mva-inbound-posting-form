@@ -6,6 +6,7 @@
     <title>Claim Connectors CRM - Login</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.3.1/dist/amazon-cognito-identity.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
         body {
             background-color: #f0f4f8;
@@ -144,7 +145,8 @@
         let cognitoConfig = {
             region: 'us-east-1',
             userPoolId: 'us-east-1_Lhc964tLD',
-            clientId: '357mvn7k2nkjhl5nsq8h00o9tr'
+            clientId: '357mvn7k2nkjhl5nsq8h00o9tr',
+            clientSecret: '7h6a92cinn7i5im0l0rpusuna0dpsqc4ha7f7nog0oocc318m46'
         };
         
         // Try to load configuration from config.json
@@ -154,7 +156,9 @@
                 cognitoConfig = {
                     region: config.region,
                     userPoolId: config.userPoolId,
-                    clientId: config.clientId
+                    clientId: config.clientId,
+                    clientSecret: config.clientSecret || '7h6a92cinn7i5im0l0rpusuna0dpsqc4ha7f7nog0oocc318m46',
+                    apiEndpoint: config.apiEndpoint
                 };
                 console.log('Configuration loaded');
             })
@@ -170,19 +174,44 @@
             });
         }
         
+        // Crypto utility for generating SECRET_HASH
+        function calculateSecretHash(username) {
+            if (!cognitoConfig.clientSecret) {
+                return undefined;
+            }
+
+            try {
+                // We need to use the crypto API to calculate the hash
+                const message = username + cognitoConfig.clientId;
+                
+                // Using crypto API would require more setup, so we'll use a simpler approach for the browser
+                // This is a placeholder for the actual implementation
+                const hash = CryptoJS.HmacSHA256(message, cognitoConfig.clientSecret);
+                return CryptoJS.enc.Base64.stringify(hash);
+            } catch (e) {
+                console.error('Error calculating secret hash:', e);
+                return undefined;
+            }
+        }
+        
         // Auth Service
         const authService = {
             signIn: function(username, password) {
                 return new Promise((resolve, reject) => {
                     const authDetails = new AmazonCognitoIdentity.AuthenticationDetails({
                         Username: username,
-                        Password: password
+                        Password: password,
+                        SecretHash: calculateSecretHash(username)
                     });
                     
                     const userPool = createUserPool();
                     const cognitoUser = new AmazonCognitoIdentity.CognitoUser({
                         Username: username,
-                        Pool: userPool
+                        Pool: userPool,
+                        // Include secret hash in the client context if available
+                        ClientMetadata: {
+                            SecretHash: calculateSecretHash(username)
+                        }
                     });
                     
                     cognitoUser.authenticateUser(authDetails, {
