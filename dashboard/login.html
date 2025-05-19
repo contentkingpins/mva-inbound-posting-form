@@ -436,6 +436,13 @@
                         }
                     }
                     
+                    // Check if user needs to change password
+                    if (data.challengeName === 'NEW_PASSWORD_REQUIRED') {
+                        // Show password change form
+                        showPasswordChangeForm(email, data.session);
+                        return { requiresNewPassword: true, session: data.session };
+                    }
+                    
                     // Store tokens
                     TokenManager.setTokens(data.accessToken, data.refreshToken);
                     
@@ -447,6 +454,43 @@
                     return data;
                 } catch (error) {
                     console.error('Login error:', error);
+                    throw error;
+                }
+            },
+            
+            // Complete new password challenge
+            completeNewPasswordChallenge: async function(email, oldPassword, newPassword, session) {
+                try {
+                    const response = await fetch(`${API_CONFIG.baseUrl}${API_CONFIG.endpoints.changePassword}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ 
+                            email,
+                            previousPassword: oldPassword, 
+                            newPassword,
+                            session
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (!response.ok) {
+                        throw new Error(data.message || 'Failed to change password');
+                    }
+                    
+                    // Store tokens
+                    TokenManager.setTokens(data.accessToken, data.refreshToken);
+                    
+                    // Store user info
+                    if (data.user) {
+                        localStorage.setItem('user_info', JSON.stringify(data.user));
+                    }
+                    
+                    return data;
+                } catch (error) {
+                    console.error('Password change error:', error);
                     throw error;
                 }
             },
@@ -535,6 +579,12 @@
                     // Sign in with API
                     const result = await AuthService.signIn(email, password);
                     
+                    // Check if password change is required
+                    if (result.requiresNewPassword) {
+                        // This case is handled by showPasswordChangeForm
+                        return;
+                    }
+                    
                     // Redirect based on role
                     redirectToApp(result.user);
                     
@@ -543,6 +593,154 @@
                     toggleLoading(false);
                 }
             });
+            
+            // Function to display password change form
+            function showPasswordChangeForm(email, session) {
+                // Create password change form if it doesn't exist
+                if (!document.getElementById('password-change-container')) {
+                    // First hide the login form
+                    document.querySelector('.login-container').style.display = 'none';
+                    
+                    // Create the password change form
+                    const passwordChangeHTML = `
+                        <div id="password-change-container" class="login-container">
+                            <div class="login-header">
+                                <h1>Change Password</h1>
+                                <p>You need to change your password to continue</p>
+                            </div>
+                            
+                            <div id="pw-error-message" class="message error-message"></div>
+                            <div id="pw-success-message" class="message success-message"></div>
+                            
+                            <form id="password-change-form">
+                                <input type="hidden" id="pw-email" value="">
+                                <input type="hidden" id="pw-session" value="">
+                                
+                                <div class="form-group">
+                                    <label for="old-password">Current Password</label>
+                                    <input type="password" id="old-password" name="old-password" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="new-password">New Password</label>
+                                    <input type="password" id="new-password" name="new-password" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="confirm-new-password">Confirm New Password</label>
+                                    <input type="password" id="confirm-new-password" name="confirm-new-password" required>
+                                </div>
+                                
+                                <button type="submit" class="btn-primary">
+                                    Change Password
+                                    <span class="loader" id="pw-change-loader"></span>
+                                </button>
+                            </form>
+                        </div>
+                    `;
+                    
+                    // Add the form to the body
+                    document.body.insertAdjacentHTML('beforeend', passwordChangeHTML);
+                    
+                    // Add event listener for the password change form
+                    document.getElementById('password-change-form').addEventListener('submit', handlePasswordChange);
+                }
+                
+                // Set the email and session in the form
+                document.getElementById('pw-email').value = email;
+                document.getElementById('pw-session').value = session;
+                
+                // Show the password change form and stop loading animation
+                document.getElementById('password-change-container').style.display = 'block';
+                toggleLoading(false);
+            }
+            
+            // Function to handle password change submission
+            async function handlePasswordChange(event) {
+                event.preventDefault();
+                
+                const email = document.getElementById('pw-email').value;
+                const session = document.getElementById('pw-session').value;
+                const oldPassword = document.getElementById('old-password').value;
+                const newPassword = document.getElementById('new-password').value;
+                const confirmPassword = document.getElementById('confirm-new-password').value;
+                
+                // Validate passwords
+                if (!oldPassword || !newPassword || !confirmPassword) {
+                    showPasswordChangeError('Please fill in all fields');
+                    return;
+                }
+                
+                if (newPassword !== confirmPassword) {
+                    showPasswordChangeError('New passwords do not match');
+                    return;
+                }
+                
+                // Basic password strength check
+                if (newPassword.length < 8) {
+                    showPasswordChangeError('New password must be at least 8 characters long');
+                    return;
+                }
+                
+                // Start loading
+                togglePasswordChangeLoading(true);
+                
+                try {
+                    // Complete new password challenge
+                    const result = await AuthService.completeNewPasswordChallenge(
+                        email,
+                        oldPassword,
+                        newPassword,
+                        session
+                    );
+                    
+                    // Show success message
+                    showPasswordChangeSuccess('Password changed successfully! Redirecting...');
+                    
+                    // Redirect after a delay
+                    setTimeout(() => {
+                        redirectToApp(result.user);
+                    }, 2000);
+                } catch (error) {
+                    showPasswordChangeError(error.message || 'Failed to change password');
+                    togglePasswordChangeLoading(false);
+                }
+            }
+            
+            // Helper functions for password change form
+            function showPasswordChangeError(message) {
+                const errorMessage = document.getElementById('pw-error-message');
+                const successMessage = document.getElementById('pw-success-message');
+                errorMessage.textContent = message;
+                errorMessage.style.display = 'block';
+                successMessage.style.display = 'none';
+            }
+            
+            function showPasswordChangeSuccess(message) {
+                const errorMessage = document.getElementById('pw-error-message');
+                const successMessage = document.getElementById('pw-success-message');
+                successMessage.textContent = message;
+                successMessage.style.display = 'block';
+                errorMessage.style.display = 'none';
+            }
+            
+            function togglePasswordChangeLoading(isLoading) {
+                const submitButton = document.querySelector('#password-change-form button[type="submit"]');
+                const loader = document.getElementById('pw-change-loader');
+                const inputs = document.querySelectorAll('#password-change-form input');
+                
+                if (isLoading) {
+                    loader.style.display = 'inline-block';
+                    submitButton.disabled = true;
+                    submitButton.textContent = 'Changing Password ';
+                    inputs.forEach(input => input.disabled = true);
+                } else {
+                    loader.style.display = 'none';
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Change Password';
+                    inputs.forEach(input => input.disabled = false);
+                }
+            }
             
             // Helper Functions
             function showError(message) {
