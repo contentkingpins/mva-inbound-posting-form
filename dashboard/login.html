@@ -17,6 +17,22 @@
             align-items: center;
             height: 100vh;
             margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+        }
+        
+        .page-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 900px;
+        }
+        
+        .hero-logo {
+            width: 100%;
+            max-width: 350px;
+            height: auto;
+            margin-bottom: 30px;
         }
         
         .login-container {
@@ -33,20 +49,10 @@
             margin-bottom: 30px;
         }
         
-        .logo-container {
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: center;
-        }
-        
-        .logo-image {
-            max-width: 200px;
-            height: auto;
-        }
-        
         .login-header h1 {
             color: #2d3748;
             margin-bottom: 10px;
+            font-weight: 600;
         }
         
         .login-header p {
@@ -81,7 +87,7 @@
         }
         
         .btn-primary {
-            background-color: #4299e1;
+            background-color: #0F2D40;
             color: white;
             border: none;
             border-radius: 6px;
@@ -94,7 +100,7 @@
         }
         
         .btn-primary:hover {
-            background-color: #3182ce;
+            background-color: #164967;
         }
         
         .error-message {
@@ -128,32 +134,33 @@
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <div class="login-header">
-            <div class="logo-container">
-                <img src="images/claim-connectors-logo.png" alt="Claim Connectors Logo" class="logo-image">
+    <div class="page-container">
+        <img src="images/claim-connectors-logo.png" alt="Claim Connectors Logo" class="hero-logo">
+        
+        <div class="login-container">
+            <div class="login-header">
+                <h1>Welcome Back</h1>
+                <p>Enter your credentials to access the dashboard</p>
             </div>
-            <h1>Claim Connectors CRM</h1>
-            <p>Enter your credentials to access the dashboard</p>
+            
+            <div id="error-message" class="error-message"></div>
+            
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" autocomplete="username" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" autocomplete="current-password" required>
+                </div>
+                
+                <button type="submit" class="btn-primary">Log In</button>
+            </form>
+            
+            <div id="loginMessage" class="login-message"></div>
         </div>
-        
-        <div id="error-message" class="error-message"></div>
-        
-        <form id="login-form">
-            <div class="form-group">
-                <label for="username">Username</label>
-                <input type="text" id="username" name="username" autocomplete="username" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" autocomplete="current-password" required>
-            </div>
-            
-            <button type="submit" class="btn-primary">Log In</button>
-        </form>
-        
-        <div id="loginMessage" class="login-message"></div>
     </div>
     
     <script>
