@@ -7,6 +7,9 @@
     <link rel="stylesheet" href="styles.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Amazon Cognito Identity SDK -->
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1024.0.min.js"></script>
+    <script src="node_modules/amazon-cognito-identity-js/dist/amazon-cognito-identity.min.js"></script>
     <style>
         :root {
             --primary-color: #0F2D40;
@@ -318,19 +321,14 @@
     </div>
 
     <script>
-        // API Configuration
-        const API_CONFIG = {
-            baseUrl: 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod',
-            endpoints: {
-                signin: '/auth/signin',
-                signup: '/auth/signup',
-                refresh: '/auth/refresh',
-                profile: '/auth/profile',
-                forgotPassword: '/auth/forgot-password',
-                confirmPassword: '/auth/confirm-password',
-                changePassword: '/auth/change-password'
-            }
+        // Cognito Configuration
+        const COGNITO_CONFIG = {
+            UserPoolId: 'us-east-1_Lhc964tLD',
+            ClientId: '357mvn7k2nkjhl5nsq8h00o9tr'
         };
+
+        // Initialize Cognito User Pool
+        const userPool = new AmazonCognitoIdentity.CognitoUserPool(COGNITO_CONFIG);
         
         // Token Management
         const TokenManager = {
@@ -412,137 +410,148 @@
             }
         };
         
-        // Auth Service
-        const AuthService = {
+        // Direct Cognito Authentication Service
+        const CognitoAuthService = {
             // Sign in user
-            signIn: async function(email, password) {
-                try {
-                    console.log('Starting login process...');
-                    console.log('Endpoint:', `${API_CONFIG.baseUrl}${API_CONFIG.endpoints.signin}`);
-                    
-                    // Prepare request body
-                    const requestBody = { email, password };
-                    console.log('Request payload:', JSON.stringify(requestBody));
-                    
-                    const response = await fetch(`${API_CONFIG.baseUrl}${API_CONFIG.endpoints.signin}`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json'
-                        },
-                        body: JSON.stringify(requestBody),
-                        credentials: 'include' // Include cookies if any
-                    });
-                    
-                    console.log('Response status:', response.status);
-                    console.log('Response headers:', Object.fromEntries([...response.headers]));
-                    
-                    const data = await response.json();
-                    console.log('Response data:', data);
-                    
-                    if (!response.ok) {
-                        // Better error handling for authentication failures
-                        if (response.status === 401) {
-                            throw new Error(`Authentication failed: ${data.message || 'Invalid email or password'}`);
-                        } else {
-                            throw new Error(data.message || 'Authentication failed');
-                        }
+            signIn: function(email, password) {
+                return new Promise((resolve, reject) => {
+                    try {
+                        console.log('Starting direct Cognito login...');
+                        
+                        // Create authentication details
+                        const authenticationData = {
+                            Username: email,
+                            Password: password
+                        };
+                        const authenticationDetails = new AmazonCognitoIdentity.AuthenticationDetails(authenticationData);
+                        
+                        // Create the Cognito user
+                        const userData = {
+                            Username: email,
+                            Pool: userPool
+                        };
+                        const cognitoUser = new AmazonCognitoIdentity.CognitoUser(userData);
+                        
+                        // Authenticate with Cognito
+                        cognitoUser.authenticateUser(authenticationDetails, {
+                            onSuccess: function(result) {
+                                console.log('Cognito authentication successful');
+                                
+                                // Get token details
+                                const accessToken = result.getAccessToken().getJwtToken();
+                                const idToken = result.getIdToken().getJwtToken();
+                                const refreshToken = result.getRefreshToken().getToken();
+                                
+                                // Store tokens in localStorage
+                                localStorage.setItem('access_token', accessToken);
+                                localStorage.setItem('id_token', idToken);
+                                localStorage.setItem('refresh_token', refreshToken);
+                                
+                                // Create a basic user object
+                                const user = { email: email };
+                                
+                                // Store user info
+                                localStorage.setItem('user_info', JSON.stringify(user));
+                                
+                                // Resolve with user and token info
+                                resolve({
+                                    user,
+                                    accessToken,
+                                    refreshToken
+                                });
+                            },
+                            
+                            onFailure: function(err) {
+                                console.error('Cognito authentication failed:', err);
+                                reject(err);
+                            },
+                            
+                            newPasswordRequired: function(userAttributes, requiredAttributes) {
+                                console.log('New password required');
+                                // Save current user for later use
+                                cognitoUser.challengeName = 'NEW_PASSWORD_REQUIRED';
+                                window.cognitoUser = cognitoUser;
+                                window.userAttributes = userAttributes;
+                                window.requiredAttributes = requiredAttributes;
+                                
+                                // Return challenge details
+                                resolve({
+                                    requiresNewPassword: true,
+                                    userAttributes: userAttributes,
+                                    requiredAttributes: requiredAttributes
+                                });
+                            }
+                        });
+                    } catch (error) {
+                        console.error('Error in Cognito signIn:', error);
+                        reject(error);
                     }
-                    
-                    // Check if user needs to change password
-                    if (data.challengeName === 'NEW_PASSWORD_REQUIRED') {
-                        // Show password change form
-                        showPasswordChangeForm(email, data.session);
-                        return { requiresNewPassword: true, session: data.session };
-                    }
-                    
-                    // Store tokens
-                    TokenManager.setTokens(data.accessToken, data.refreshToken);
-                    
-                    // Store user info
-                    if (data.user) {
-                        localStorage.setItem('user_info', JSON.stringify(data.user));
-                    }
-                    
-                    return data;
-                } catch (error) {
-                    console.error('Login error details:', error);
-                    throw error;
-                }
+                });
             },
             
             // Complete new password challenge
-            completeNewPasswordChallenge: async function(email, oldPassword, newPassword, session) {
-                try {
-                    const response = await fetch(`${API_CONFIG.baseUrl}${API_CONFIG.endpoints.changePassword}`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ 
-                            email,
-                            previousPassword: oldPassword, 
-                            newPassword,
-                            session
-                        })
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (!response.ok) {
-                        throw new Error(data.message || 'Failed to change password');
-                    }
-                    
-                    // Store tokens
-                    TokenManager.setTokens(data.accessToken, data.refreshToken);
-                    
-                    // Store user info
-                    if (data.user) {
-                        localStorage.setItem('user_info', JSON.stringify(data.user));
-                    }
-                    
-                    return data;
-                } catch (error) {
-                    console.error('Password change error:', error);
-                    throw error;
-                }
-            },
-            
-            // Get user profile
-            getProfile: async function() {
-                try {
-                    const token = await TokenManager.getAccessToken();
-                    
-                    if (!token) {
-                        throw new Error('Not authenticated');
-                    }
-                    
-                    const response = await fetch(`${API_CONFIG.baseUrl}${API_CONFIG.endpoints.profile}`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`
+            completeNewPasswordChallenge: function(email, oldPassword, newPassword) {
+                return new Promise((resolve, reject) => {
+                    try {
+                        // Get the saved Cognito user from the window object
+                        const cognitoUser = window.cognitoUser;
+                        
+                        if (!cognitoUser || cognitoUser.challengeName !== 'NEW_PASSWORD_REQUIRED') {
+                            return reject(new Error('No user in new password required state'));
                         }
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error('Failed to get profile');
+                        
+                        // Get the saved attributes
+                        const userAttributes = window.userAttributes || {};
+                        
+                        // Complete the new password challenge
+                        cognitoUser.completeNewPasswordChallenge(newPassword, userAttributes, {
+                            onSuccess: function(result) {
+                                console.log('Password changed successfully');
+                                
+                                // Clear the saved user and attributes
+                                delete window.cognitoUser;
+                                delete window.userAttributes;
+                                delete window.requiredAttributes;
+                                
+                                // Get token details
+                                const accessToken = result.getAccessToken().getJwtToken();
+                                const idToken = result.getIdToken().getJwtToken();
+                                const refreshToken = result.getRefreshToken().getToken();
+                                
+                                // Store tokens in localStorage
+                                localStorage.setItem('access_token', accessToken);
+                                localStorage.setItem('id_token', idToken);
+                                localStorage.setItem('refresh_token', refreshToken);
+                                
+                                // Create basic user object
+                                const user = { email: email };
+                                
+                                // Store user info
+                                localStorage.setItem('user_info', JSON.stringify(user));
+                                
+                                // Resolve with user and token info
+                                resolve({
+                                    user,
+                                    accessToken,
+                                    refreshToken
+                                });
+                            },
+                            
+                            onFailure: function(err) {
+                                // Clear the saved user and attributes
+                                delete window.cognitoUser;
+                                delete window.userAttributes;
+                                delete window.requiredAttributes;
+                                
+                                console.error('Failed to change password:', err);
+                                reject(err);
+                            }
+                        });
+                    } catch (error) {
+                        console.error('Error in completeNewPasswordChallenge:', error);
+                        reject(error);
                     }
-                    
-                    const data = await response.json();
-                    
-                    // Update stored user info
-                    localStorage.setItem('user_info', JSON.stringify(data));
-                    
-                    return data;
-                } catch (error) {
-                    console.error('Error getting profile:', error);
-                    throw error;
-                }
-            },
-            
-            // Sign out
-            signOut: function() {
-                TokenManager.clearTokens();
-                window.location.href = 'login.html';
+                });
             }
         };
         
@@ -589,12 +598,13 @@
                 clearMessages();
                 
                 try {
-                    // Sign in with API
-                    const result = await AuthService.signIn(email, password);
+                    // Sign in with direct Cognito
+                    const result = await CognitoAuthService.signIn(email, password);
                     
                     // Check if password change is required
                     if (result.requiresNewPassword) {
-                        // This case is handled by showPasswordChangeForm
+                        // Show password change form
+                        showPasswordChangeForm(email);
                         return;
                     }
                     
@@ -602,13 +612,27 @@
                     redirectToApp(result.user);
                     
                 } catch (error) {
-                    showError(error.message || 'Authentication failed. Please check your credentials.');
+                    console.error('Authentication error:', error);
+                    let errorMessage = 'Authentication failed. Please check your credentials.';
+                    
+                    // Handle specific Cognito errors
+                    if (error.code === 'UserNotFoundException') {
+                        errorMessage = 'User not found. Please check your email.';
+                    } else if (error.code === 'NotAuthorizedException') {
+                        errorMessage = 'Incorrect username or password.';
+                    } else if (error.code === 'UserNotConfirmedException') {
+                        errorMessage = 'User is not confirmed. Please check your email for verification link.';
+                    } else if (error.message) {
+                        errorMessage = error.message;
+                    }
+                    
+                    showError(errorMessage);
                     toggleLoading(false);
                 }
             });
             
             // Function to display password change form
-            function showPasswordChangeForm(email, session) {
+            function showPasswordChangeForm(email) {
                 // Create password change form if it doesn't exist
                 if (!document.getElementById('password-change-container')) {
                     // First hide the login form
@@ -627,7 +651,6 @@
                             
                             <form id="password-change-form">
                                 <input type="hidden" id="pw-email" value="">
-                                <input type="hidden" id="pw-session" value="">
                                 
                                 <div class="form-group">
                                     <label for="old-password">Current Password</label>
@@ -659,9 +682,8 @@
                     document.getElementById('password-change-form').addEventListener('submit', handlePasswordChange);
                 }
                 
-                // Set the email and session in the form
+                // Set the email value
                 document.getElementById('pw-email').value = email;
-                document.getElementById('pw-session').value = session;
                 
                 // Show the password change form and stop loading animation
                 document.getElementById('password-change-container').style.display = 'block';
@@ -673,7 +695,6 @@
                 event.preventDefault();
                 
                 const email = document.getElementById('pw-email').value;
-                const session = document.getElementById('pw-session').value;
                 const oldPassword = document.getElementById('old-password').value;
                 const newPassword = document.getElementById('new-password').value;
                 const confirmPassword = document.getElementById('confirm-new-password').value;
@@ -699,12 +720,11 @@
                 togglePasswordChangeLoading(true);
                 
                 try {
-                    // Complete new password challenge
-                    const result = await AuthService.completeNewPasswordChallenge(
+                    // Complete new password challenge using direct Cognito
+                    const result = await CognitoAuthService.completeNewPasswordChallenge(
                         email,
                         oldPassword,
-                        newPassword,
-                        session
+                        newPassword
                     );
                     
                     // Show success message
@@ -715,7 +735,14 @@
                         redirectToApp(result.user);
                     }, 2000);
                 } catch (error) {
-                    showPasswordChangeError(error.message || 'Failed to change password');
+                    console.error('Password change error:', error);
+                    let errorMessage = 'Failed to change password.';
+                    
+                    if (error.message) {
+                        errorMessage = error.message;
+                    }
+                    
+                    showPasswordChangeError(errorMessage);
                     togglePasswordChangeLoading(false);
                 }
             }
