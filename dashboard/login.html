@@ -7,9 +7,10 @@
     <link rel="stylesheet" href="styles.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- AWS SDK -->
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1001.0.min.js"></script>
     <!-- Amazon Cognito Identity SDK -->
-    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1024.0.min.js"></script>
-    <script src="node_modules/amazon-cognito-identity-js/dist/amazon-cognito-identity.min.js"></script>
+    <script src="https://sdk.amazonaws.com/js/amazon-cognito-identity.min.js"></script>
     <style>
         :root {
             --primary-color: #0F2D40;
@@ -322,13 +323,13 @@
 
     <script>
         // Cognito Configuration
-        const COGNITO_CONFIG = {
+        const poolData = {
             UserPoolId: 'us-east-1_Lhc964tLD',
             ClientId: '357mvn7k2nkjhl5nsq8h00o9tr'
         };
 
         // Initialize Cognito User Pool
-        const userPool = new AmazonCognitoIdentity.CognitoUserPool(COGNITO_CONFIG);
+        const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
         
         // Token Management
         const TokenManager = {
