@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Claim Connectors CRM - Login</title>
     <link rel="stylesheet" href="styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.3.1/dist/amazon-cognito-identity.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <!-- AWS Amplify Library -->
+    <script src="https://cdn.jsdelivr.net/npm/aws-amplify@5.3.11/dist/aws-amplify.min.js"></script>
     <style>
         body {
             background-color: #f0f4f8;
@@ -141,170 +141,43 @@
     </div>
     
     <script>
-        // Load Cognito configuration
-        let cognitoConfig = {
-            region: 'us-east-1',
-            userPoolId: 'us-east-1_Lhc964tLD',
-            clientId: '357mvn7k2nkjhl5nsq8h00o9tr',
-            clientSecret: '7h6a92cinn7i5im0l0rpusuna0dpsqc4ha7f7nog0oocc318m46'
+        // AWS Amplify Configuration
+        let amplifyConfig = {
+            Auth: {
+                region: 'us-east-1',
+                userPoolId: 'us-east-1_Lhc964tLD',
+                userPoolWebClientId: '357mvn7k2nkjhl5nsq8h00o9tr',
+                authenticationFlowType: 'USER_PASSWORD_AUTH'
+            }
         };
         
         // Try to load configuration from config.json
         fetch('config.json')
             .then(response => response.json())
             .then(config => {
-                cognitoConfig = {
-                    region: config.region,
-                    userPoolId: config.userPoolId,
-                    clientId: config.clientId,
-                    clientSecret: config.clientSecret || '7h6a92cinn7i5im0l0rpusuna0dpsqc4ha7f7nog0oocc318m46',
-                    apiEndpoint: config.apiEndpoint
+                amplifyConfig = {
+                    Auth: {
+                        region: config.region || 'us-east-1',
+                        userPoolId: config.userPoolId || 'us-east-1_Lhc964tLD',
+                        userPoolWebClientId: config.clientId || '357mvn7k2nkjhl5nsq8h00o9tr',
+                        // SecretHash is handled automatically by Amplify when using USER_PASSWORD_AUTH flow
+                        authenticationFlowType: 'USER_PASSWORD_AUTH'
+                    }
                 };
                 console.log('Configuration loaded');
+                
+                // Configure AWS Amplify
+                AWS.Amplify.configure(amplifyConfig);
             })
             .catch(error => {
                 console.warn('Could not load config.json, using default configuration', error);
+                // Configure with default values
+                AWS.Amplify.configure(amplifyConfig);
             });
         
-        // Create a Cognito User Pool object
-        function createUserPool() {
-            return new AmazonCognitoIdentity.CognitoUserPool({
-                UserPoolId: cognitoConfig.userPoolId,
-                ClientId: cognitoConfig.clientId
-            });
-        }
-        
-        // Crypto utility for generating SECRET_HASH
-        function calculateSecretHash(username) {
-            if (!cognitoConfig.clientSecret) {
-                return undefined;
-            }
-
-            try {
-                // We need to use the crypto API to calculate the hash
-                const message = username + cognitoConfig.clientId;
-                
-                // Using crypto API would require more setup, so we'll use a simpler approach for the browser
-                // This is a placeholder for the actual implementation
-                const hash = CryptoJS.HmacSHA256(message, cognitoConfig.clientSecret);
-                return CryptoJS.enc.Base64.stringify(hash);
-            } catch (e) {
-                console.error('Error calculating secret hash:', e);
-                return undefined;
-            }
-        }
-        
-        // Auth Service
-        const authService = {
-            signIn: function(username, password) {
-                return new Promise((resolve, reject) => {
-                    const authDetails = new AmazonCognitoIdentity.AuthenticationDetails({
-                        Username: username,
-                        Password: password,
-                        SecretHash: calculateSecretHash(username)
-                    });
-                    
-                    const userPool = createUserPool();
-                    const cognitoUser = new AmazonCognitoIdentity.CognitoUser({
-                        Username: username,
-                        Pool: userPool,
-                        // Include secret hash in the client context if available
-                        ClientMetadata: {
-                            SecretHash: calculateSecretHash(username)
-                        }
-                    });
-                    
-                    cognitoUser.authenticateUser(authDetails, {
-                        onSuccess: (result) => {
-                            // Store tokens
-                            const token = result.getIdToken().getJwtToken();
-                            localStorage.setItem('auth_token', token);
-                            
-                            // Store user info
-                            const user = {
-                                username: cognitoUser.getUsername(),
-                                // Extract additional user attributes if needed
-                                role: this.extractRoleFromToken(result) || 'agent', // Default to agent role if not specified
-                                name: this.extractNameFromToken(result) || cognitoUser.getUsername()
-                            };
-                            localStorage.setItem('user', JSON.stringify(user));
-                            
-                            resolve(result);
-                        },
-                        onFailure: (err) => {
-                            console.error('Authentication failed:', err);
-                            reject(err);
-                        }
-                    });
-                });
-            },
-            
-            isAuthenticated: function() {
-                const userPool = createUserPool();
-                const currentUser = userPool.getCurrentUser();
-                if (!currentUser) return Promise.resolve(false);
-                
-                return new Promise((resolve) => {
-                    currentUser.getSession((err, session) => {
-                        if (err || !session.isValid()) {
-                            resolve(false);
-                        } else {
-                            resolve(true);
-                        }
-                    });
-                });
-            },
-            
-            signOut: function() {
-                const userPool = createUserPool();
-                const currentUser = userPool.getCurrentUser();
-                if (currentUser) {
-                    currentUser.signOut();
-                    localStorage.removeItem('auth_token');
-                    localStorage.removeItem('user');
-                }
-            },
-            
-            extractRoleFromToken: function(result) {
-                try {
-                    // This assumes your Cognito User Pool has custom:role attribute or 
-                    // you're using Cognito groups to determine roles
-                    const payload = result.getIdToken().decodePayload();
-                    return payload['custom:role'] || payload['cognito:groups']?.[0];
-                } catch (error) {
-                    console.error('Error extracting role from token:', error);
-                    return null;
-                }
-            },
-            
-            extractNameFromToken: function(result) {
-                try {
-                    const payload = result.getIdToken().decodePayload();
-                    const firstName = payload.given_name || '';
-                    const lastName = payload.family_name || '';
-                    return firstName && lastName ? `${firstName} ${lastName}` : null;
-                } catch (error) {
-                    console.error('Error extracting name from token:', error);
-                    return null;
-                }
-            }
-        };
-        
-        document.addEventListener('DOMContentLoaded', async () => {
+        document.addEventListener('DOMContentLoaded', () => {
             const loginForm = document.getElementById('login-form');
             const errorMessage = document.getElementById('error-message');
-            
-            // Check if already logged in
-            try {
-                const isAuthenticated = await authService.isAuthenticated();
-                if (isAuthenticated) {
-                    redirectToApp();
-                }
-            } catch (error) {
-                console.error('Authentication check error:', error);
-                // Clear any invalid tokens
-                authService.signOut();
-            }
             
             loginForm.addEventListener('submit', async (event) => {
                 event.preventDefault();
@@ -321,8 +194,26 @@
                     // Disable form while logging in
                     toggleFormState(true);
                     
-                    // Use authService instead of direct fetch
-                    await authService.signIn(username, password);
+                    // Use Amplify Auth to sign in - this will handle the SECRET_HASH automatically
+                    const user = await AWS.Amplify.Auth.signIn(username, password);
+                    console.log('Sign in successful:', user);
+                    
+                    // Get the authenticated user's session
+                    const session = await AWS.Amplify.Auth.currentSession();
+                    
+                    // Store auth token
+                    const token = session.getIdToken().getJwtToken();
+                    localStorage.setItem('auth_token', token);
+                    
+                    // Extract user info from token
+                    const payload = session.getIdToken().decodePayload();
+                    const userInfo = {
+                        username: username,
+                        role: payload['custom:role'] || payload['cognito:groups']?.[0] || 'agent',
+                        name: payload.given_name && payload.family_name ? 
+                              `${payload.given_name} ${payload.family_name}` : username
+                    };
+                    localStorage.setItem('user', JSON.stringify(userInfo));
                     
                     // Redirect to appropriate dashboard
                     redirectToApp();
