@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Claim Connectors CRM - Login</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.3.1/dist/amazon-cognito-identity.min.js"></script>
     <style>
         body {
             background-color: #f0f4f8;
@@ -139,19 +140,141 @@
     </div>
     
     <script>
-        const API_ENDPOINT = 'https://nv01uveape.execute-api.us-east-1.amazonaws.com/prod';
+        // Load Cognito configuration
+        let cognitoConfig = {
+            region: 'us-east-1',
+            userPoolId: 'us-east-1_Lhc964tLD',
+            clientId: '357mvn7k2nkjhl5nsq8h00o9tr'
+        };
         
-        document.addEventListener('DOMContentLoaded', () => {
+        // Try to load configuration from config.json
+        fetch('config.json')
+            .then(response => response.json())
+            .then(config => {
+                cognitoConfig = {
+                    region: config.region,
+                    userPoolId: config.userPoolId,
+                    clientId: config.clientId
+                };
+                console.log('Configuration loaded');
+            })
+            .catch(error => {
+                console.warn('Could not load config.json, using default configuration', error);
+            });
+        
+        // Create a Cognito User Pool object
+        function createUserPool() {
+            return new AmazonCognitoIdentity.CognitoUserPool({
+                UserPoolId: cognitoConfig.userPoolId,
+                ClientId: cognitoConfig.clientId
+            });
+        }
+        
+        // Auth Service
+        const authService = {
+            signIn: function(username, password) {
+                return new Promise((resolve, reject) => {
+                    const authDetails = new AmazonCognitoIdentity.AuthenticationDetails({
+                        Username: username,
+                        Password: password
+                    });
+                    
+                    const userPool = createUserPool();
+                    const cognitoUser = new AmazonCognitoIdentity.CognitoUser({
+                        Username: username,
+                        Pool: userPool
+                    });
+                    
+                    cognitoUser.authenticateUser(authDetails, {
+                        onSuccess: (result) => {
+                            // Store tokens
+                            const token = result.getIdToken().getJwtToken();
+                            localStorage.setItem('auth_token', token);
+                            
+                            // Store user info
+                            const user = {
+                                username: cognitoUser.getUsername(),
+                                // Extract additional user attributes if needed
+                                role: this.extractRoleFromToken(result) || 'agent', // Default to agent role if not specified
+                                name: this.extractNameFromToken(result) || cognitoUser.getUsername()
+                            };
+                            localStorage.setItem('user', JSON.stringify(user));
+                            
+                            resolve(result);
+                        },
+                        onFailure: (err) => {
+                            console.error('Authentication failed:', err);
+                            reject(err);
+                        }
+                    });
+                });
+            },
+            
+            isAuthenticated: function() {
+                const userPool = createUserPool();
+                const currentUser = userPool.getCurrentUser();
+                if (!currentUser) return Promise.resolve(false);
+                
+                return new Promise((resolve) => {
+                    currentUser.getSession((err, session) => {
+                        if (err || !session.isValid()) {
+                            resolve(false);
+                        } else {
+                            resolve(true);
+                        }
+                    });
+                });
+            },
+            
+            signOut: function() {
+                const userPool = createUserPool();
+                const currentUser = userPool.getCurrentUser();
+                if (currentUser) {
+                    currentUser.signOut();
+                    localStorage.removeItem('auth_token');
+                    localStorage.removeItem('user');
+                }
+            },
+            
+            extractRoleFromToken: function(result) {
+                try {
+                    // This assumes your Cognito User Pool has custom:role attribute or 
+                    // you're using Cognito groups to determine roles
+                    const payload = result.getIdToken().decodePayload();
+                    return payload['custom:role'] || payload['cognito:groups']?.[0];
+                } catch (error) {
+                    console.error('Error extracting role from token:', error);
+                    return null;
+                }
+            },
+            
+            extractNameFromToken: function(result) {
+                try {
+                    const payload = result.getIdToken().decodePayload();
+                    const firstName = payload.given_name || '';
+                    const lastName = payload.family_name || '';
+                    return firstName && lastName ? `${firstName} ${lastName}` : null;
+                } catch (error) {
+                    console.error('Error extracting name from token:', error);
+                    return null;
+                }
+            }
+        };
+        
+        document.addEventListener('DOMContentLoaded', async () => {
             const loginForm = document.getElementById('login-form');
             const errorMessage = document.getElementById('error-message');
             
             // Check if already logged in
-            const token = localStorage.getItem('auth_token');
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
-            
-            if (token && user.username) {
-                // Verify token validity by calling a secure endpoint
-                redirectToApp();
+            try {
+                const isAuthenticated = await authService.isAuthenticated();
+                if (isAuthenticated) {
+                    redirectToApp();
+                }
+            } catch (error) {
+                console.error('Authentication check error:', error);
+                // Clear any invalid tokens
+                authService.signOut();
             }
             
             loginForm.addEventListener('submit', async (event) => {
@@ -169,34 +292,15 @@
                     // Disable form while logging in
                     toggleFormState(true);
                     
-                    // Send login request to backend
-                    const response = await fetch(`${API_ENDPOINT}/auth/login`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json'
-                        },
-                        body: JSON.stringify({ username, password })
-                    });
-                    
-                    const data = await response.json();
-                    
-                    if (!response.ok) {
-                        showError(data.message || 'Login failed. Please check your credentials.');
-                        toggleFormState(false);
-                        return;
-                    }
-                    
-                    // Store token and user info in localStorage
-                    localStorage.setItem('auth_token', data.token);
-                    localStorage.setItem('user', JSON.stringify(data.user));
+                    // Use authService instead of direct fetch
+                    await authService.signIn(username, password);
                     
                     // Redirect to appropriate dashboard
                     redirectToApp();
                     
                 } catch (error) {
                     console.error('Login error:', error);
-                    showError('An error occurred during login. Please try again.');
+                    showError(error.message || 'Authentication failed. Please check your credentials.');
                     toggleFormState(false);
                 }
             });

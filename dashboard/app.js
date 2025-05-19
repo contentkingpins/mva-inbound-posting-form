@@ -3,6 +3,74 @@ const API_ENDPOINT = 'https://nv01uveape.execute-api.us-east-1.amazonaws.com/pro
 const EXPORT_ENDPOINT = 'https://nv01uveape.execute-api.us-east-1.amazonaws.com/prod/export';
 const REFRESH_INTERVAL = 10000; // 10 seconds
 
+// Cognito token refresh - run every 45 minutes
+function setupTokenRefresh() {
+    // Function to refresh token
+    function refreshCognitoToken() {
+        try {
+            // Check if Cognito is available
+            if (typeof AmazonCognitoIdentity === 'undefined') {
+                console.warn('Cognito SDK not loaded');
+                return;
+            }
+            
+            // Load config
+            fetch('config.json')
+                .then(response => response.json())
+                .then(config => {
+                    const userPool = new AmazonCognitoIdentity.CognitoUserPool({
+                        UserPoolId: config.userPoolId,
+                        ClientId: config.clientId
+                    });
+                    
+                    const currentUser = userPool.getCurrentUser();
+                    if (!currentUser) {
+                        console.warn('No user session found');
+                        return;
+                    }
+                    
+                    // Get session
+                    currentUser.getSession((err, session) => {
+                        if (err) {
+                            console.error('Error refreshing session:', err);
+                            
+                            // If session can't be refreshed, redirect to login
+                            if (err.name === 'NotAuthorizedException') {
+                                localStorage.removeItem('auth_token');
+                                localStorage.removeItem('user');
+                                window.location.href = 'login.html';
+                            }
+                            return;
+                        }
+                        
+                        if (session.isValid()) {
+                            // Update token in localStorage
+                            const token = session.getIdToken().getJwtToken();
+                            localStorage.setItem('auth_token', token);
+                            console.log('Token refreshed successfully');
+                        } else {
+                            console.warn('Session is not valid');
+                            localStorage.removeItem('auth_token');
+                            localStorage.removeItem('user');
+                            window.location.href = 'login.html';
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading config:', error);
+                });
+        } catch (error) {
+            console.error('Token refresh error:', error);
+        }
+    }
+    
+    // Refresh immediately on load
+    refreshCognitoToken();
+    
+    // Setup periodic refresh (45 minutes = 2,700,000 ms)
+    setInterval(refreshCognitoToken, 2700000);
+}
+
 // Check authentication
 document.addEventListener('DOMContentLoaded', () => {
     // Check if user is logged in
@@ -14,6 +82,9 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.href = 'login.html';
         return;
     }
+    
+    // Setup token refresh
+    setupTokenRefresh();
     
     // Add user info to header
     const headerControls = document.querySelector('.controls');
@@ -31,9 +102,41 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Add logout handler
         document.getElementById('logout-btn').addEventListener('click', () => {
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('user');
-            window.location.href = 'login.html';
+            // Check if Cognito is available
+            if (typeof AmazonCognitoIdentity !== 'undefined') {
+                // Load config and sign out
+                fetch('config.json')
+                    .then(response => response.json())
+                    .then(config => {
+                        const userPool = new AmazonCognitoIdentity.CognitoUserPool({
+                            UserPoolId: config.userPoolId,
+                            ClientId: config.clientId
+                        });
+                        
+                        // Get current user and sign out
+                        const currentUser = userPool.getCurrentUser();
+                        if (currentUser) {
+                            currentUser.signOut();
+                        }
+                        
+                        // Clear local storage and redirect to login page
+                        localStorage.removeItem('auth_token');
+                        localStorage.removeItem('user');
+                        window.location.href = 'login.html';
+                    })
+                    .catch(error => {
+                        console.error('Error loading config:', error);
+                        // Fallback to traditional logout if config can't be loaded
+                        localStorage.removeItem('auth_token');
+                        localStorage.removeItem('user');
+                        window.location.href = 'login.html';
+                    });
+            } else {
+                // Fallback to traditional logout if Cognito is not available
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('user');
+                window.location.href = 'login.html';
+            }
         });
         
         // Show admin link if user is admin
