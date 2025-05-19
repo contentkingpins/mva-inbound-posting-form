@@ -332,7 +332,10 @@
         };
 
         // Initialize Cognito User Pool
-        const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
+        const userPool = new AmazonCognitoIdentity.CognitoUserPool({
+            UserPoolId: poolData.UserPoolId,
+            ClientId: poolData.ClientId
+        });
         
         // Token Management
         const TokenManager = {
@@ -418,18 +421,22 @@
         const CognitoAuthService = {
             // Helper to calculate the secret hash
             calculateSecretHash: function(username) {
-                if (!poolData.ClientSecret) {
-                    return null;
-                }
-                
                 try {
-                    // Convert string to word array
-                    const message = username + poolData.ClientId;
-                    const messageBuffer = new TextEncoder().encode(message);
-                    const secretBuffer = new TextEncoder().encode(poolData.ClientSecret);
+                    const clientSecret = poolData.ClientSecret;
+                    if (!clientSecret) {
+                        return null;
+                    }
                     
-                    // Calculate HMAC SHA256
-                    const hash = CryptoJS.HmacSHA256(message, poolData.ClientSecret);
+                    // Create a HMAC SHA256 hash
+                    const data = username + poolData.ClientId;
+                    
+                    // Convert the client secret to a WordArray
+                    const key = CryptoJS.enc.Utf8.parse(clientSecret);
+                    
+                    // Calculate the hash
+                    const hash = CryptoJS.HmacSHA256(data, key);
+                    
+                    // Return the hash as a Base64-encoded string
                     return CryptoJS.enc.Base64.stringify(hash);
                 } catch (error) {
                     console.error('Error calculating secret hash:', error);
@@ -443,6 +450,16 @@
                     try {
                         console.log('Starting direct Cognito login...');
                         
+                        // Create the Cognito user
+                        const userData = {
+                            Username: email,
+                            Pool: userPool
+                        };
+                        const cognitoUser = new AmazonCognitoIdentity.CognitoUser(userData);
+                        
+                        // Set authentication flow type to default
+                        cognitoUser.setAuthenticationFlowType('USER_SRP_AUTH');
+                        
                         // Create authentication details
                         const authenticationData = {
                             Username: email,
@@ -454,17 +471,11 @@
                             const secretHash = this.calculateSecretHash(email);
                             if (secretHash) {
                                 authenticationData.SECRET_HASH = secretHash;
+                                console.log('Added SECRET_HASH to authentication data');
                             }
                         }
                         
                         const authenticationDetails = new AmazonCognitoIdentity.AuthenticationDetails(authenticationData);
-                        
-                        // Create the Cognito user
-                        const userData = {
-                            Username: email,
-                            Pool: userPool
-                        };
-                        const cognitoUser = new AmazonCognitoIdentity.CognitoUser(userData);
                         
                         // Authenticate with Cognito
                         cognitoUser.authenticateUser(authenticationDetails, {
@@ -537,17 +548,6 @@
                         // Get the saved attributes
                         const userAttributes = window.userAttributes || {};
                         
-                        // Add SECRET_HASH if needed
-                        if (poolData.ClientSecret) {
-                            const secretHash = this.calculateSecretHash(email);
-                            if (secretHash) {
-                                cognitoUser.setAuthenticationFlowType('CUSTOM_AUTH');
-                                cognitoUser.setChallengeParameters({
-                                    SECRET_HASH: secretHash
-                                });
-                            }
-                        }
-                        
                         // Complete the new password challenge
                         cognitoUser.completeNewPasswordChallenge(newPassword, userAttributes, {
                             onSuccess: function(result) {
@@ -606,6 +606,13 @@
             const errorMessage = document.getElementById('error-message');
             const successMessage = document.getElementById('success-message');
             const loginLoader = document.getElementById('login-loader');
+            
+            // Debug Cognito config
+            console.log('Cognito config:', {
+                UserPoolId: poolData.UserPoolId,
+                ClientId: poolData.ClientId,
+                hasClientSecret: !!poolData.ClientSecret
+            });
             
             // Check if user is already logged in
             const isAuthenticated = await TokenManager.isAuthenticated();
