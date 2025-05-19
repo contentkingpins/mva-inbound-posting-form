@@ -7,8 +7,8 @@ frontend:
         - nvm use 16
     build:
       commands:
-        - echo "Creating config.json with API key from environment"
-        - echo "{\"apiKey\":\"${API_KEY}\"}" > dashboard/config.json
+        - echo "Creating config.json with Cognito and API configuration"
+        - echo "{\"region\":\"us-east-1\",\"userPoolId\":\"us-east-1_Lhc964tLD\",\"clientId\":\"357mvn7k2nkjhl5nsq8h00o9tr\",\"apiKey\":\"${API_KEY}\",\"apiEndpoint\":\"https://nv01uveape.execute-api.us-east-1.amazonaws.com/prod\"}" > dashboard/config.json
         - echo "Config file created successfully"
         - echo "Deploying from dashboard directory"
         - mkdir -p dist
