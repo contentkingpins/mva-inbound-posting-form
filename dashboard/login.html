@@ -60,25 +60,33 @@
         }
         
         .hero-image {
-            width: 120%; /* Slightly larger */
-            height: 120%; /* Slightly larger */
-            object-fit: cover;
-            opacity: 0.18; /* Slightly increased opacity */
+            width: 100%; /* Back to 100% to show full logo */
+            height: 100%;
+            object-fit: contain; /* Changed to contain to prevent cropping */
+            opacity: 0.15;
             position: absolute;
-            filter: saturate(115%); /* Enhance colors slightly */
+            filter: saturate(110%);
         }
         
         /* Hero Logo */
         .hero-logo {
-            display: none; /* Hide separate logo since background is sufficient */
+            max-width: 360px;
+            width: 80%;
+            height: auto;
+            z-index: 2;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -150%); /* Position higher above login box */
+            filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.1));
         }
         
         /* Company tagline */
         .tagline {
             position: absolute;
-            top: 5%; /* Position at top of page */
+            top: 50%;
             left: 50%;
-            transform: translateX(-50%);
+            transform: translate(-50%, -90px); /* Position below logo but above login box */
             z-index: 2;
             color: var(--primary-color);
             font-size: 18px;
@@ -205,6 +213,9 @@
     <div class="hero-background">
         <img src="images/claim_connectors_blue_transparent.png" alt="Claim Connectors Logo" class="hero-image">
     </div>
+    
+    <!-- Hero Logo -->
+    <img src="images/claim_connectors_blue_transparent.png" alt="Claim Connectors Logo" class="hero-logo">
     
     <!-- Company Tagline -->
     <div class="tagline">Connecting Claims with Justice</div>
