@@ -55,41 +55,33 @@
             justify-content: center;
             align-items: center;
             z-index: 1;
-            background: linear-gradient(135deg, rgba(15, 45, 64, 0.03) 0%, rgba(21, 73, 103, 0.08) 100%);
+            background: linear-gradient(135deg, rgba(15, 45, 64, 0.05) 0%, rgba(21, 73, 103, 0.1) 100%);
             overflow: hidden;
         }
         
         .hero-image {
-            width: 100%;
-            height: 100%;
+            width: 120%; /* Slightly larger */
+            height: 120%; /* Slightly larger */
             object-fit: cover;
-            opacity: 0.15; /* Slightly increased opacity */
+            opacity: 0.18; /* Slightly increased opacity */
             position: absolute;
-            filter: saturate(110%); /* Enhance colors slightly */
+            filter: saturate(115%); /* Enhance colors slightly */
         }
         
         /* Hero Logo */
         .hero-logo {
-            max-width: 450px;
-            width: 80%;
-            height: auto;
-            z-index: 2;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -85%); /* Positioned higher */
-            filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.1));
+            display: none; /* Hide separate logo since background is sufficient */
         }
         
         /* Company tagline */
         .tagline {
             position: absolute;
-            top: calc(50% - 180px);
+            top: 5%; /* Position at top of page */
             left: 50%;
             transform: translateX(-50%);
             z-index: 2;
             color: var(--primary-color);
-            font-size: 16px;
+            font-size: 18px;
             font-weight: 500;
             letter-spacing: 0.5px;
             text-align: center;
@@ -102,8 +94,8 @@
             border-radius: 12px;
             box-shadow: 0 10px 30px var(--shadow-color), 0 1px 3px rgba(0, 0, 0, 0.05);
             width: 90%;
-            max-width: 450px;
-            padding: 40px;
+            max-width: 480px; /* Slightly wider */
+            padding: 45px 40px; /* More vertical padding */
             z-index: 3; /* Above the background */
             position: relative;
             border: 1px solid rgba(15, 45, 64, 0.05);
@@ -117,9 +109,9 @@
         
         .login-header h1 {
             color: var(--primary-color);
-            margin-bottom: 12px;
+            margin-bottom: 14px;
             font-weight: 600;
-            font-size: 28px;
+            font-size: 32px; /* Larger heading */
             letter-spacing: -0.5px;
         }
         
@@ -129,7 +121,7 @@
         }
         
         .form-group {
-            margin-bottom: 24px;
+            margin-bottom: 28px; /* More spacing between form groups */
         }
         
         .form-group label {
@@ -142,7 +134,7 @@
         
         .form-group input {
             width: 100%;
-            padding: 14px;
+            padding: 16px; /* Larger input fields */
             border-radius: 8px;
             border: 1px solid #e2e8f0;
             font-size: 16px;
@@ -162,14 +154,15 @@
             color: white;
             border: none;
             border-radius: 8px;
-            padding: 16px;
-            font-size: 16px;
+            padding: 18px; /* Taller button */
+            font-size: 17px; /* Larger font */
             font-weight: 600;
             cursor: pointer;
             width: 100%;
             transition: all 0.3s ease;
             letter-spacing: 0.3px;
             box-shadow: 0 4px 6px rgba(15, 45, 64, 0.1);
+            margin-top: 10px; /* Add some space above button */
         }
         
         .btn-primary:hover {
@@ -212,9 +205,6 @@
     <div class="hero-background">
         <img src="images/claim_connectors_blue_transparent.png" alt="Claim Connectors Logo" class="hero-image">
     </div>
-    
-    <!-- Hero Logo -->
-    <img src="images/claim_connectors_blue_transparent.png" alt="Claim Connectors Logo" class="hero-logo">
     
     <!-- Company Tagline -->
     <div class="tagline">Connecting Claims with Justice</div>
