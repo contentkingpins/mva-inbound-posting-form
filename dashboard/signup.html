@@ -392,27 +392,39 @@
             // Sign up user
             signUp: async function(firstName, lastName, email, password) {
                 try {
+                    console.log('Starting signup process...');
+                    console.log('Endpoint:', `${API_CONFIG.baseUrl}${API_CONFIG.endpoints.signup}`);
+                    
+                    // Prepare request body
+                    const requestBody = {
+                        first_name: firstName,
+                        last_name: lastName,
+                        email: email,
+                        password: password
+                    };
+                    
+                    console.log('Request payload:', JSON.stringify(requestBody));
+                    
                     const response = await fetch(`${API_CONFIG.baseUrl}${API_CONFIG.endpoints.signup}`, {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json'
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
                         },
-                        body: JSON.stringify({ 
-                            first_name: firstName,
-                            last_name: lastName,
-                            email: email, 
-                            password: password,
-                            // The backend will handle preventing password reuse
-                            // by storing password history and comparing against previous passwords
-                        })
+                        body: JSON.stringify(requestBody),
+                        credentials: 'include' // Include cookies if any
                     });
                     
+                    console.log('Response status:', response.status);
+                    console.log('Response headers:', Object.fromEntries([...response.headers]));
+                    
                     const data = await response.json();
+                    console.log('Response data:', data);
                     
                     if (!response.ok) {
                         // Better error handling for authentication failures
                         if (response.status === 401) {
-                            throw new Error('Authentication failed. Please check your credentials.');
+                            throw new Error(`Authentication failed: ${data.message || 'Please check with administrator'}`);
                         } else {
                             throw new Error(data.message || 'Registration failed');
                         }
@@ -420,7 +432,7 @@
                     
                     return data;
                 } catch (error) {
-                    console.error('Signup error:', error);
+                    console.error('Signup error details:', error);
                     throw error;
                 }
             }
