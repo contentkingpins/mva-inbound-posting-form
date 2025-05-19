@@ -428,7 +428,12 @@
                     const data = await response.json();
                     
                     if (!response.ok) {
-                        throw new Error(data.message || 'Authentication failed');
+                        // Better error handling for authentication failures
+                        if (response.status === 401) {
+                            throw new Error('Invalid email or password. Please try again.');
+                        } else {
+                            throw new Error(data.message || 'Authentication failed');
+                        }
                     }
                     
                     // Store tokens

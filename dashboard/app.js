@@ -163,7 +163,9 @@ async function loadConfig() {
         const response = await fetch('config.json');
         if (response.ok) {
             const config = await response.json();
-            API_KEY = config.apiKey || '';
+            // Store API endpoint but don't use apiKey for authentication endpoints
+            API_ENDPOINT = config.apiEndpoint || 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod';
+            API_KEY = config.apiKey || ''; // Keep API_KEY for non-auth endpoints
             console.log('Configuration loaded');
         } else {
             console.warn('Could not load config.json, using default configuration');
@@ -174,11 +176,7 @@ async function loadConfig() {
             }
         }
         
-        // If we have a token, use it in the API key
-        const token = localStorage.getItem('auth_token');
-        if (token) {
-            API_KEY = token;
-        }
+        // No longer using token as API key for auth endpoints
     } catch (error) {
         console.error('Error loading configuration:', error);
     }
@@ -224,12 +222,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Load configuration before fetching data
     await loadConfig();
     
-    // Check if API key is available
-    if (!API_KEY) {
-        showError('API key is not configured. Please set up config.json with a valid API key.');
-    } else {
-        fetchLeads();
-    }
+    // Check if API key is available for non-auth endpoints
+    // Remove the error message for missing API key since auth doesn't need it
+    fetchLeads();
     
     // Event Listeners
     refreshBtn.addEventListener('click', fetchLeads);
