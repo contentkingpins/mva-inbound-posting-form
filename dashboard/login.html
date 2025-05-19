@@ -167,12 +167,12 @@
                 console.log('Configuration loaded');
                 
                 // Configure AWS Amplify
-                AWS.Amplify.configure(amplifyConfig);
+                Amplify.configure(amplifyConfig);
             })
             .catch(error => {
                 console.warn('Could not load config.json, using default configuration', error);
                 // Configure with default values
-                AWS.Amplify.configure(amplifyConfig);
+                Amplify.configure(amplifyConfig);
             });
         
         document.addEventListener('DOMContentLoaded', () => {
@@ -195,11 +195,11 @@
                     toggleFormState(true);
                     
                     // Use Amplify Auth to sign in - this will handle the SECRET_HASH automatically
-                    const user = await AWS.Amplify.Auth.signIn(username, password);
+                    const user = await Amplify.Auth.signIn(username, password);
                     console.log('Sign in successful:', user);
                     
                     // Get the authenticated user's session
-                    const session = await AWS.Amplify.Auth.currentSession();
+                    const session = await Amplify.Auth.currentSession();
                     
                     // Store auth token
                     const token = session.getIdToken().getJwtToken();
