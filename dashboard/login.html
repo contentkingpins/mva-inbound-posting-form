@@ -172,9 +172,18 @@
         // Calculate the secret hash manually
         function calculateSecretHash(username) {
             try {
+                console.log('Calculating SECRET_HASH for username:', username);
+                // The message is username + clientId (in that order)
                 const message = username + cognitoConfig.clientId;
+                console.log('Message for SECRET_HASH:', message);
+                
+                // Create the HMAC-SHA256 of the message using the client secret as the key
                 const hmac = CryptoJS.HmacSHA256(message, cognitoConfig.clientSecret);
-                return CryptoJS.enc.Base64.stringify(hmac);
+                
+                // Convert to Base64 as required by Cognito
+                const secretHash = CryptoJS.enc.Base64.stringify(hmac);
+                console.log('Generated SECRET_HASH:', secretHash);
+                return secretHash;
             } catch (e) {
                 console.error('Error calculating secret hash:', e);
                 return null;
@@ -183,22 +192,36 @@
         
         // Create auth details with secretHash
         function createAuthDetails(username, password) {
-            return new AmazonCognitoIdentity.AuthenticationDetails({
+            const secretHash = calculateSecretHash(username);
+            console.log('Creating auth details with SECRET_HASH:', secretHash);
+            
+            const authDetails = {
                 Username: username,
-                Password: password,
-                ValidationData: {},
-                ClientMetadata: {},
-                SecretHash: calculateSecretHash(username)
-            });
+                Password: password
+            };
+            
+            if (secretHash) {
+                authDetails.SecretHash = secretHash;
+            }
+            
+            console.log('Final auth details:', JSON.stringify(authDetails));
+            return new AmazonCognitoIdentity.AuthenticationDetails(authDetails);
         }
         
         // Handle login form submission
         document.getElementById('login-form').addEventListener('submit', function(event) {
             event.preventDefault();
             
-            const username = document.getElementById('username').value;
+            // Get values and apply proper case handling
+            let username = document.getElementById('username').value.trim();
+            // For 'Admin' user, ensure first letter is capitalized
+            if (username.toLowerCase() === 'admin') {
+                username = 'Admin';
+            }
             const password = document.getElementById('password').value;
             const errorMessage = document.getElementById('error-message');
+            
+            console.log('Login attempt with username:', username);
             
             // Show error if fields are empty
             if (!username || !password) {
@@ -229,9 +252,16 @@
                 Pool: userPool
             });
             
+            // Add logging for user creation
+            console.log('Cognito user created for username:', username);
+            
             // Try to authenticate
             try {
-                cognitoUser.authenticateUser(createAuthDetails(username, password), {
+                // Create auth details with SECRET_HASH included
+                const authDetails = createAuthDetails(username, password);
+                
+                // Authentication options
+                const authOptions = {
                     onSuccess: function(result) {
                         // Get tokens
                         const idToken = result.getIdToken().getJwtToken();
@@ -268,7 +298,11 @@
                         submitButton.disabled = false;
                         inputs.forEach(input => input.disabled = false);
                     }
-                });
+                };
+                
+                // Attempt authentication
+                console.log('Attempting authentication for user:', username);
+                cognitoUser.authenticateUser(authDetails, authOptions);
             } catch (e) {
                 console.error('Error during authentication:', e);
                 errorMessage.textContent = e.message || 'An error occurred during login.';
