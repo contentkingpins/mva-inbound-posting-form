@@ -285,9 +285,11 @@ document.addEventListener('DOMContentLoaded', function() {
           
           // Display appropriate error message
           if (error.code === 'UserNotConfirmedException' || error.userNotConfirmed) {
-            errorMessage.textContent = 'Please verify your email before logging in.';
-            // Show resend verification link
-            showResendVerificationUI(emailInput.value.trim());
+            errorMessage.textContent = 'Your account needs verification. Click here to verify.';
+            errorMessage.style.cursor = 'pointer';
+            errorMessage.onclick = function() {
+              window.location.href = `verify.html?email=${encodeURIComponent(emailInput.value.trim())}`;
+            };
           } else if (error.message === 'User with this email does not exist') {
             errorMessage.textContent = 'No account found with this email. Please check your email or sign up.';
           } else if (error.code === 'NotAuthorizedException') {
