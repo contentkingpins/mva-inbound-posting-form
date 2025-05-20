@@ -7,22 +7,14 @@ provider:
   environment:
     VENDORS_TABLE: Vendors
     LEADS_TABLE: Leads
- resolve-conflicts
+    USER_POOL_ID: us-east-1_lhc964tLD
     # Add DocuSign environment variables
-    DS_INTEGRATION_KEY: ${ssm:/docusign/integration_key}
-    DS_SECRET_KEY: ${ssm:/docusign/secret_key}
-    DS_ACCOUNT_ID: ${ssm:/docusign/account_id}
-    DS_USER_ID: ${ssm:/docusign/user_id}
-    DS_RETAINER_TEMPLATE_ID: ${ssm:/docusign/retainer_template_id}
-    DS_PRIVATE_KEY: ${ssm:/docusign/private_key}
-
     DS_INTEGRATION_KEY: ${ssm:/docusign/integration_key~true}
     DS_SECRET_KEY: ${ssm:/docusign/secret_key~true}
     DS_ACCOUNT_ID: ${ssm:/docusign/account_id~true}
     DS_USER_ID: ${ssm:/docusign/user_id~true}
     DS_RETAINER_TEMPLATE_ID: ${ssm:/docusign/retainer_template_id~true}
     DS_PRIVATE_KEY: ${ssm:/docusign/private_key~true}
- main
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -35,16 +27,13 @@ provider:
         - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.VENDORS_TABLE}"
         - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.LEADS_TABLE}"
         - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.LEADS_TABLE}/index/*"
- resolve-conflicts
-    # Add SSM permissions
+    # Add SSM permissions for DocuSign
     - Effect: Allow
       Action:
         - ssm:GetParameter
         - ssm:GetParameters
       Resource: 
         - "arn:aws:ssm:${self:provider.region}:*:parameter/docusign/*"
-
- main
     # Add CloudWatch logs permissions
     - Effect: Allow
       Action:
@@ -52,13 +41,11 @@ provider:
         - logs:CreateLogStream
         - logs:PutLogEvents
       Resource: arn:aws:logs:${self:provider.region}:*:*
-    # Add SSM Parameter Store permissions
+    # Add Cognito ListUsers permission for email-to-username lookup
     - Effect: Allow
       Action:
-        - ssm:GetParameter
-        - ssm:GetParameters
-      Resource: 
-        - "arn:aws:ssm:${self:provider.region}:*:parameter/docusign/*"
+        - cognito-idp:ListUsers
+      Resource: "arn:aws:cognito-idp:${self:provider.region}:*:userpool/${self:provider.environment.USER_POOL_ID}"
   # Configure API Gateway access logs
   apiGateway:
     restApiId: !Ref ApiGateway
@@ -125,16 +112,29 @@ functions:
           method: post
           cors: true
           private: true # Require API key
-      # New DocuSign endpoints
+  
+  # New function to lookup username by email
+  getUsernameByEmail:
+    handler: get-username-by-email.handler
+    events:
       - http:
-          path: /leads/{lead_id}/send-retainer
+          path: /auth/get-username
           method: post
-          cors: true
-          private: true
+          cors:
+            origin: 'https://main.d21xta9fg9b6w.amplifyapp.com'
+            headers:
+              - Content-Type
+              - Authorization
+            allowCredentials: false
       - http:
-          path: /docusign/webhook
-          method: post
-          cors: true
+          path: /auth/get-username
+          method: options
+          cors:
+            origin: 'https://main.d21xta9fg9b6w.amplifyapp.com'
+            headers:
+              - Content-Type
+              - Authorization
+            allowCredentials: false
 
 resources:
   Resources:
