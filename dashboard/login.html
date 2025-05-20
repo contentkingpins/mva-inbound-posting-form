@@ -418,22 +418,67 @@
         
         // Direct Cognito Authentication Service
         const CognitoAuthService = {
+            // Helper function to find user by email
+            findUserByEmail: function(email) {
+                return new Promise((resolve, reject) => {
+                    // Configure Cognito Identity Service Provider
+                    AWS.config.region = 'us-east-1';
+                    const cognitoIdentityServiceProvider = new AWS.CognitoIdentityServiceProvider();
+                    
+                    // Parameters for listUsers API call
+                    const params = {
+                        UserPoolId: poolData.UserPoolId,
+                        Filter: `email = "${email}"`
+                    };
+                    
+                    // Call listUsers API
+                    cognitoIdentityServiceProvider.listUsers(params, (err, data) => {
+                        if (err) {
+                            console.error('Error finding user by email:', err);
+                            reject(err);
+                            return;
+                        }
+                        
+                        // Check if user was found
+                        if (data.Users && data.Users.length > 0) {
+                            const user = data.Users[0];
+                            console.log('Found user by email:', user.Username);
+                            resolve(user.Username);
+                        } else {
+                            console.error('No user found with email:', email);
+                            reject(new Error('No user found with this email address'));
+                        }
+                    });
+                });
+            },
+            
             // Sign in user
             signIn: function(email, password) {
-                return new Promise((resolve, reject) => {
+                return new Promise(async (resolve, reject) => {
                     try {
                         console.log('Starting Cognito login with SRP...');
                         
-                        // Create the Cognito user
+                        // First, find the username for this email
+                        let username;
+                        try {
+                            username = await this.findUserByEmail(email);
+                            console.log('Found username for login:', username);
+                        } catch (error) {
+                            console.error('Error finding user:', error);
+                            reject(error);
+                            return;
+                        }
+                        
+                        // Create the Cognito user with the found username
                         const userData = {
-                            Username: email,
+                            Username: username,
                             Pool: userPool
                         };
                         const cognitoUser = new AmazonCognitoIdentity.CognitoUser(userData);
                         
                         // Create authentication details
                         const authenticationData = {
-                            Username: email,
+                            Username: username,
                             Password: password
                         };
                         const authenticationDetails = new AmazonCognitoIdentity.AuthenticationDetails(authenticationData);

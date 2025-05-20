@@ -406,8 +406,15 @@
                         });
                         attributeList.push(emailAttribute);
                         
-                        // Sign up with Cognito
-                        userPool.signUp(email, password, attributeList, null, (err, result) => {
+                        // Generate a unique username (use timestamp + random string)
+                        const timestamp = new Date().getTime();
+                        const randomStr = Math.random().toString(36).substring(2, 10);
+                        const username = `user_${timestamp}_${randomStr}`;
+                        
+                        console.log('Using generated username:', username);
+                        
+                        // Sign up with Cognito using generated username
+                        userPool.signUp(username, password, attributeList, null, (err, result) => {
                             if (err) {
                                 console.error('Cognito signup error:', err);
                                 reject(err);
