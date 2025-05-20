@@ -7,6 +7,12 @@
     <link rel="stylesheet" href="styles.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- AWS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/aws-sdk@2.1001.0/dist/aws-sdk.min.js"></script>
+    <!-- Amazon Cognito Identity SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.3.1/dist/amazon-cognito-identity.min.js"></script>
+    <!-- CryptoJS for HMAC-SHA256 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
         :root {
             --primary-color: #0F2D40;
@@ -352,97 +358,75 @@
     </div>
     
     <script>
-        // API Configuration
-        const API_CONFIG = {
-            baseUrl: 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod',
-            endpoints: {
-                signin: '/auth/signin',
-                signup: '/auth/signup',
-                refresh: '/auth/refresh',
-                profile: '/auth/profile',
-                forgotPassword: '/auth/forgot-password',
-                confirmPassword: '/auth/confirm-password',
-                changePassword: '/auth/change-password'
-            }
+        // Cognito Configuration
+        const poolData = {
+            UserPoolId: 'us-east-1_Lhc964tLD',
+            ClientId: '5t6mane4fnvineksoqb4ta0iu1' // New Client ID without secret requirement
         };
+
+        // Initialize Cognito User Pool
+        const userPool = new AmazonCognitoIdentity.CognitoUserPool({
+            UserPoolId: poolData.UserPoolId,
+            ClientId: poolData.ClientId
+        });
         
-        // Initialize configuration
-        let API_ENDPOINT = '';
-        
-        // Load config from config.json
-        async function loadConfig() {
-            try {
-                // Try to load config from config.json if it exists
-                const response = await fetch('config.json');
-                if (response.ok) {
-                    const config = await response.json();
-                    // Store API endpoint for non-auth endpoints
-                    API_ENDPOINT = config.apiEndpoint || 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod';
-                    console.log('Configuration loaded');
-                } else {
-                    console.warn('Could not load config.json, using default configuration');
-                }
-            } catch (error) {
-                console.error('Error loading configuration:', error);
-            }
-        }
-        
-        // Sign Up Service
-        const SignUpService = {
+        // Direct Cognito Authentication Service
+        const CognitoAuthService = {
             // Sign up user
-            signUp: async function(firstName, lastName, email, password) {
-                try {
-                    console.log('Starting signup process...');
-                    console.log('Endpoint:', `${API_CONFIG.baseUrl}${API_CONFIG.endpoints.signup}`);
-                    
-                    // Prepare request body
-                    const requestBody = {
-                        first_name: firstName,
-                        last_name: lastName,
-                        email: email,
-                        password: password
-                    };
-                    
-                    console.log('Request payload:', JSON.stringify(requestBody));
-                    
-                    const response = await fetch(`${API_CONFIG.baseUrl}${API_CONFIG.endpoints.signup}`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json'
-                        },
-                        body: JSON.stringify(requestBody),
-                        credentials: 'include' // Include cookies if any
-                    });
-                    
-                    console.log('Response status:', response.status);
-                    console.log('Response headers:', Object.fromEntries([...response.headers]));
-                    
-                    const data = await response.json();
-                    console.log('Response data:', data);
-                    
-                    if (!response.ok) {
-                        // Better error handling for authentication failures
-                        if (response.status === 401) {
-                            throw new Error(`Authentication failed: ${data.message || 'Please check with administrator'}`);
-                        } else {
-                            throw new Error(data.message || 'Registration failed');
+            signUp: function(firstName, lastName, email, password) {
+                return new Promise((resolve, reject) => {
+                    try {
+                        console.log('Starting Cognito signup...');
+                        
+                        // Create attribute list
+                        const attributeList = [];
+                        
+                        // Add first name attribute
+                        if (firstName) {
+                            const firstNameAttribute = new AmazonCognitoIdentity.CognitoUserAttribute({
+                                Name: 'given_name',
+                                Value: firstName
+                            });
+                            attributeList.push(firstNameAttribute);
                         }
+                        
+                        // Add last name attribute
+                        if (lastName) {
+                            const lastNameAttribute = new AmazonCognitoIdentity.CognitoUserAttribute({
+                                Name: 'family_name',
+                                Value: lastName
+                            });
+                            attributeList.push(lastNameAttribute);
+                        }
+                        
+                        // Always add email as attribute
+                        const emailAttribute = new AmazonCognitoIdentity.CognitoUserAttribute({
+                            Name: 'email',
+                            Value: email
+                        });
+                        attributeList.push(emailAttribute);
+                        
+                        // Sign up with Cognito
+                        userPool.signUp(email, password, attributeList, null, (err, result) => {
+                            if (err) {
+                                console.error('Cognito signup error:', err);
+                                reject(err);
+                                return;
+                            }
+                            
+                            console.log('Cognito signup successful:', result);
+                            resolve(result);
+                        });
+                    } catch (error) {
+                        console.error('Error in Cognito signUp:', error);
+                        reject(error);
                     }
-                    
-                    return data;
-                } catch (error) {
-                    console.error('Signup error details:', error);
-                    throw error;
-                }
+                });
             }
         };
         
         // Initialization and Event Listeners
         document.addEventListener('DOMContentLoaded', async function() {
-            // Load configuration first
-            await loadConfig();
-        
             const signupForm = document.getElementById('signup-form');
             const errorMessage = document.getElementById('error-message');
             const successMessage = document.getElementById('success-message');
@@ -517,11 +501,11 @@
                 clearMessages();
                 
                 try {
-                    // Sign up with API
-                    const result = await SignUpService.signUp(firstName, lastName, email, password);
+                    // Sign up with direct Cognito
+                    const result = await CognitoAuthService.signUp(firstName, lastName, email, password);
                     
                     // Show success message
-                    showSuccess('Account created successfully! You can now log in.');
+                    showSuccess('Account created successfully! Please check your email to verify your account before logging in.');
                     
                     // Reset form
                     signupForm.reset();
@@ -529,10 +513,22 @@
                     // Redirect to login after a delay
                     setTimeout(() => {
                         window.location.href = 'login.html';
-                    }, 3000);
+                    }, 5000);
                     
                 } catch (error) {
-                    showError(error.message || 'Failed to create account. Please try again.');
+                    console.error('Registration error:', error);
+                    let errorMessage = 'Failed to create account.';
+                    
+                    // Handle specific Cognito errors
+                    if (error.code === 'UsernameExistsException') {
+                        errorMessage = 'An account with this email already exists.';
+                    } else if (error.code === 'InvalidPasswordException') {
+                        errorMessage = 'Password does not meet requirements: ' + error.message;
+                    } else if (error.message) {
+                        errorMessage = error.message;
+                    }
+                    
+                    showError(errorMessage);
                     toggleLoading(false);
                 }
             });
