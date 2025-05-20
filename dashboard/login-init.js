@@ -93,11 +93,19 @@ async function signIn(email, password) {
         },
         newPasswordRequired: (userAttributes, requiredAttributes) => {
           // Handle new password required challenge
+          console.log('User needs to set a new password');
+          
+          // Store user data in sessionStorage (never store in localStorage for security)
+          sessionStorage.setItem('cognitoUser', username);
+          sessionStorage.setItem('userEmail', email);
+          sessionStorage.setItem('userAttributes', JSON.stringify(userAttributes));
+          
+          // Resolve with challenge info and cognitoUser for later use
           resolve({
             challengeName: 'NEW_PASSWORD_REQUIRED',
             userAttributes,
             requiredAttributes,
-            user: cognitoUser
+            cognitoUser // Include the cognitoUser object for later use
           });
         }
       });
@@ -108,30 +116,186 @@ async function signIn(email, password) {
   }
 }
 
-// Complete new password challenge
-function completeNewPasswordChallenge(user, newPassword) {
-  return new Promise((resolve, reject) => {
-    user.completeNewPasswordChallenge(newPassword, {}, {
-      onSuccess: (result) => {
-        // Store tokens in localStorage after password challenge
-        const tokens = {
-          accessToken: result.getAccessToken().getJwtToken(),
-          idToken: result.getIdToken().getJwtToken(),
-          refreshToken: result.getRefreshToken().getToken()
-        };
-        
-        localStorage.setItem('accessToken', tokens.accessToken);
-        localStorage.setItem('idToken', tokens.idToken);
-        localStorage.setItem('refreshToken', tokens.refreshToken);
-        localStorage.setItem('auth_token', tokens.idToken); // For compatibility
-        
-        resolve(result);
-      },
-      onFailure: (err) => {
-        reject(err);
-      }
+/**
+ * Validate password against Cognito requirements
+ */
+function validatePassword(password) {
+  // Password requirements (adjust based on your Cognito settings)
+  const minLength = 8;
+  const requireNumbers = true;
+  const requireSpecialChars = true;
+  const requireUppercase = true;
+  const requireLowercase = true;
+  
+  let errors = [];
+  
+  if (password.length < minLength) {
+    errors.push(`Password must be at least ${minLength} characters long.`);
+  }
+  
+  if (requireNumbers && !/[0-9]/.test(password)) {
+    errors.push('Password must contain at least one number.');
+  }
+  
+  if (requireSpecialChars && !/[^A-Za-z0-9]/.test(password)) {
+    errors.push('Password must contain at least one special character.');
+  }
+  
+  if (requireUppercase && !/[A-Z]/.test(password)) {
+    errors.push('Password must contain at least one uppercase letter.');
+  }
+  
+  if (requireLowercase && !/[a-z]/.test(password)) {
+    errors.push('Password must contain at least one lowercase letter.');
+  }
+  
+  return {
+    valid: errors.length === 0,
+    errors: errors
+  };
+}
+
+/**
+ * Complete the new password challenge
+ */
+async function completePasswordReset() {
+  const messageElement = document.getElementById('password-reset-error');
+  const successElement = document.getElementById('password-reset-success');
+  const newPassword = document.getElementById('newPassword').value;
+  const confirmPassword = document.getElementById('confirmPassword').value;
+  const passwordResetLoader = document.getElementById('password-reset-loader');
+  
+  // Show loader
+  passwordResetLoader.style.display = 'inline-block';
+  
+  // Clear messages
+  messageElement.style.display = 'none';
+  messageElement.textContent = '';
+  successElement.style.display = 'none';
+  
+  // Validate passwords match
+  if (newPassword !== confirmPassword) {
+    messageElement.textContent = 'Passwords do not match.';
+    messageElement.style.display = 'block';
+    passwordResetLoader.style.display = 'none';
+    return;
+  }
+  
+  // Validate password strength
+  const validation = validatePassword(newPassword);
+  if (!validation.valid) {
+    messageElement.textContent = validation.errors.join(' ');
+    messageElement.style.display = 'block';
+    passwordResetLoader.style.display = 'none';
+    return;
+  }
+  
+  try {
+    // Get stored user data
+    const username = sessionStorage.getItem('cognitoUser');
+    const email = sessionStorage.getItem('userEmail');
+    const userAttributes = JSON.parse(sessionStorage.getItem('userAttributes') || '{}');
+    
+    if (!username) {
+      throw new Error('User session data is missing.');
+    }
+    
+    // Create Cognito user object
+    const userData = {
+      Username: username,
+      Pool: userPool
+    };
+    const cognitoUser = new CognitoUser(userData);
+    
+    // Complete the new password challenge
+    return new Promise((resolve, reject) => {
+      cognitoUser.completeNewPasswordChallenge(newPassword, userAttributes, {
+        onSuccess: (result) => {
+          console.log('Password changed successfully');
+          
+          // Store tokens in localStorage
+          const tokens = {
+            accessToken: result.getAccessToken().getJwtToken(),
+            idToken: result.getIdToken().getJwtToken(),
+            refreshToken: result.getRefreshToken().getToken()
+          };
+          
+          localStorage.setItem('accessToken', tokens.accessToken);
+          localStorage.setItem('idToken', tokens.idToken);
+          localStorage.setItem('refreshToken', tokens.refreshToken);
+          localStorage.setItem('auth_token', tokens.idToken); // For compatibility
+          
+          // Create user object
+          const user = { username: email };
+          
+          // Get user attributes
+          cognitoUser.getUserAttributes((err, attributes) => {
+            if (err) {
+              console.error('Error getting user attributes:', err);
+            } else if (attributes) {
+              attributes.forEach(attr => {
+                user[attr.getName()] = attr.getValue();
+              });
+              
+              // Store user info
+              localStorage.setItem('user', JSON.stringify(user));
+            }
+            
+            // Clear session storage
+            sessionStorage.removeItem('cognitoUser');
+            sessionStorage.removeItem('userEmail');
+            sessionStorage.removeItem('userAttributes');
+            
+            // Show success message
+            successElement.textContent = 'Password changed successfully! Redirecting to dashboard...';
+            successElement.style.display = 'block';
+            messageElement.style.display = 'none';
+            passwordResetLoader.style.display = 'none';
+            
+            // Redirect to dashboard after a delay
+            setTimeout(() => {
+              window.location.href = 'index.html';
+            }, 2000);
+            
+            resolve(result);
+          });
+        },
+        onFailure: (err) => {
+          console.error('Failed to change password:', err);
+          
+          // Show error message
+          messageElement.textContent = err.message || 'Failed to change password. Please try again.';
+          messageElement.style.display = 'block';
+          passwordResetLoader.style.display = 'none';
+          
+          reject(err);
+        }
+      });
     });
-  });
+  } catch (error) {
+    console.error('Error in password reset:', error);
+    
+    // Show error message
+    messageElement.textContent = error.message || 'An error occurred. Please try again.';
+    messageElement.style.display = 'block';
+    passwordResetLoader.style.display = 'none';
+    
+    throw error;
+  }
+}
+
+/**
+ * Cancel the password reset
+ */
+function cancelPasswordReset() {
+  // Clear session storage
+  sessionStorage.removeItem('cognitoUser');
+  sessionStorage.removeItem('userEmail');
+  sessionStorage.removeItem('userAttributes');
+  
+  // Show login form
+  document.getElementById('passwordResetForm').style.display = 'none';
+  document.getElementById('loginForm').style.display = 'block';
 }
 
 // Initialize login functionality
@@ -222,6 +386,10 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
     
+    // Add password reset handlers
+    document.getElementById('submitNewPassword').addEventListener('click', completePasswordReset);
+    document.getElementById('cancelPasswordReset').addEventListener('click', cancelPasswordReset);
+
     // Handle login form submission
     if (loginForm) {
       loginForm.addEventListener('submit', async function(event) {
@@ -247,13 +415,9 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('New password required');
             loginLoader.style.display = 'none';
             
-            // Store user info in session for password reset page
-            sessionStorage.setItem('username', email);
-            sessionStorage.setItem('newPasswordRequired', 'true');
-            sessionStorage.setItem('cognitoUser', JSON.stringify(result.user));
-            
-            // Redirect to password reset page
-            window.location.href = 'reset-password.html';
+            // Show password reset form, hide login form
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('passwordResetForm').style.display = 'block';
           } else {
             console.log('Authentication successful');
             
@@ -306,5 +470,5 @@ document.addEventListener('DOMContentLoaded', function() {
   // Export functions for global access if needed
   window.getUsernameByEmail = getUsernameByEmail;
   window.signIn = signIn;
-  window.completeNewPasswordChallenge = completeNewPasswordChallenge;
+  window.completePasswordReset = completePasswordReset;
 }); 
