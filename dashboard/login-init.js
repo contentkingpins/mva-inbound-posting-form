@@ -11,54 +11,38 @@ const poolData = {
 // Initialize the Cognito User Pool
 const userPool = new CognitoUserPool(poolData);
 
-// Find user by email (requires AWS SDK)
-function findUserByEmail(email) {
-  return new Promise((resolve, reject) => {
-    try {
-      // Configure AWS SDK
-      AWS.config.region = 'us-east-1';
-      
-      // Create CognitoIdentityServiceProvider
-      const cognitoIdentityServiceProvider = new AWS.CognitoIdentityServiceProvider();
-      
-      // Prepare parameters for listUsers API call
-      const params = {
-        UserPoolId: poolData.UserPoolId,
-        Filter: `email = "${email}"`
-      };
-      
-      // Call listUsers API to find user by email
-      cognitoIdentityServiceProvider.listUsers(params, (err, data) => {
-        if (err) {
-          console.error('Error finding user by email:', err);
-          reject(err);
-          return;
-        }
-        
-        // Check if any users were found
-        if (data.Users && data.Users.length > 0) {
-          // Return the username of the first matching user
-          const user = data.Users[0];
-          console.log('Found user by email:', user.Username);
-          resolve(user.Username);
-        } else {
-          // No user found with this email
-          console.error('No user found with email:', email);
-          reject(new Error('No user found with this email address'));
-        }
-      });
-    } catch (error) {
-      console.error('Error in findUserByEmail:', error);
-      reject(error);
-    }
+/**
+ * Get username by email using backend API endpoint
+ * This is more secure than using AWS SDK directly from the browser
+ * @param {string} email - User's email address
+ * @returns {Promise<string>} - User's Cognito username
+ */
+async function getUsernameByEmail(email) {
+  const response = await fetch('https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod/auth/get-username', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ email })
   });
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error('User with this email does not exist');
+    }
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Error looking up username');
+  }
+
+  const data = await response.json();
+  return data.username;
 }
 
 // User sign-in function - modified to look up username by email first
 async function signIn(email, password) {
   try {
-    // First find the username for this email
-    const username = await findUserByEmail(email);
+    // First find the username for this email using backend API
+    const username = await getUsernameByEmail(email);
     console.log('Found username for login:', username);
     
     // Proceed with authentication using the found username
@@ -152,16 +136,8 @@ function completeNewPasswordChallenge(user, newPassword) {
 
 // Initialize login functionality
 document.addEventListener('DOMContentLoaded', function() {
-  // Add the AWS SDK if it's not already included
-  if (typeof AWS === 'undefined') {
-    const awsScript = document.createElement('script');
-    awsScript.src = 'https://cdn.jsdelivr.net/npm/aws-sdk@2.1001.0/dist/aws-sdk.min.js';
-    awsScript.async = true;
-    awsScript.onload = initializeLoginForm;
-    document.head.appendChild(awsScript);
-  } else {
-    initializeLoginForm();
-  }
+  // No longer need AWS SDK since we're using the backend API endpoint
+  initializeLoginForm();
   
   function initializeLoginForm() {
     const loginForm = document.getElementById('login-form');
@@ -214,7 +190,7 @@ document.addEventListener('DOMContentLoaded', function() {
           
           try {
             // Get the username for this email
-            const username = await findUserByEmail(email);
+            const username = await getUsernameByEmail(email);
             
             // Create Cognito user
             const userData = {
@@ -312,7 +288,7 @@ document.addEventListener('DOMContentLoaded', function() {
             errorMessage.textContent = 'Please verify your email before logging in.';
             // Show resend verification link
             showResendVerificationUI(emailInput.value.trim());
-          } else if (error.message === 'No user found with this email address') {
+          } else if (error.message === 'User with this email does not exist') {
             errorMessage.textContent = 'No account found with this email. Please check your email or sign up.';
           } else if (error.code === 'NotAuthorizedException') {
             errorMessage.textContent = 'Incorrect username or password.';
@@ -326,7 +302,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // Export functions for global access if needed
-  window.findUserByEmail = findUserByEmail;
+  window.getUsernameByEmail = getUsernameByEmail;
   window.signIn = signIn;
   window.completeNewPasswordChallenge = completeNewPasswordChallenge;
 }); 
