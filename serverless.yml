@@ -120,7 +120,7 @@ functions:
     handler: get-username-by-email.handler
     events:
       - http:
-          path: /auth/get-username
+          path: /get-username-by-email
           method: post
           cors:
             origin: 'https://main.d21xta9fg9b6w.amplifyapp.com'
@@ -129,7 +129,7 @@ functions:
               - Authorization
             allowCredentials: false
       - http:
-          path: /auth/get-username
+          path: /get-username-by-email
           method: options
           cors:
             origin: 'https://main.d21xta9fg9b6w.amplifyapp.com'
@@ -140,10 +140,10 @@ functions:
   
   # New function to handle forgot password requests
   forgotPassword:
-    handler: forgot-password-handler.js
+    handler: forgot-password-handler.handler
     events:
       - http:
-          path: /auth/forgot-password
+          path: /forgot-password
           method: post
           cors:
             origin: 'https://main.d21xta9fg9b6w.amplifyapp.com'
@@ -152,7 +152,7 @@ functions:
               - Authorization
             allowCredentials: false
       - http:
-          path: /auth/forgot-password
+          path: /forgot-password
           method: options
           cors:
             origin: 'https://main.d21xta9fg9b6w.amplifyapp.com'
@@ -166,7 +166,7 @@ functions:
     handler: confirm-reset-handler.handler
     events:
       - http:
-          path: /auth/confirm
+          path: /confirm-forgot-password
           method: post
           cors:
             origin: 'https://main.d21xta9fg9b6w.amplifyapp.com'
@@ -175,7 +175,7 @@ functions:
               - Authorization
             allowCredentials: false
       - http:
-          path: /auth/confirm
+          path: /confirm-forgot-password
           method: options
           cors:
             origin: 'https://main.d21xta9fg9b6w.amplifyapp.com'
