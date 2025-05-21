@@ -512,15 +512,15 @@
                     const result = await CognitoAuthService.signUp(firstName, lastName, email, password);
                     
                     // Show success message
-                    showSuccess('Account created successfully! Please check your email to verify your account before logging in.');
+                    showSuccess('Account created successfully! We\'re redirecting you to the verification page...');
                     
                     // Reset form
                     signupForm.reset();
                     
-                    // Redirect to login after a delay
+                    // Redirect to verification page after a delay, with email in URL
                     setTimeout(() => {
-                        window.location.href = 'login.html';
-                    }, 5000);
+                        window.location.href = `verify.html?email=${encodeURIComponent(email)}`;
+                    }, 3000);
                     
                 } catch (error) {
                     console.error('Registration error:', error);
