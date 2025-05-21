@@ -45,6 +45,8 @@ provider:
     - Effect: Allow
       Action:
         - cognito-idp:ListUsers
+        - cognito-idp:ForgotPassword
+        - cognito-idp:ConfirmForgotPassword
       Resource: "arn:aws:cognito-idp:${self:provider.region}:*:userpool/${self:provider.environment.USER_POOL_ID}"
   # Configure API Gateway access logs
   apiGateway:
@@ -128,6 +130,52 @@ functions:
             allowCredentials: false
       - http:
           path: /auth/get-username
+          method: options
+          cors:
+            origin: 'https://main.d21xta9fg9b6w.amplifyapp.com'
+            headers:
+              - Content-Type
+              - Authorization
+            allowCredentials: false
+            
+  # Forgot password function
+  forgotPassword:
+    handler: forgot-password.handler
+    events:
+      - http:
+          path: /auth/forgot-password
+          method: post
+          cors:
+            origin: 'https://main.d21xta9fg9b6w.amplifyapp.com'
+            headers:
+              - Content-Type
+              - Authorization
+            allowCredentials: false
+      - http:
+          path: /auth/forgot-password
+          method: options
+          cors:
+            origin: 'https://main.d21xta9fg9b6w.amplifyapp.com'
+            headers:
+              - Content-Type
+              - Authorization
+            allowCredentials: false
+            
+  # Confirm forgot password function
+  confirmForgotPassword:
+    handler: confirm-forgot-password.handler
+    events:
+      - http:
+          path: /auth/confirm-forgot-password
+          method: post
+          cors:
+            origin: 'https://main.d21xta9fg9b6w.amplifyapp.com'
+            headers:
+              - Content-Type
+              - Authorization
+            allowCredentials: false
+      - http:
+          path: /auth/confirm-forgot-password
           method: options
           cors:
             origin: 'https://main.d21xta9fg9b6w.amplifyapp.com'
