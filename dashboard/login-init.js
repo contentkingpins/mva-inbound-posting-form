@@ -18,7 +18,7 @@ const userPool = new CognitoUserPool(poolData);
  * @returns {Promise<string>} - User's Cognito username
  */
 async function getUsernameByEmail(email) {
-  const response = await fetch('https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod/auth/get-username', {
+  const response = await fetch('https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod/get-username-by-email', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
