@@ -135,6 +135,29 @@ functions:
               - Content-Type
               - Authorization
             allowCredentials: false
+  
+  # New function to handle forgot password requests
+  forgotPassword:
+    handler: forgot-password-handler.handler
+    events:
+      - http:
+          path: /auth/forgot-password
+          method: post
+          cors:
+            origin: 'https://main.d21xta9fg9b6w.amplifyapp.com'
+            headers:
+              - Content-Type
+              - Authorization
+            allowCredentials: false
+      - http:
+          path: /auth/forgot-password
+          method: options
+          cors:
+            origin: 'https://main.d21xta9fg9b6w.amplifyapp.com'
+            headers:
+              - Content-Type
+              - Authorization
+            allowCredentials: false
 
 resources:
   Resources:
