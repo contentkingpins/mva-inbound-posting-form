@@ -137,10 +137,17 @@ functions:
               - Content-Type
               - Authorization
             allowCredentials: false
+ main
             
   # Forgot password function
   forgotPassword:
     handler: forgot-password.handler
+
+  
+  # New function to handle forgot password requests
+  forgotPassword:
+    handler: forgot-password-handler.handler
+ main
     events:
       - http:
           path: /auth/forgot-password
@@ -160,6 +167,7 @@ functions:
               - Content-Type
               - Authorization
             allowCredentials: false
+ main
             
   # Confirm forgot password function
   confirmForgotPassword:
@@ -183,6 +191,8 @@ functions:
               - Content-Type
               - Authorization
             allowCredentials: false
+
+ main
 
 resources:
   Resources:
