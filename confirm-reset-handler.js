@@ -2,11 +2,11 @@ const AWS = require('aws-sdk');
 const cognitoISP = new AWS.CognitoIdentityServiceProvider();
 
 /**
- * Lambda function to handle forgot password requests
- * This endpoint initiates the reset password flow in Cognito
+ * Lambda function to confirm a password reset
+ * This endpoint completes the reset password flow in Cognito
  */
 exports.handler = async (event) => {
-  console.log('Forgot password request received:', JSON.stringify(event, null, 2));
+  console.log('Password reset confirmation request received:', JSON.stringify(event, null, 2));
   
   // Enable CORS for browser requests
   const headers = {
@@ -28,11 +28,13 @@ exports.handler = async (event) => {
   
   try {
     console.log('Processing request body');
-    let username;
+    let username, code, password;
     
     try {
       const body = JSON.parse(event.body || '{}');
       username = body.username;
+      code = body.code;
+      password = body.password;
       console.log('Parsed username:', username);
     } catch (parseError) {
       console.error('Error parsing request body:', parseError);
@@ -43,35 +45,36 @@ exports.handler = async (event) => {
       };
     }
     
-    if (!username) {
-      console.log('Username is missing from request');
+    if (!username || !code || !password) {
+      console.log('Missing required fields');
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ message: "Username is required" })
+        body: JSON.stringify({ message: "Username, code, and password are all required" })
       };
     }
     
-    // Initiate forgot password flow
-    const forgotPasswordParams = {
+    // Confirm password reset
+    const confirmResetParams = {
       ClientId: '5t6mane4fnvineksoqb4ta0iu1', // Client ID from your Cognito User Pool
-      Username: username
+      Username: username,
+      ConfirmationCode: code,
+      Password: password
     };
     
-    const forgotPasswordResult = await cognitoISP.forgotPassword(forgotPasswordParams).promise();
-    console.log('Forgot password initiated:', JSON.stringify(forgotPasswordResult, null, 2));
+    await cognitoISP.confirmForgotPassword(confirmResetParams).promise();
+    console.log('Password reset confirmed for user:', username);
     
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({ 
-        message: "Password reset code has been sent to your email",
-        delivery: forgotPasswordResult.CodeDeliveryDetails
+        message: "Password reset successful"
       })
     };
     
   } catch (error) {
-    console.error('Error in forgot password flow:', error);
+    console.error('Error in confirming password reset:', error);
     
     // Specific error handling
     if (error.code === 'UserNotFoundException') {
@@ -80,11 +83,29 @@ exports.handler = async (event) => {
         headers,
         body: JSON.stringify({ message: "User not found" })
       };
+    } else if (error.code === 'ExpiredCodeException') {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ message: "Verification code has expired. Please request a new code." })
+      };
+    } else if (error.code === 'CodeMismatchException') {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ message: "Invalid verification code. Please check and try again." })
+      };
+    } else if (error.code === 'InvalidPasswordException') {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ message: "Password does not meet requirements. It must include uppercase, lowercase, numbers, and special characters." })
+      };
     } else if (error.code === 'LimitExceededException') {
       return {
         statusCode: 429,
         headers,
-        body: JSON.stringify({ message: "Too many requests. Please try again later" })
+        body: JSON.stringify({ message: "Too many attempts. Please try again later." })
       };
     }
     
@@ -93,7 +114,7 @@ exports.handler = async (event) => {
       statusCode: 500,
       headers,
       body: JSON.stringify({ 
-        message: "Failed to initiate password reset",
+        message: "Failed to reset password",
         error: error.message
       })
     };

@@ -158,6 +158,29 @@ functions:
               - Content-Type
               - Authorization
             allowCredentials: false
+            
+  # New function to handle password reset confirmation
+  confirmReset:
+    handler: confirm-reset-handler.handler
+    events:
+      - http:
+          path: /auth/confirm
+          method: post
+          cors:
+            origin: 'https://main.d21xta9fg9b6w.amplifyapp.com'
+            headers:
+              - Content-Type
+              - Authorization
+            allowCredentials: false
+      - http:
+          path: /auth/confirm
+          method: options
+          cors:
+            origin: 'https://main.d21xta9fg9b6w.amplifyapp.com'
+            headers:
+              - Content-Type
+              - Authorization
+            allowCredentials: false
 
 resources:
   Resources:
