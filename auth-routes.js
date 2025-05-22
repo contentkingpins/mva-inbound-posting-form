@@ -1,9 +1,9 @@
-import express from 'express';
-import AWS from 'aws-sdk';
-import jwt from 'jsonwebtoken';
-import jwkToPem from 'jwk-to-pem';
-import axios from 'axios';
-import config from './config.json' assert { type: 'json' };
+const express = require('express');
+const AWS = require('aws-sdk');
+const jwt = require('jsonwebtoken');
+const jwkToPem = require('jwk-to-pem');
+const axios = require('axios');
+const config = require('./config.json');
 
 const router = express.Router();
 
@@ -277,4 +277,4 @@ router.post('/users/:username/password', verifyToken, async (req, res) => {
   }
 });
 
-export default router; 
+module.exports = router; 

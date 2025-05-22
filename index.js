@@ -1391,6 +1391,24 @@ async function handleAuthRoutes(path, httpMethod, event) {
   
   const authPath = match[1];
   
+  // Handle get-username endpoint
+  if (authPath === 'get-username' && httpMethod === 'POST') {
+    const getUsernameHandler = require('./get-username-by-email');
+    return await getUsernameHandler.handler(event);
+  }
+  
+  // Handle forgot-password endpoint
+  if (authPath === 'forgot-password' && httpMethod === 'POST') {
+    const forgotPasswordHandler = require('./forgot-password-handler');
+    return await forgotPasswordHandler.handler(event);
+  }
+  
+  // Handle confirm-forgot-password endpoint
+  if (authPath === 'confirm-forgot-password' && httpMethod === 'POST') {
+    const confirmForgotPasswordHandler = require('./confirm-forgot-password');
+    return await confirmForgotPasswordHandler.handler(event);
+  }
+  
   // Handle login
   if (authPath === 'login' && httpMethod === 'POST') {
     return authRoutes.handleLogin(event);
@@ -1399,11 +1417,6 @@ async function handleAuthRoutes(path, httpMethod, event) {
   // Handle user registration (admin only)
   if (authPath === 'register' && httpMethod === 'POST') {
     return authRoutes.handleRegister(event);
-  }
-  
-  // Handle password reset request
-  if (authPath === 'forgot-password' && httpMethod === 'POST') {
-    return authRoutes.handleForgotPassword(event);
   }
   
   // Handle reset token verification
