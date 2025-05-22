@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Client ID Compatibility</title>
+    <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.3.1/dist/amazon-cognito-identity.min.js"></script>
+</head>
+<body>
+    <h1>Test Client ID Compatibility</h1>
+    
+    <div>
+        <h3>Test with Client ID: 5t6mane4fnvineksoqb4ta0iu1</h3>
+        <button onclick="testClientId1()">Test Frontend Client ID</button>
+        <div id="result1"></div>
+    </div>
+    
+    <div>
+        <h3>Test with Client ID: 357mvn7k2nkjhl5nsq8h00o9tr</h3>
+        <button onclick="testClientId2()">Test Backend Client ID</button>
+        <div id="result2"></div>
+    </div>
+
+    <script>
+        const userPoolId = 'us-east-1_Lhc964tLD';
+        const username = 'user_1747758548952_xltfal5k';
+
+        function testClientId1() {
+            testWithClientId('5t6mane4fnvineksoqb4ta0iu1', 'result1');
+        }
+
+        function testClientId2() {
+            testWithClientId('357mvn7k2nkjhl5nsq8h00o9tr', 'result2');
+        }
+
+        function testWithClientId(clientId, resultDiv) {
+            const resultElement = document.getElementById(resultDiv);
+            resultElement.innerHTML = 'Testing...';
+
+            try {
+                const userPool = new AmazonCognitoIdentity.CognitoUserPool({
+                    UserPoolId: userPoolId,
+                    ClientId: clientId
+                });
+
+                const cognitoUser = new AmazonCognitoIdentity.CognitoUser({
+                    Username: username,
+                    Pool: userPool
+                });
+
+                cognitoUser.forgotPassword({
+                    onSuccess: function(data) {
+                        resultElement.innerHTML = `✅ SUCCESS: ${JSON.stringify(data)}`;
+                    },
+                    onFailure: function(err) {
+                        resultElement.innerHTML = `❌ FAILED: ${err.message}`;
+                    }
+                });
+            } catch (error) {
+                resultElement.innerHTML = `❌ ERROR: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html> 

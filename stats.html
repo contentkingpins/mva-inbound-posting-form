@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claim Connectors CRM - Activity</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Chart.js for visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Additional stats dashboard styles */
+        .stats-card {
+            background-color: white;
+            border-radius: 6px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        
+        .stats-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .stats-title {
+            font-size: 18px;
+            color: #2d3748;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .time-period-selector {
+            display: flex;
+            background-color: #f7fafc;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .time-period-selector button {
+            background: none;
+            border: none;
+            padding: 8px 12px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .time-period-selector button.active {
+            background-color: #4299e1;
+            color: white;
+        }
+        
+        .time-period-selector button:hover:not(.active) {
+            background-color: #edf2f7;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+        
+        .metric-card {
+            background-color: #f7fafc;
+            border-radius: 4px;
+            padding: 16px;
+            text-align: center;
+        }
+        
+        .metric-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2d3748;
+            margin: 8px 0;
+        }
+        
+        .metric-label {
+            font-size: 14px;
+            color: #718096;
+        }
+        
+        .vendor-stats-table {
+            width: 100%;
+            margin-top: 20px;
+        }
+        
+        .vendor-stats-table th {
+            background-color: #f1f5f9;
+        }
+        
+        .vendor-stats-table td.count-cell {
+            font-weight: 600;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Vendor Activity Tracker</h1>
+            <div class="controls">
+                <a href="index.html" class="btn">Lead Dashboard</a>
+                <a href="vendors.html" class="btn">Vendor Management</a>
+            </div>
+        </header>
+
+        <main>
+            <div id="loading" class="loading">Loading statistics...</div>
+            <div id="error" class="error"></div>
+
+            <!-- Overall Lead Statistics -->
+            <section class="stats-card">
+                <div class="stats-header">
+                    <h2 class="stats-title">Lead Volume Over Time</h2>
+                    <div class="time-period-selector" id="chart-period-selector">
+                        <button data-period="daily" class="active">Daily</button>
+                        <button data-period="weekly">Weekly</button>
+                        <button data-period="monthly">Monthly</button>
+                        <button data-period="all_time">All Time</button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="lead-volume-chart"></canvas>
+                </div>
+            </section>
+
+            <!-- Summary Metrics -->
+            <section class="stats-card">
+                <h2 class="stats-title">Performance Summary</h2>
+                <div class="metrics-grid" id="metrics-grid">
+                    <!-- Will be populated dynamically -->
+                </div>
+            </section>
+
+            <!-- Vendor Breakdown -->
+            <section class="stats-card">
+                <div class="stats-header">
+                    <h2 class="stats-title">Vendor Performance</h2>
+                    <div class="time-period-selector" id="table-period-selector">
+                        <button data-period="daily" class="active">Daily</button>
+                        <button data-period="weekly">Weekly</button>
+                        <button data-period="monthly">Monthly</button>
+                        <button data-period="all_time">All Time</button>
+                    </div>
+                </div>
+                <table class="vendor-stats-table" id="vendor-stats-table">
+                    <thead>
+                        <tr>
+                            <th>Vendor Code</th>
+                            <th>Leads</th>
+                            <th>% of Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="vendor-stats-body">
+                        <!-- Will be populated dynamically -->
+                    </tbody>
+                </table>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // Configuration
+        const API_ENDPOINT = 'https://nv01uveape.execute-api.us-east-1.amazonaws.com/prod';
+        const LEADS_ENDPOINT = `${API_ENDPOINT}/leads`;
+        const STATS_ENDPOINT = `${API_ENDPOINT}/stats`;
+
+        // DOM Elements
+        const loadingEl = document.getElementById('loading');
+        const errorEl = document.getElementById('error');
+        const chartPeriodSelector = document.getElementById('chart-period-selector');
+        const tablePeriodSelector = document.getElementById('table-period-selector');
+        const metricsGrid = document.getElementById('metrics-grid');
+        const vendorStatsBody = document.getElementById('vendor-stats-body');
+        const leadVolumeCanvas = document.getElementById('lead-volume-chart');
+
+        // State
+        let leadStats = null;
+        let leadVolumeChart = null;
+        let chartPeriod = 'daily';
+        let tablePeriod = 'daily';
+        let vendors = [];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchLeadStats();
+            
+            // Set up event listeners
+            chartPeriodSelector.addEventListener('click', handleChartPeriodChange);
+            tablePeriodSelector.addEventListener('click', handleTablePeriodChange);
+        });
+
+        // Fetch lead statistics from API
+        async function fetchLeadStats() {
+            showLoading(true);
+            hideError();
+            
+            try {
+                const response = await fetch(`${STATS_ENDPOINT}?period=all`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    mode: 'cors'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error ${response.status}`);
+                }
+                
+                leadStats = await response.json();
+                
+                // Fetch vendors to ensure we have all vendor names
+                await fetchVendors();
+                
+                // Render stats
+                renderStats();
+                
+            } catch (error) {
+                console.error('Error fetching lead statistics:', error);
+                showError('Failed to fetch lead statistics. Please check your API endpoint and try again.');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Fetch vendors (for better display names)
+        async function fetchVendors() {
+            try {
+                // Placeholder - In production, you would have a vendor API endpoint
+                // For now, we'll extract vendor codes from the stats
+                const allVendors = new Set();
+                
+                for (const period in leadStats) {
+                    leadStats[period].forEach(stat => {
+                        if (stat.vendor_code) {
+                            allVendors.add(stat.vendor_code);
+                        }
+                    });
+                }
+                
+                vendors = Array.from(allVendors).map(code => ({ vendor_code: code }));
+                
+            } catch (error) {
+                console.error('Error fetching vendors:', error);
+            }
+        }
+
+        // Render all statistics
+        function renderStats() {
+            renderSummaryMetrics();
+            renderLeadVolumeChart();
+            renderVendorTable();
+        }
+
+        // Render summary metrics
+        function renderSummaryMetrics() {
+            // Clear existing metrics
+            metricsGrid.innerHTML = '';
+            
+            // Calculate total leads for each period
+            const totals = {
+                daily: calculateTotal(leadStats.daily),
+                weekly: calculateTotal(leadStats.weekly),
+                monthly: calculateTotal(leadStats.monthly),
+                all_time: calculateTotal(leadStats.all_time)
+            };
+            
+            // Calculate top vendor for today
+            const topVendorToday = findTopVendor(leadStats.daily);
+            
+            // Add metrics
+            addMetric('Today', totals.daily, 'Leads');
+            addMetric('This Week', totals.weekly, 'Leads');
+            addMetric('This Month', totals.monthly, 'Leads');
+            addMetric('All Time', totals.all_time, 'Leads');
+            addMetric('Top Vendor Today', topVendorToday ? topVendorToday.vendor_code : 'N/A', 
+                topVendorToday ? `${topVendorToday.count} Leads` : '');
+            
+            // If there's data available, calculate week-over-week and month-over-month growth
+            // This would require historical data not available in this implementation
+        }
+
+        // Add a metric card to the metrics grid
+        function addMetric(label, value, subtitle = '') {
+            const metricCard = document.createElement('div');
+            metricCard.className = 'metric-card';
+            
+            metricCard.innerHTML = `
+                <div class="metric-label">${escapeHtml(label)}</div>
+                <div class="metric-value">${escapeHtml(value.toString())}</div>
+                ${subtitle ? `<div class="metric-label">${escapeHtml(subtitle)}</div>` : ''}
+            `;
+            
+            metricsGrid.appendChild(metricCard);
+        }
+
+        // Render lead volume chart
+        function renderLeadVolumeChart() {
+            // Prepare data for the selected period
+            const data = leadStats[chartPeriod];
+            
+            // Sort vendors by count (highest first)
+            const sortedData = [...data].sort((a, b) => b.count - a.count);
+            
+            // Prepare chart data
+            const chartData = {
+                labels: sortedData.map(stat => stat.vendor_code),
+                datasets: [{
+                    label: 'Leads',
+                    data: sortedData.map(stat => stat.count),
+                    backgroundColor: [
+                        '#4299e1', '#48bb78', '#ed8936', '#ecc94b', '#9f7aea',
+                        '#f56565', '#38b2ac', '#667eea', '#ed64a6', '#a0aec0'
+                    ]
+                }]
+            };
+            
+            // Create or update chart
+            if (leadVolumeChart) {
+                leadVolumeChart.data = chartData;
+                leadVolumeChart.update();
+            } else {
+                leadVolumeChart = new Chart(leadVolumeCanvas, {
+                    type: 'bar',
+                    data: chartData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            title: {
+                                display: true,
+                                text: getPeriodTitle(chartPeriod)
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Number of Leads'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Vendor'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Render vendor stats table
+        function renderVendorTable() {
+            // Clear existing rows
+            vendorStatsBody.innerHTML = '';
+            
+            // Get data for the selected period
+            const data = leadStats[tablePeriod];
+            
+            // Calculate total leads for this period
+            const totalLeads = calculateTotal(data);
+            
+            // Sort vendors by count (highest first)
+            const sortedData = [...data].sort((a, b) => b.count - a.count);
+            
+            // Add rows for each vendor
+            sortedData.forEach(stat => {
+                const row = document.createElement('tr');
+                const percentage = totalLeads > 0 ? ((stat.count / totalLeads) * 100).toFixed(1) : '0.0';
+                
+                row.innerHTML = `
+                    <td>${escapeHtml(stat.vendor_code)}</td>
+                    <td class="count-cell">${stat.count}</td>
+                    <td class="count-cell">${percentage}%</td>
+                `;
+                
+                vendorStatsBody.appendChild(row);
+            });
+            
+            // If no data, show a message
+            if (sortedData.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = '<td colspan="3" style="text-align: center;">No data available for this period</td>';
+                vendorStatsBody.appendChild(row);
+            }
+        }
+
+        // Handle chart period change
+        function handleChartPeriodChange(event) {
+            const target = event.target;
+            if (target.tagName === 'BUTTON') {
+                // Update active button
+                chartPeriodSelector.querySelectorAll('button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                target.classList.add('active');
+                
+                // Update state
+                chartPeriod = target.dataset.period;
+                
+                // Update chart
+                renderLeadVolumeChart();
+            }
+        }
+
+        // Handle table period change
+        function handleTablePeriodChange(event) {
+            const target = event.target;
+            if (target.tagName === 'BUTTON') {
+                // Update active button
+                tablePeriodSelector.querySelectorAll('button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                target.classList.add('active');
+                
+                // Update state
+                tablePeriod = target.dataset.period;
+                
+                // Update table
+                renderVendorTable();
+            }
+        }
+
+        // Helper functions
+        function calculateTotal(data) {
+            return data.reduce((sum, stat) => sum + stat.count, 0);
+        }
+
+        function findTopVendor(data) {
+            if (!data || data.length === 0) return null;
+            return data.reduce((max, current) => (current.count > max.count) ? current : max, data[0]);
+        }
+
+        function getPeriodTitle(period) {
+            switch (period) {
+                case 'daily': return 'Leads Today';
+                case 'weekly': return 'Leads This Week';
+                case 'monthly': return 'Leads This Month';
+                case 'all_time': return 'All Time Leads';
+                default: return 'Lead Volume';
+            }
+        }
+
+        function showLoading(show) {
+            loadingEl.style.display = show ? 'block' : 'none';
+        }
+
+        function showError(message) {
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+        }
+
+        function hideError() {
+            errorEl.style.display = 'none';
+        }
+
+        function escapeHtml(text) {
+            if (text === null || text === undefined) return '';
+            
+            return String(text)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+</html> 

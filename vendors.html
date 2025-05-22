@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claim Connectors CRM - Vendors</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Add jsPDF library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        /* Additional vendor dashboard styles */
+        .vendor-form {
+            background-color: white;
+            padding: 20px;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        
+        .form-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: #4a5568;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #cbd5e0;
+            font-size: 14px;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn-secondary {
+            background-color: #a0aec0;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #718096;
+        }
+        
+        .vendor-card {
+            background-color: white;
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .vendor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+        
+        .vendor-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2d3748;
+            margin: 0;
+        }
+        
+        .vendor-code {
+            font-family: monospace;
+            background-color: #f7fafc;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .vendor-content {
+            font-size: 14px;
+        }
+        
+        .vendor-info {
+            margin-bottom: 12px;
+        }
+        
+        .info-label {
+            font-weight: 500;
+            color: #4a5568;
+            margin-right: 6px;
+        }
+        
+        .vendor-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+        }
+        
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        
+        .api-key {
+            font-family: monospace;
+            background-color: #f7fafc;
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .api-key-value {
+            font-size: 14px;
+            color: #2d3748;
+        }
+        
+        .api-key-hidden {
+            font-size: 14px;
+            color: #718096;
+        }
+        
+        .api-key-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 3px 6px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .badge-active {
+            background-color: #c6f6d5;
+            color: #2f855a;
+        }
+        
+        .badge-inactive {
+            background-color: #fed7d7;
+            color: #c53030;
+        }
+        
+        .badge-pending {
+            background-color: #feebc8;
+            color: #c05621;
+        }
+        
+        .btn-danger {
+            background-color: #e53e3e;
+        }
+        
+        .btn-danger:hover {
+            background-color: #c53030;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Vendor Management</h1>
+            <div class="controls">
+                <a href="index.html" class="btn">Back to Leads Dashboard</a>
+                <a href="stats.html" class="btn">Vendor Activity</a>
+                <button id="purge-vendors-btn" class="btn btn-danger">Purge All Vendors</button>
+            </div>
+        </header>
+
+        <main>
+            <section id="add-vendor">
+                <h2>Add New Vendor</h2>
+                <div class="vendor-form">
+                    <form id="vendor-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="vendor-name">Vendor Name *</label>
+                                <input type="text" id="vendor-name" required placeholder="e.g. Acme Marketing">
+                            </div>
+                            <div class="form-group">
+                                <label for="vendor-email">Contact Email</label>
+                                <input type="email" id="vendor-email" placeholder="contact@vendor.com">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="vendor-phone">Contact Phone</label>
+                                <input type="tel" id="vendor-phone" placeholder="555-123-4567">
+                            </div>
+                            <div class="form-group">
+                                <label for="vendor-website">Website</label>
+                                <input type="url" id="vendor-website" placeholder="https://vendor.com">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="vendor-status">Status</label>
+                                <select id="vendor-status">
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                    <option value="pending">Pending</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <p><strong>Note:</strong> A unique API key will be automatically generated for this vendor.</p>
+                            </div>
+                        </div>
+                        <div class="btn-group">
+                            <button type="submit" class="btn">Create Vendor</button>
+                            <button type="reset" class="btn btn-secondary">Reset</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <section id="vendor-list">
+                <h2>Existing Vendors</h2>
+                <div id="vendor-cards">
+                    <!-- Vendor cards will be populated here -->
+                    <div class="loading">Loading vendors...</div>
+                </div>
+            </section>
+
+            <section id="vendor-instructions" style="display: none;">
+                <h2>API Integration Instructions</h2>
+                <div class="vendor-form">
+                    <h3 id="instructions-vendor-name">Vendor Name</h3>
+                    <p>Below are the API integration instructions for this vendor. You can copy this information and send it to the vendor.</p>
+                    <div id="instructions-content" class="vendor-content" style="white-space: pre-wrap; background: #f5f7fa; padding: 20px; border-radius: 4px; margin-top: 20px; font-family: monospace; overflow: auto;"></div>
+                    <div class="btn-group" style="margin-top: 20px;">
+                        <button id="copy-instructions" class="btn">Copy to Clipboard</button>
+                        <button id="download-pdf" class="btn">Download as PDF</button>
+                        <button id="close-instructions" class="btn btn-secondary">Close</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // Mock API service - replace with actual API calls in production
+        const apiService = {
+            // Get all vendors
+            getVendors: async function() {
+                try {
+                    const response = await fetch('https://nv01uveape.execute-api.us-east-1.amazonaws.com/prod/vendors', {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'x-api-key': 'fpoI4Uwleh63QVGGsnAUG49W7B8k67g21Gc8glIl'
+                        },
+                        mode: 'cors'
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error ${response.status}`);
+                    }
+                    
+                    return await response.json();
+                } catch (error) {
+                    console.error('Error fetching vendors:', error);
+                    throw error;
+                }
+            },
+            
+            // Create new vendor
+            createVendor: async function(vendorData) {
+                try {
+                    console.log('Creating vendor with data:', vendorData);
+                    const response = await fetch('https://nv01uveape.execute-api.us-east-1.amazonaws.com/prod/vendors', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'x-api-key': 'fpoI4Uwleh63QVGGsnAUG49W7B8k67g21Gc8glIl'
+                        },
+                        body: JSON.stringify(vendorData),
+                        mode: 'cors'
+                    });
+                    
+                    // Log the status code for debugging
+                    console.log('Response status:', response.status);
+                    
+                    if (!response.ok) {
+                        // Try to get the error message from the response
+                        const errorData = await response.json().catch(() => null);
+                        console.error('Error response:', errorData);
+                        throw new Error(errorData?.message || `HTTP error ${response.status}`);
+                    }
+                    
+                    const responseData = await response.json();
+                    console.log('Success response:', responseData);
+                    
+                    // Return the vendor object
+                    return responseData.vendor || responseData;
+                } catch (error) {
+                    console.error('Error creating vendor:', error);
+                    throw error;
+                }
+            },
+            
+            // Regenerate API key
+            regenerateApiKey: async function(vendorCode) {
+                try {
+                    const response = await fetch(`https://nv01uveape.execute-api.us-east-1.amazonaws.com/prod/vendors/${vendorCode}/regenerate-key`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'x-api-key': 'fpoI4Uwleh63QVGGsnAUG49W7B8k67g21Gc8glIl'
+                        },
+                        mode: 'cors'
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error ${response.status}`);
+                    }
+                    
+                    const result = await response.json();
+                    return result.api_key;
+                } catch (error) {
+                    console.error('Error regenerating API key:', error);
+                    throw error;
+                }
+            },
+            
+            // Generate instructions
+            generateInstructions: function(vendor) {
+                // API endpoint
+                const apiUrl = 'https://nv01uveape.execute-api.us-east-1.amazonaws.com/prod/leads';
+                
+                return `# API Integration Instructions for ${vendor.name}
+
+## Overview
+Use our Lead API to submit lead information. Each lead submission must include your unique vendor code: **${vendor.vendor_code}**
+
+## API Endpoint
+POST ${apiUrl}
+
+## Headers
+- Content-Type: application/json
+- Accept: application/json
+- x-api-key: ${vendor.api_key}
+
+## Request Body
+
+\`\`\`json
+{
+  "first_name": "Customer First Name",
+  "last_name": "Customer Last Name",
+  "phone_home": "1234567890",
+  "lp_caller_id": "1234567890", 
+  "email": "customer@example.com",
+  "vendor_code": "${vendor.vendor_code}",
+  "zip_code": "12345",
+  "state": "CA"
+}
+\`\`\`
+
+## Required Fields
+- first_name (string)
+- last_name (string)
+- phone_home (string, exactly 10 digits)
+- lp_caller_id (string, must match phone_home)
+- email (string, valid email format)
+- vendor_code (string, use your assigned code above)
+
+## Response Format
+
+Success Response (200):
+\`\`\`json
+{
+  "status": "success",
+  "lead_id": "uuid-string",
+  "message": "Lead received"
+}
+\`\`\`
+
+## Security Notice
+- Keep your API key confidential
+- Do not share your API key with other vendors
+- If you believe your API key has been compromised, contact us immediately for a replacement`;
+            }
+        };
+
+        // DOM Elements
+        const vendorForm = document.getElementById('vendor-form');
+        const vendorCardsContainer = document.getElementById('vendor-cards');
+        const instructionsSection = document.getElementById('vendor-instructions');
+        const instructionsVendorName = document.getElementById('instructions-vendor-name');
+        const instructionsContent = document.getElementById('instructions-content');
+        const copyInstructionsBtn = document.getElementById('copy-instructions');
+        const downloadPdfBtn = document.getElementById('download-pdf');
+        const closeInstructionsBtn = document.getElementById('close-instructions');
+
+        // Load vendors on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadVendors();
+            
+            // Set up event listeners
+            vendorForm.addEventListener('submit', handleVendorFormSubmit);
+            copyInstructionsBtn.addEventListener('click', copyInstructions);
+            downloadPdfBtn.addEventListener('click', downloadInstructionsAsPdf);
+            closeInstructionsBtn.addEventListener('click', () => {
+                instructionsSection.style.display = 'none';
+            });
+            
+            // Add purge vendors button listener
+            document.getElementById('purge-vendors-btn').addEventListener('click', purgeAllVendors);
+        });
+
+        // Load vendors from API
+        async function loadVendors() {
+            try {
+                const vendors = await apiService.getVendors();
+                renderVendorCards(vendors);
+            } catch (error) {
+                vendorCardsContainer.innerHTML = `
+                    <div class="error">
+                        Error loading vendors. Please try again.
+                    </div>
+                `;
+            }
+        }
+
+        // Render vendor cards
+        function renderVendorCards(vendors) {
+            console.log('Rendering vendors:', vendors);
+            
+            if (!vendors || vendors.length === 0) {
+                vendorCardsContainer.innerHTML = `
+                    <div class="no-data">
+                        No vendors found. Create a vendor using the form above.
+                    </div>
+                `;
+                return;
+            }
+            
+            vendorCardsContainer.innerHTML = vendors.map(vendor => {
+                try {
+                    // Skip vendors without required data
+                    if (!vendor || !vendor.vendor_code) {
+                        console.error('Invalid vendor data:', vendor);
+                        return '';
+                    }
+                    
+                    // Default status to 'active' if not present
+                    const status = vendor.status || 'active';
+                    
+                    // Handle missing API key
+                    let apiKeyDisplay = '';
+                    if (vendor.api_key) {
+                        apiKeyDisplay = `
+                            <div class="api-key">
+                                <div>
+                                    <div class="info-label">API Key</div>
+                                    <div class="api-key-hidden" id="api-key-${vendor.vendor_code}">
+                                        ${vendor.api_key.substring(0, 4)}...${vendor.api_key.substring(vendor.api_key.length - 4)}
+                                    </div>
+                                </div>
+                                <div class="api-key-actions">
+                                    <button class="btn btn-sm" onclick="toggleApiKeyVisibility('${vendor.vendor_code}', '${vendor.api_key}')">Show/Hide</button>
+                                    <button class="btn btn-sm btn-secondary" onclick="regenerateApiKey('${vendor.vendor_code}')">Regenerate</button>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        apiKeyDisplay = `
+                            <div class="api-key">
+                                <div>
+                                    <div class="info-label">API Key</div>
+                                    <div>API key not available</div>
+                                </div>
+                                <div class="api-key-actions">
+                                    <button class="btn btn-sm btn-secondary" onclick="regenerateApiKey('${vendor.vendor_code}')">Generate Key</button>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    // Generate the vendor card HTML
+                    return `
+                    <div class="vendor-card" data-vendor-code="${vendor.vendor_code}">
+                        <div class="vendor-header">
+                            <h3 class="vendor-title">${escapeHtml(vendor.name || 'Unnamed Vendor')}</h3>
+                            <span class="vendor-code">${escapeHtml(vendor.vendor_code)}</span>
+                        </div>
+                        <div class="vendor-content">
+                            <div class="vendor-info">
+                                <span class="info-label">Email:</span>
+                                ${escapeHtml(vendor.contact_email || 'N/A')}
+                            </div>
+                            <div class="vendor-info">
+                                <span class="info-label">Phone:</span>
+                                ${escapeHtml(vendor.contact_phone || 'N/A')}
+                            </div>
+                            <div class="vendor-info">
+                                <span class="info-label">Website:</span>
+                                ${vendor.website ? `<a href="${escapeHtml(vendor.website)}" target="_blank">${escapeHtml(vendor.website)}</a>` : 'N/A'}
+                            </div>
+                            <div class="vendor-info">
+                                <span class="info-label">Status:</span>
+                                <span class="badge badge-${status}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>
+                            </div>
+                            <div class="vendor-info">
+                                <span class="info-label">Created:</span>
+                                ${formatDate(vendor.created_at)}
+                            </div>
+                            
+                            ${apiKeyDisplay}
+                        </div>
+                        <div class="vendor-actions">
+                            ${vendor.api_key ? 
+                                `<button class="btn btn-sm" onclick="showInstructions(${JSON.stringify(vendor).replace(/"/g, '&quot;')})">View API Instructions</button>` :
+                                `<button class="btn btn-sm" disabled>Generate Key First</button>`
+                            }
+                            <button class="btn btn-sm btn-secondary" onclick="viewVendorLeads('${vendor.vendor_code}')">View Leads</button>
+                        </div>
+                    </div>
+                `;
+                } catch (error) {
+                    console.error('Error rendering vendor card:', error, vendor);
+                    return '';
+                }
+            }).join('');
+        }
+
+        // Handle vendor form submission
+        async function handleVendorFormSubmit(event) {
+            event.preventDefault();
+            
+            const vendorName = document.getElementById('vendor-name').value;
+            // Generate a simple vendor code from the name
+            const vendorCode = vendorName
+                .replace(/[^a-zA-Z0-9]/g, '')
+                .substring(0, 3)
+                .toUpperCase() + Math.floor(Date.now() % 10000);
+                
+            const vendorData = {
+                name: vendorName,
+                vendor_code: vendorCode,
+                contact_email: document.getElementById('vendor-email').value,
+                contact_phone: document.getElementById('vendor-phone').value,
+                website: document.getElementById('vendor-website').value,
+                status: document.getElementById('vendor-status').value
+            };
+            
+            try {
+                console.log('Submitting vendor data:', vendorData);
+                const newVendor = await apiService.createVendor(vendorData);
+                console.log('New vendor created:', newVendor);
+                
+                // Add to vendor list
+                const tempContainer = document.createElement('div');
+                renderVendorCards([newVendor]);
+                
+                // Get HTML and add to container
+                const newCard = vendorCardsContainer.querySelector('.no-data');
+                if (newCard) {
+                    vendorCardsContainer.innerHTML = tempContainer.innerHTML;
+                } else {
+                    vendorCardsContainer.innerHTML = tempContainer.innerHTML + vendorCardsContainer.innerHTML;
+                }
+                
+                // Clear form
+                vendorForm.reset();
+                
+                // Show instructions
+                showInstructions(newVendor);
+                
+            } catch (error) {
+                console.error('Error in form submission:', error);
+                alert('Error creating vendor: ' + (error.message || 'Please try again.'));
+            }
+        }
+
+        // Show/hide API key
+        function toggleApiKeyVisibility(vendorCode, apiKey) {
+            const apiKeyElement = document.getElementById(`api-key-${vendorCode}`);
+            
+            if (apiKeyElement.classList.contains('api-key-hidden')) {
+                apiKeyElement.textContent = apiKey;
+                apiKeyElement.classList.remove('api-key-hidden');
+                apiKeyElement.classList.add('api-key-value');
+                
+                // Auto-hide after 10 seconds
+                setTimeout(() => {
+                    if (apiKeyElement) {
+                        apiKeyElement.textContent = `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`;
+                        apiKeyElement.classList.remove('api-key-value');
+                        apiKeyElement.classList.add('api-key-hidden');
+                    }
+                }, 10000);
+            } else {
+                apiKeyElement.textContent = `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`;
+                apiKeyElement.classList.remove('api-key-value');
+                apiKeyElement.classList.add('api-key-hidden');
+            }
+        }
+
+        // Regenerate API key
+        async function regenerateApiKey(vendorCode) {
+            try {
+                if (!confirm('Are you sure you want to regenerate the API key? The old key will no longer work.')) {
+                    return;
+                }
+                
+                const newApiKey = await apiService.regenerateApiKey(vendorCode);
+                
+                // Update vendor card with new API key
+                const apiKeyElement = document.getElementById(`api-key-${vendorCode}`);
+                if (apiKeyElement) {
+                    apiKeyElement.textContent = `${newApiKey.substring(0, 4)}...${newApiKey.substring(newApiKey.length - 4)}`;
+                    apiKeyElement.classList.remove('api-key-value');
+                    apiKeyElement.classList.add('api-key-hidden');
+                }
+                
+                // Reload vendors to refresh data
+                await loadVendors();
+                
+                alert('API key regenerated successfully. Make sure to provide the new key to the vendor.');
+            } catch (error) {
+                alert('Error regenerating API key. Please try again.');
+            }
+        }
+
+        // Show API instructions for a vendor
+        function showInstructions(vendor) {
+            console.log('Showing instructions for vendor:', vendor);
+            instructionsVendorName.textContent = vendor.name;
+            
+            // Ensure vendor has the necessary fields
+            if (!vendor.api_key) {
+                console.error('Vendor is missing API key:', vendor);
+                alert('Error: Vendor API key is missing. Please contact support.');
+                return;
+            }
+            
+            instructionsContent.textContent = apiService.generateInstructions(vendor);
+            instructionsSection.style.display = 'block';
+            
+            // Scroll to instructions
+            instructionsSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Copy instructions to clipboard
+        function copyInstructions() {
+            const text = instructionsContent.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = copyInstructionsBtn.textContent;
+                copyInstructionsBtn.textContent = 'Copied!';
+                setTimeout(() => {
+                    copyInstructionsBtn.textContent = originalText;
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+        }
+        
+        // Download instructions as PDF
+        function downloadInstructionsAsPdf() {
+            const { jsPDF } = window.jspdf;
+            const vendorName = instructionsVendorName.textContent;
+            const text = instructionsContent.textContent;
+            
+            try {
+                // Create a new PDF document
+                const doc = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4'
+                });
+                
+                // Add title
+                doc.setFontSize(16);
+                doc.text(`API Integration Instructions for ${vendorName}`, 20, 20);
+                
+                // Add content
+                doc.setFontSize(10);
+                
+                // Split the text into lines to fit the page
+                const textLines = doc.splitTextToSize(text, 170);
+                doc.text(textLines, 20, 30);
+                
+                // Generate the PDF filename
+                const filename = `${vendorName.replace(/[^a-zA-Z0-9]/g, '_')}_API_Instructions.pdf`;
+                
+                // Save the PDF
+                doc.save(filename);
+                
+                // Provide feedback
+                const originalText = downloadPdfBtn.textContent;
+                downloadPdfBtn.textContent = 'Downloaded!';
+                setTimeout(() => {
+                    downloadPdfBtn.textContent = originalText;
+                }, 2000);
+                
+            } catch (err) {
+                console.error('Failed to generate PDF: ', err);
+                alert('Failed to generate PDF. Please try again.');
+            }
+        }
+
+        // View leads for a specific vendor
+        function viewVendorLeads(vendorCode) {
+            window.location.href = `index.html?vendor_code=${vendorCode}`;
+        }
+
+        // Format date
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            
+            try {
+                const date = new Date(dateString);
+                
+                if (isNaN(date)) {
+                    return dateString;
+                }
+                
+                return date.toLocaleDateString(undefined, {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                });
+            } catch (e) {
+                return dateString;
+            }
+        }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            if (text === null || text === undefined) return '';
+            
+            return String(text)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        // Purge all vendors from the system
+        async function purgeAllVendors() {
+            if (!confirm('Are you sure you want to delete ALL vendors? This action cannot be undone.')) {
+                return;
+            }
+            
+            if (!confirm('FINAL WARNING: All vendor data will be permanently deleted. Continue?')) {
+                return;
+            }
+            
+            try {
+                showLoading(true);
+                
+                const response = await fetch(`${API_ENDPOINT}/vendors/purge`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'x-api-key': 'fpoI4Uwleh63QVGGsnAUG49W7B8k67g21Gc8glIl'
+                    },
+                    mode: 'cors'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error ${response.status}`);
+                }
+                
+                // Refresh the page to show the vendors are gone
+                alert('All vendors successfully purged from the system.');
+                window.location.reload();
+                
+            } catch (error) {
+                console.error('Error purging vendors:', error);
+                alert('Error purging vendors: ' + (error.message || 'Unknown error'));
+            } finally {
+                showLoading(false);
+            }
+        }
+    </script>
+</body>
+</html> 
