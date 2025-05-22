@@ -54,7 +54,7 @@ exports.handler = async (event) => {
     
     // Initiate forgot password flow
     const forgotPasswordParams = {
-      ClientId: '5t6mane4fnvineksoqb4ta0iu1', // Client ID from your Cognito User Pool
+      ClientId: '5t6mane4fnvineksoqb4ta0iu1', // Client ID from your Cognito User Pool (matching frontend)
       Username: username
     };
     
