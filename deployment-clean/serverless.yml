@@ -130,7 +130,7 @@ functions:
     handler: get-username-by-email.handler
     events:
       - http:
-          path: /get-username-by-email
+          path: /auth/get-username
           method: post
           cors:
             origin: 'https://main.d21xta9fg9b6w.amplifyapp.com'
@@ -139,7 +139,7 @@ functions:
               - Authorization
             allowCredentials: false
       - http:
-          path: /get-username-by-email
+          path: /auth/get-username
           method: options
           cors:
             origin: 'https://main.d21xta9fg9b6w.amplifyapp.com'
@@ -153,7 +153,7 @@ functions:
     handler: forgot-password-handler.handler
     events:
       - http:
-          path: /forgot-password
+          path: /auth/forgot-password
           method: post
           cors:
             origin: 'https://main.d21xta9fg9b6w.amplifyapp.com'
@@ -162,7 +162,7 @@ functions:
               - Authorization
             allowCredentials: false
       - http:
-          path: /forgot-password
+          path: /auth/forgot-password
           method: options
           cors:
             origin: 'https://main.d21xta9fg9b6w.amplifyapp.com'
@@ -176,7 +176,7 @@ functions:
     handler: confirm-reset-handler.handler
     events:
       - http:
-          path: /confirm-forgot-password
+          path: /auth/confirm
           method: post
           cors:
             origin: 'https://main.d21xta9fg9b6w.amplifyapp.com'
@@ -185,7 +185,7 @@ functions:
               - Authorization
             allowCredentials: false
       - http:
-          path: /confirm-forgot-password
+          path: /auth/confirm
           method: options
           cors:
             origin: 'https://main.d21xta9fg9b6w.amplifyapp.com'
