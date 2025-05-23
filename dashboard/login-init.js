@@ -254,7 +254,7 @@ async function completePasswordReset() {
             
             // Redirect to dashboard after a delay
             setTimeout(() => {
-              window.location.href = 'index.html';
+              window.location.href = 'dashboard/';
             }, 2000);
             
             resolve(result);
@@ -323,7 +323,7 @@ document.addEventListener('DOMContentLoaded', function() {
           
           if (session.isValid()) {
             console.log('User already logged in, redirecting...');
-            window.location.href = 'index.html';
+            window.location.href = 'dashboard/';
           }
         });
       }
@@ -440,7 +440,7 @@ document.addEventListener('DOMContentLoaded', function() {
               }
               
               // Redirect to dashboard
-              window.location.href = 'index.html';
+              window.location.href = 'dashboard/';
             });
           }
         } catch (error) {
