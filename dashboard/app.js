@@ -1,6 +1,6 @@
 // Configuration
-const API_ENDPOINT = 'https://nv01uveape.execute-api.us-east-1.amazonaws.com/prod/leads';
-const EXPORT_ENDPOINT = 'https://nv01uveape.execute-api.us-east-1.amazonaws.com/prod/export';
+const API_ENDPOINT = 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod/leads';
+const EXPORT_ENDPOINT = 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod/export';
 const REFRESH_INTERVAL = 10000; // 10 seconds
 
 // Cognito token refresh - run every 45 minutes
