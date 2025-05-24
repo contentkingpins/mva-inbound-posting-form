@@ -13,6 +13,8 @@ frontend:
         - echo "Deploying from dashboard directory"
         - mkdir -p dist
         - cp -R dashboard/* dist/
+        - cp version.js dist/
+        - cp styles.css dist/
         - echo "Build completed successfully"
   artifacts:
     baseDirectory: dist
