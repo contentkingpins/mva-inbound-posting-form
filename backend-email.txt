@@ -1,0 +1,50 @@
+To: Backend Development Team
+Subject: URGENT: API Gateway CORS Configuration Blocking Frontend Application
+Priority: Critical - Application is Non-Functional
+
+Dear Backend Team,
+
+The frontend application at https://main.d21xta9fg9b6w.amplifyapp.com is completely blocked from accessing the API due to incorrect CORS configuration in API Gateway. The application cannot function until this is fixed.
+
+THE PROBLEM:
+- API Gateway returns 403 on OPTIONS requests (preflight checks)
+- Browser security (CORS) requires OPTIONS to succeed before any API call
+- Result: Zero API calls can be made from the frontend
+
+Current: OPTIONS request → 403 "Missing Authentication Token"
+Expected: OPTIONS request → 200 OK with CORS headers
+
+THE FIX (10-15 minutes):
+
+1. Log into AWS Console → API Gateway
+2. Select your API (ID: 9qtb4my1ij)
+3. For EACH resource (/leads, /auth/*, /stats, /export, etc.):
+   - Click the resource
+   - Actions → Enable CORS
+   - Configure:
+     * Origin: https://main.d21xta9fg9b6w.amplifyapp.com
+     * Headers: Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token
+     * Methods: GET,POST,PATCH,DELETE,OPTIONS
+   - Click Save
+4. Deploy the API:
+   - Actions → Deploy API
+   - Stage: prod
+   - Deploy
+
+VERIFICATION:
+After deployment, this test should return 200 OK:
+curl -X OPTIONS https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod/leads -H "Origin: https://main.d21xta9fg9b6w.amplifyapp.com" -v
+
+IMPACT:
+- Application is 100% non-functional
+- Users cannot log in or see any data
+- Revenue loss every hour this remains broken
+
+Please implement within 2 hours. The frontend is fully deployed and waiting. Once you enable CORS, the application will immediately start working.
+
+Happy to jump on a call if you need any clarification.
+
+Thank you for your immediate attention to this critical issue.
+
+Best regards,
+[Your Name] 

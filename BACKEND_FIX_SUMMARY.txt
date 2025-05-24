@@ -1,0 +1,18 @@
+BACKEND TEAM - QUICK FIX NEEDED
+================================
+
+PROBLEM: API Gateway blocks OPTIONS requests → App can't work
+
+FIX (10 minutes):
+1. AWS Console → API Gateway → Your API (9qtb4my1ij)
+2. For each endpoint: Actions → Enable CORS
+3. Set origin: https://main.d21xta9fg9b6w.amplifyapp.com
+4. Deploy API to prod
+
+TEST:
+curl -X OPTIONS [your-api-url]/prod/leads -H "Origin: [frontend-url]"
+Should return 200 OK (not 403)
+
+IMPACT: App is 100% broken until this is fixed
+
+That's it. Everything else is ready. 
