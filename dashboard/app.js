@@ -973,9 +973,10 @@ async function fetchLeads() {
         const token = localStorage.getItem('auth_token');
         
         const response = await fetch(url, {
-            method: 'GET'
-            // Backend doesn't require auth for GET /leads
-            // Headers removed to avoid CORS preflight
+            method: 'GET',
+            headers: {
+                'x-api-key': API_KEY || 'fpoI4Uwleh63QVGGsnAUG49W7B8k67g21Gc8glIl'
+            }
         });
         
         let newLeads = [];
