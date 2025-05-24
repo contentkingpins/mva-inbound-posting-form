@@ -3,6 +3,92 @@ const API_ENDPOINT = 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/pro
 const EXPORT_ENDPOINT = 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod/export';
 const REFRESH_INTERVAL = 10000; // 10 seconds
 
+// Update notification functionality
+window.showUpdateNotification = function() {
+    // Create notification if it doesn't exist
+    let notification = document.getElementById('update-notification');
+    if (!notification) {
+        notification = document.createElement('div');
+        notification.id = 'update-notification';
+        notification.className = 'update-notification';
+        notification.innerHTML = `
+            <div class="update-content">
+                <span class="update-icon">🔄</span>
+                <span class="update-text">A new version is available!</span>
+                <button class="update-btn" onclick="location.reload()">Update Now</button>
+                <button class="update-dismiss" onclick="this.parentElement.parentElement.style.display='none'">×</button>
+            </div>
+        `;
+        document.body.appendChild(notification);
+        
+        // Add styles
+        const style = document.createElement('style');
+        style.textContent = `
+            .update-notification {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #4299e1;
+                color: white;
+                padding: 16px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 9999;
+                animation: slideIn 0.3s ease-out;
+            }
+            
+            .update-content {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
+            
+            .update-icon {
+                font-size: 20px;
+            }
+            
+            .update-btn {
+                background: white;
+                color: #4299e1;
+                border: none;
+                padding: 6px 12px;
+                border-radius: 4px;
+                font-weight: 600;
+                cursor: pointer;
+            }
+            
+            .update-dismiss {
+                background: transparent;
+                border: none;
+                color: white;
+                font-size: 20px;
+                cursor: pointer;
+                opacity: 0.8;
+                padding: 0;
+                margin-left: 8px;
+            }
+            
+            .update-dismiss:hover {
+                opacity: 1;
+            }
+            
+            @keyframes slideIn {
+                from {
+                    transform: translateX(400px);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    notification.style.display = 'block';
+};
+
 // Cognito token refresh - run every 45 minutes
 function setupTokenRefresh() {
     // Function to refresh token
