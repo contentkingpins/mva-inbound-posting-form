@@ -152,11 +152,28 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize the app
     initializeApp();
     
-    // Initialize premium UI features
-    setTimeout(() => {
-        initializeStatsAnimation();
-        initializeCharts();
-    }, 500);
+    // Hide skeleton loader
+    const skeleton = document.getElementById('skeleton-loader');
+    if (skeleton) {
+        skeleton.style.transition = 'opacity 0.3s ease';
+        skeleton.style.opacity = '0';
+        setTimeout(() => skeleton.remove(), 300);
+    }
+    
+    // Initialize premium UI features with delay for better perceived performance
+    requestAnimationFrame(() => {
+        setTimeout(() => {
+            initializeStatsAnimation();
+            initializeCharts();
+        }, 100);
+    });
+    
+    // Log performance metrics
+    if (window.performance && window.performance.timing) {
+        const timing = window.performance.timing;
+        const loadTime = timing.loadEventEnd - timing.navigationStart;
+        console.log(`Page load time: ${loadTime}ms`);
+    }
 });
 
 // Config initialization
@@ -165,6 +182,15 @@ let API_KEY = '';
 // Function to load configuration
 async function loadConfig() {
     try {
+        // Use preloaded config if available
+        if (window.preloadedConfig) {
+            const config = window.preloadedConfig;
+            API_ENDPOINT = config.apiEndpoint || 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod';
+            API_KEY = config.apiKey || '';
+            console.log('Using preloaded configuration');
+            return;
+        }
+        
         // Try to load config from config.json if it exists
         const response = await fetch('../config.json');
         if (response.ok) {
@@ -807,8 +833,45 @@ function filterAndRenderLeads() {
     */
 }
 
+// Simple cache system for API responses
+const apiCache = {
+    data: null,
+    timestamp: null,
+    maxAge: 60000, // Cache for 1 minute
+    
+    set(data) {
+        this.data = data;
+        this.timestamp = Date.now();
+    },
+    
+    get() {
+        if (!this.data || !this.timestamp) return null;
+        if (Date.now() - this.timestamp > this.maxAge) {
+            this.clear();
+            return null;
+        }
+        return this.data;
+    },
+    
+    clear() {
+        this.data = null;
+        this.timestamp = null;
+    }
+};
+
 // Fetch leads from API
 async function fetchLeads() {
+    // Check cache first
+    const cachedData = apiCache.get();
+    if (cachedData && !vendorFilter.value) {
+        leads = cachedData;
+        updateVendorOptions();
+        filterAndRenderLeads();
+        initializeStatsAnimation();
+        initializeCharts();
+        return;
+    }
+    
     showLoading(true);
     hideError();
     
@@ -902,6 +965,11 @@ async function fetchLeads() {
         
         // Store updated leads in localStorage
         localStorage.setItem('leads', JSON.stringify(leads));
+        
+        // Cache the data if no vendor filter
+        if (!vendorFilter.value) {
+            apiCache.set(leads);
+        }
         
         // Store all leads for export functionality
         // In a real app, this might not be efficient for large datasets

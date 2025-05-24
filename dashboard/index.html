@@ -4,7 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Claim Connectors CRM</title>
+    
+    <!-- Preconnect to speed up external resources -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://cognito-idp.us-east-1.amazonaws.com">
+    <link rel="preconnect" href="https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com">
+    
+    <!-- Prefetch critical resources -->
+    <link rel="prefetch" href="/config.json">
+    <link rel="prefetch" href="/app.js">
+    
     <link rel="stylesheet" href="/styles.css">
+    
+    <!-- Critical path optimization - loads first -->
+    <script src="critical-path.js" async></script>
+    
     <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.3.1/dist/amazon-cognito-identity.min.js"></script>
     <!-- Chart.js for data visualizations -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -14,6 +28,26 @@
     <script src="https://cdn.jsdelivr.net/npm/countup.js@2.6.2/dist/countUp.umd.js"></script>
 </head>
 <body>
+    <!-- Fast Loading Skeleton -->
+    <div id="skeleton-loader" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f5f7fa; z-index: 9999;">
+        <div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
+            <div style="height: 60px; background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px; margin-bottom: 20px;"></div>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px;">
+                <div style="height: 120px; background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 12px;"></div>
+                <div style="height: 120px; background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 12px;"></div>
+                <div style="height: 120px; background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 12px;"></div>
+                <div style="height: 120px; background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 12px;"></div>
+            </div>
+            <div style="height: 400px; background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px;"></div>
+        </div>
+        <style>
+            @keyframes shimmer {
+                0% { background-position: -200% 0; }
+                100% { background-position: 200% 0; }
+            }
+        </style>
+    </div>
+    
     <div class="container">
         <header>
             <h1>Claim Connectors CRM</h1>
