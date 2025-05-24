@@ -26,8 +26,10 @@
         const token = localStorage.getItem('auth_token');
         if (!token) {
             // Redirect to login immediately if no token
-            if (!window.location.pathname.includes('login')) {
-                window.location.href = '/login.html';
+            if (!window.location.pathname.includes('login') && !window.location.pathname.includes('verify') && !window.location.pathname.includes('forgot') && !window.location.pathname.includes('reset')) {
+                console.log('No auth token found, would redirect to login but checking current page first');
+                // Temporarily disable to prevent loop
+                // window.location.href = '/login.html';
             }
         }
     };

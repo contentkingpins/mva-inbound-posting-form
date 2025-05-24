@@ -101,7 +101,7 @@ function setupTokenRefresh() {
             }
             
             // Load config
-            fetch('../config.json')
+            fetch('/config.json')
                 .then(response => response.json())
                 .then(config => {
                     const userPool = new AmazonCognitoIdentity.CognitoUserPool({
@@ -191,7 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Check if Cognito is available
             if (typeof AmazonCognitoIdentity !== 'undefined') {
                 // Load config and sign out
-                fetch('../config.json')
+                fetch('/config.json')
                     .then(response => response.json())
                     .then(config => {
                         const userPool = new AmazonCognitoIdentity.CognitoUserPool({
@@ -278,7 +278,7 @@ async function loadConfig() {
         }
         
         // Try to load config from config.json if it exists
-        const response = await fetch('../config.json');
+        const response = await fetch('/config.json');
         if (response.ok) {
             const config = await response.json();
             // Store API endpoint but don't use apiKey for authentication endpoints
