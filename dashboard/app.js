@@ -977,8 +977,9 @@ async function fetchLeads() {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'Authorization': `Bearer ${token}`
+                'Accept': 'application/json'
+                // TEMPORARILY DISABLED DUE TO CORS - FIX IN API GATEWAY
+                // 'Authorization': `Bearer ${token}`
             },
             mode: 'cors'  // Explicitly state CORS mode for Amplify hosting
         });
@@ -1643,8 +1644,9 @@ async function updateLeadDisposition(leadId, disposition, notes) {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'x-api-key': API_KEY
+                'Accept': 'application/json'
+                // TEMPORARILY DISABLED DUE TO CORS - FIX IN API GATEWAY
+                // 'x-api-key': API_KEY
             },
             body: JSON.stringify({
                 disposition,
@@ -2353,8 +2355,9 @@ async function updateLeadData(leadId, data) {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'Authorization': `Bearer ${token}`
+                'Accept': 'application/json'
+                // TEMPORARILY DISABLED DUE TO CORS - FIX IN API GATEWAY
+                // 'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify(updateData),
             mode: 'cors'
@@ -2597,8 +2600,9 @@ async function sendRetainerAgreement() {
         const response = await fetch(`${API_ENDPOINT}/${leadId}/send-retainer`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                'Content-Type': 'application/json'
+                // TEMPORARILY DISABLED DUE TO CORS - FIX IN API GATEWAY
+                // 'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({
                 emailSubject: subject,
