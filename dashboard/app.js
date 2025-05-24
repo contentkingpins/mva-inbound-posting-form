@@ -970,13 +970,10 @@ async function fetchLeads() {
             url += `?vendor_code=${vendorCode}`;
         }
         
-        const token = localStorage.getItem('auth_token');
-        
+        // PLAIN GET REQUEST - NO AUTHENTICATION
+        // This is the ONLY way to avoid CORS preflight
         const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'x-api-key': API_KEY || 'fpoI4Uwleh63QVGGsnAUG49W7B8k67g21Gc8glIl'
-            }
+            method: 'GET'
         });
         
         let newLeads = [];
