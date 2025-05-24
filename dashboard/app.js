@@ -151,6 +151,12 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Initialize the app
     initializeApp();
+    
+    // Initialize premium UI features
+    setTimeout(() => {
+        initializeStatsAnimation();
+        initializeCharts();
+    }, 500);
 });
 
 // Config initialization
@@ -909,6 +915,10 @@ async function fetchLeads() {
         
         // After leads are fetched and processed
         filterAndRenderLeads();
+        
+        // Update premium UI features with new data
+        initializeStatsAnimation();
+        initializeCharts();
         
     } catch (error) {
         console.error('Error fetching leads:', error);
@@ -2479,5 +2489,219 @@ async function sendRetainerAgreement() {
         statusElement.className = 'status-message error';
         // Re-enable button
         document.getElementById('send-retainer-submit').disabled = false;
+    }
+}
+
+// Initialize animated statistics
+function initializeStatsAnimation() {
+    // Get leads data for calculations
+    const totalLeads = leads.length;
+    const convertedLeads = leads.filter(lead => 
+        lead.disposition === 'Retained for Firm' || 
+        lead.disposition === 'Docs Sent'
+    ).length;
+    const activeLeads = leads.filter(lead => 
+        lead.disposition === 'New' || 
+        lead.disposition === 'Awaiting Proof of Claim'
+    ).length;
+    
+    // Calculate conversion rate
+    const conversionRate = totalLeads > 0 ? Math.round((convertedLeads / totalLeads) * 100) : 0;
+    
+    // Calculate potential revenue (example: $5000 per converted lead)
+    const revenuePotential = activeLeads * 5000;
+    
+    // Animate the numbers using CountUp.js
+    if (typeof CountUp !== 'undefined') {
+        // Total Leads Counter
+        const totalLeadsCounter = new CountUp('total-leads-count', totalLeads, {
+            duration: 2.5,
+            useEasing: true,
+            useGrouping: true,
+            suffix: ''
+        });
+        totalLeadsCounter.start();
+        
+        // Conversion Rate Counter
+        const conversionCounter = new CountUp('conversion-rate', conversionRate, {
+            duration: 2.5,
+            useEasing: true,
+            suffix: ''
+        });
+        conversionCounter.start();
+        
+        // Active Leads Counter
+        const activeLeadsCounter = new CountUp('active-leads-count', activeLeads, {
+            duration: 2.5,
+            useEasing: true,
+            useGrouping: true
+        });
+        activeLeadsCounter.start();
+        
+        // Revenue Potential Counter
+        const revenueCounter = new CountUp('revenue-potential', revenuePotential, {
+            duration: 3,
+            useEasing: true,
+            useGrouping: true,
+            separator: ',',
+            decimal: '.',
+            prefix: ''
+        });
+        revenueCounter.start();
+    }
+}
+
+// Initialize Charts with Chart.js
+function initializeCharts() {
+    if (typeof Chart === 'undefined') return;
+    
+    // Configure Chart.js defaults
+    Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif';
+    Chart.defaults.color = '#4a5568';
+    
+    // Lead Flow Chart (Line Chart)
+    const leadFlowCtx = document.getElementById('leadFlowChart');
+    if (leadFlowCtx) {
+        // Generate sample data for last 7 days
+        const last7Days = [...Array(7)].map((_, i) => {
+            const date = new Date();
+            date.setDate(date.getDate() - (6 - i));
+            return date.toLocaleDateString('en-US', { weekday: 'short' });
+        });
+        
+        const leadFlowData = last7Days.map(() => Math.floor(Math.random() * 20) + 10);
+        
+        new Chart(leadFlowCtx, {
+            type: 'line',
+            data: {
+                labels: last7Days,
+                datasets: [{
+                    label: 'New Leads',
+                    data: leadFlowData,
+                    borderColor: '#4299e1',
+                    backgroundColor: 'rgba(66, 153, 225, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: '#4299e1',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5,
+                    pointHoverRadius: 7
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            borderDash: [5, 5]
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Status Distribution Chart (Doughnut)
+    const statusCtx = document.getElementById('statusChart');
+    if (statusCtx) {
+        // Count leads by status
+        const statusCounts = {};
+        leads.forEach(lead => {
+            const status = lead.disposition || 'New';
+            statusCounts[status] = (statusCounts[status] || 0) + 1;
+        });
+        
+        new Chart(statusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(statusCounts),
+                datasets: [{
+                    data: Object.values(statusCounts),
+                    backgroundColor: [
+                        '#4299e1',
+                        '#48bb78',
+                        '#f6ad55',
+                        '#fc8181',
+                        '#9f7aea',
+                        '#68d391'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 15,
+                            usePointStyle: true
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Vendor Performance Chart (Bar)
+    const vendorCtx = document.getElementById('vendorChart');
+    if (vendorCtx) {
+        // Count leads by vendor
+        const vendorCounts = {};
+        leads.forEach(lead => {
+            const vendor = lead.vendor_code || 'Unknown';
+            vendorCounts[vendor] = (vendorCounts[vendor] || 0) + 1;
+        });
+        
+        new Chart(vendorCtx, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(vendorCounts),
+                datasets: [{
+                    label: 'Total Leads',
+                    data: Object.values(vendorCounts),
+                    backgroundColor: '#667eea',
+                    borderRadius: 8,
+                    barThickness: 40
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            borderDash: [5, 5]
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
     }
 } 

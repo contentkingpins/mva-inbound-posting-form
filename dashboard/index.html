@@ -4,8 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Claim Connectors CRM</title>
-    <link rel="stylesheet" href="../styles.css">
+    <link rel="stylesheet" href="/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.3.1/dist/amazon-cognito-identity.min.js"></script>
+    <!-- Chart.js for data visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- Animate.css for smooth animations -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <!-- CountUp.js for number animations -->
+    <script src="https://cdn.jsdelivr.net/npm/countup.js@2.6.2/dist/countUp.umd.js"></script>
 </head>
 <body>
     <div class="container">
@@ -33,6 +39,61 @@
                 <a href="stats.html" class="btn">Vendor Activity</a>
             </div>
         </header>
+
+        <!-- Animated Stats Cards -->
+        <div class="stats-container animate__animated animate__fadeIn">
+            <div class="stat-card animate__animated animate__fadeInUp animate__delay-1s">
+                <div class="stat-icon">📊</div>
+                <div class="stat-content">
+                    <h3 class="stat-title">Total Leads</h3>
+                    <div class="stat-number" id="total-leads-count">0</div>
+                    <div class="stat-change positive">+12.5% from last week</div>
+                </div>
+            </div>
+            
+            <div class="stat-card animate__animated animate__fadeInUp animate__delay-2s">
+                <div class="stat-icon">✅</div>
+                <div class="stat-content">
+                    <h3 class="stat-title">Conversion Rate</h3>
+                    <div class="stat-number"><span id="conversion-rate">0</span>%</div>
+                    <div class="stat-change positive">+3.2% improvement</div>
+                </div>
+            </div>
+            
+            <div class="stat-card animate__animated animate__fadeInUp animate__delay-3s">
+                <div class="stat-icon">🚀</div>
+                <div class="stat-content">
+                    <h3 class="stat-title">Active Leads</h3>
+                    <div class="stat-number" id="active-leads-count">0</div>
+                    <div class="stat-change">Processing now</div>
+                </div>
+            </div>
+            
+            <div class="stat-card animate__animated animate__fadeInUp animate__delay-4s">
+                <div class="stat-icon">💰</div>
+                <div class="stat-content">
+                    <h3 class="stat-title">Revenue Potential</h3>
+                    <div class="stat-number">$<span id="revenue-potential">0</span></div>
+                    <div class="stat-change positive">High value leads</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="charts-container animate__animated animate__fadeIn">
+            <div class="chart-card">
+                <h3>Lead Flow Over Time</h3>
+                <canvas id="leadFlowChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>Lead Status Distribution</h3>
+                <canvas id="statusChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>Vendor Performance</h3>
+                <canvas id="vendorChart"></canvas>
+            </div>
+        </div>
 
         <main>
             <div id="loading" class="loading">Loading...</div>
