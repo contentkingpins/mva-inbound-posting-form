@@ -970,10 +970,22 @@ async function fetchLeads() {
             url += `?vendor_code=${vendorCode}`;
         }
         
-        // PLAIN GET REQUEST - NO AUTHENTICATION
-        // This is the ONLY way to avoid CORS preflight
+        // Get JWT token from localStorage
+        const token = localStorage.getItem('auth_token');
+        
+        // Use Cognito JWT token for authentication
+        const headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        };
+        
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        
         const response = await fetch(url, {
-            method: 'GET'
+            method: 'GET',
+            headers: headers
         });
         
         let newLeads = [];

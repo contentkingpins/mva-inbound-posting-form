@@ -1,60 +1,77 @@
-# 🚨 CORS Fix Instructions for API Gateway
+# CRITICAL: API Gateway CORS Configuration Fix
 
-## The Problem:
-Your Lambda function has CORS headers, but API Gateway isn't configured to handle preflight requests.
+## The Problem
+- Frontend app at `https://main.d21xta9fg9b6w.amplifyapp.com` 
+- API at `https://9gtsb4mv2j.execute-api.us-east-1.amazonaws.com/prod/leads`
+- **ANY custom header (Authorization, x-api-key) triggers CORS preflight**
+- API Gateway is NOT configured to handle OPTIONS requests
 
-## Quick Fix in AWS Console:
+## The Solution (Backend Team Must Implement)
 
-### 1. **Go to API Gateway:**
-- AWS Console → API Gateway
-- Find your API: `9qtb4my1ij` (or similar)
+### 1. Enable CORS in API Gateway Console
 
-### 2. **Enable CORS on Each Resource:**
-For each endpoint (`/leads`, `/auth/*`, etc.):
-- Click on the resource
-- Actions → Enable CORS
-- Configure:
-  ```
-  Access-Control-Allow-Origin: https://main.d21xta9fg9b6w.amplifyapp.com
-  Access-Control-Allow-Headers: Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token
-  Access-Control-Allow-Methods: GET,POST,OPTIONS,PUT,PATCH,DELETE
-  ```
+For EACH resource (`/leads`, `/auth/*`, etc.):
 
-### 3. **Deploy API:**
+1. Log into AWS Console → API Gateway
+2. Select your API
+3. For each resource:
+   - Click on the resource
+   - Actions → Enable CORS
+   - Configure:
+     ```
+     Access-Control-Allow-Origin: https://main.d21xta9fg9b6w.amplifyapp.com
+     Access-Control-Allow-Headers: Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token
+     Access-Control-Allow-Methods: GET,POST,PATCH,DELETE,OPTIONS
+     ```
+   - Save
+
+### 2. Deploy API Changes
 - Actions → Deploy API
-- Stage: prod
+- Select 'prod' stage
+- Deploy
 
-## Alternative: Allow All Origins (Less Secure):
-```
-Access-Control-Allow-Origin: *
-```
-
-## Or Add Your Domain to Lambda (Already Done):
-The Lambda already has CORS headers, but API Gateway is blocking the preflight.
-
-## Temporary Workaround:
-Remove the Authorization header from the fetch request (NOT RECOMMENDED for production):
-
-```javascript
-// In dashboard/app.js, line ~981
-headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    // 'Authorization': `Bearer ${token}` // Temporarily comment out
-}
+### 3. Verify OPTIONS Handling
+Test with curl:
+```bash
+curl -X OPTIONS https://9gtsb4mv2j.execute-api.us-east-1.amazonaws.com/prod/leads \
+  -H "Origin: https://main.d21xta9fg9b6w.amplifyapp.com" \
+  -H "Access-Control-Request-Method: GET" \
+  -H "Access-Control-Request-Headers: x-api-key"
 ```
 
-## Proper Solution:
-1. Fix CORS in API Gateway (recommended)
-2. Or use AWS SDK to configure API Gateway programmatically
-3. Or add your Amplify domain to allowed origins
+Should return:
+```
+HTTP/2 200
+access-control-allow-origin: https://main.d21xta9fg9b6w.amplifyapp.com
+access-control-allow-headers: Content-Type,X-Api-Key,Authorization
+access-control-allow-methods: GET,POST,OPTIONS
+```
 
-## Test After Fix:
-1. Clear browser cache
-2. Open DevTools Network tab
-3. Look for successful OPTIONS request
-4. Then the GET request should work
+## Alternative: Serverless Framework Fix
 
----
+If using serverless.yml:
 
-**Note:** The app will work once CORS is fixed in API Gateway. All other issues have been resolved. 
+```yaml
+functions:
+  api:
+    handler: index.handler
+    events:
+      - http:
+          path: /leads
+          method: ANY
+          cors:
+            origin: 'https://main.d21xta9fg9b6w.amplifyapp.com'
+            headers:
+              - Content-Type
+              - X-Api-Key
+              - Authorization
+            allowCredentials: false
+```
+
+Then deploy: `serverless deploy`
+
+## Testing
+Once deployed, the frontend will automatically start working with authentication headers.
+
+## Timeline
+**This is blocking ALL authenticated operations.** Please implement ASAP. 
