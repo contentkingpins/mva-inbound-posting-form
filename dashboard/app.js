@@ -731,10 +731,9 @@ async function handleLeadSubmit(e) {
         at_fault_has_insurance: getRadioValue('has-insurance'),
         is_commercial_vehicle: getRadioValue('commercial-vehicle'),
         has_um_coverage: getRadioValue('um-coverage'),
-        has_commercial_proof: getRadioValue('has-proof'),
+        has_commercial_proof: getRadioValue('has-proof')
         
-        // Include API key for authorization
-        api_key: API_KEY
+        // API key removed - now handled in headers
     };
     
     // Submit the lead
@@ -974,14 +973,9 @@ async function fetchLeads() {
         const token = localStorage.getItem('auth_token');
         
         const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-                // TEMPORARILY DISABLED DUE TO CORS - FIX IN API GATEWAY
-                // 'Authorization': `Bearer ${token}`
-            },
-            mode: 'cors'  // Explicitly state CORS mode for Amplify hosting
+            method: 'GET'
+            // Backend doesn't require auth for GET /leads
+            // Headers removed to avoid CORS preflight
         });
         
         let newLeads = [];
@@ -1159,7 +1153,8 @@ async function exportLeadsToCsv() {
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
-                'x-api-key': API_KEY
+                // Only add x-api-key if we have one
+                ...(API_KEY ? { 'x-api-key': API_KEY } : {})
             },
             mode: 'cors'
         });
@@ -1546,7 +1541,8 @@ async function submitLead(leadData) {
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
-                'x-api-key': leadData.api_key // Include API key if required
+                // Only add x-api-key if we have one
+                ...(API_KEY ? { 'x-api-key': API_KEY } : {})
             },
             body: JSON.stringify(leadData),
             mode: 'cors'
@@ -1644,9 +1640,9 @@ async function updateLeadDisposition(leadId, disposition, notes) {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json'
-                // TEMPORARILY DISABLED DUE TO CORS - FIX IN API GATEWAY
-                // 'x-api-key': API_KEY
+                'Accept': 'application/json',
+                // Only add x-api-key if we have one
+                ...(API_KEY ? { 'x-api-key': API_KEY } : {})
             },
             body: JSON.stringify({
                 disposition,
@@ -2355,9 +2351,9 @@ async function updateLeadData(leadId, data) {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json'
-                // TEMPORARILY DISABLED DUE TO CORS - FIX IN API GATEWAY
-                // 'Authorization': `Bearer ${token}`
+                'Accept': 'application/json',
+                // Only add x-api-key if we have one
+                ...(API_KEY ? { 'x-api-key': API_KEY } : {})
             },
             body: JSON.stringify(updateData),
             mode: 'cors'
@@ -2600,9 +2596,9 @@ async function sendRetainerAgreement() {
         const response = await fetch(`${API_ENDPOINT}/${leadId}/send-retainer`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
-                // TEMPORARILY DISABLED DUE TO CORS - FIX IN API GATEWAY
-                // 'Authorization': `Bearer ${token}`
+                'Content-Type': 'application/json',
+                // Only add x-api-key if we have one
+                ...(API_KEY ? { 'x-api-key': API_KEY } : {})
             },
             body: JSON.stringify({
                 emailSubject: subject,
