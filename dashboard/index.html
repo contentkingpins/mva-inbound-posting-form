@@ -4,10 +4,50 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Claim Connectors CRM</title>
-    <link rel="stylesheet" href="styles.css">
+    
+    <!-- Preconnect to speed up external resources -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://cognito-idp.us-east-1.amazonaws.com">
+    <link rel="preconnect" href="https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com">
+    
+    <!-- Prefetch critical resources -->
+    <link rel="prefetch" href="/config.json">
+    <link rel="prefetch" href="/app.js">
+    
+    <link rel="stylesheet" href="/styles.css?v=1.0.1">
+    
+    <!-- Critical path optimization - loads first -->
+    <script src="/critical-path.js?v=1.0.1" async></script>
+    
     <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.3.1/dist/amazon-cognito-identity.min.js"></script>
+    <!-- Chart.js for data visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- Animate.css for smooth animations -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <!-- CountUp.js for number animations -->
+    <script src="https://cdn.jsdelivr.net/npm/countup.js@2.6.2/dist/countUp.umd.js"></script>
 </head>
 <body>
+    <!-- Fast Loading Skeleton -->
+    <div id="skeleton-loader" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #f5f7fa; z-index: 9999;">
+        <div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
+            <div style="height: 60px; background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px; margin-bottom: 20px;"></div>
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px;">
+                <div style="height: 120px; background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 12px;"></div>
+                <div style="height: 120px; background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 12px;"></div>
+                <div style="height: 120px; background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 12px;"></div>
+                <div style="height: 120px; background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 12px;"></div>
+            </div>
+            <div style="height: 400px; background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px;"></div>
+        </div>
+        <style>
+            @keyframes shimmer {
+                0% { background-position: -200% 0; }
+                100% { background-position: 200% 0; }
+            }
+        </style>
+    </div>
+    
     <div class="container">
         <header>
             <h1>Claim Connectors CRM</h1>
@@ -33,6 +73,61 @@
                 <a href="stats.html" class="btn">Vendor Activity</a>
             </div>
         </header>
+
+        <!-- Animated Stats Cards -->
+        <div class="stats-container animate__animated animate__fadeIn">
+            <div class="stat-card animate__animated animate__fadeInUp animate__delay-1s">
+                <div class="stat-icon">📊</div>
+                <div class="stat-content">
+                    <h3 class="stat-title">Total Leads</h3>
+                    <div class="stat-number" id="total-leads-count">0</div>
+                    <div class="stat-change positive">+12.5% from last week</div>
+                </div>
+            </div>
+            
+            <div class="stat-card animate__animated animate__fadeInUp animate__delay-2s">
+                <div class="stat-icon">✅</div>
+                <div class="stat-content">
+                    <h3 class="stat-title">Conversion Rate</h3>
+                    <div class="stat-number"><span id="conversion-rate">0</span>%</div>
+                    <div class="stat-change positive">+3.2% improvement</div>
+                </div>
+            </div>
+            
+            <div class="stat-card animate__animated animate__fadeInUp animate__delay-3s">
+                <div class="stat-icon">🚀</div>
+                <div class="stat-content">
+                    <h3 class="stat-title">Active Leads</h3>
+                    <div class="stat-number" id="active-leads-count">0</div>
+                    <div class="stat-change">Processing now</div>
+                </div>
+            </div>
+            
+            <div class="stat-card animate__animated animate__fadeInUp animate__delay-4s">
+                <div class="stat-icon">💰</div>
+                <div class="stat-content">
+                    <h3 class="stat-title">Revenue Potential</h3>
+                    <div class="stat-number">$<span id="revenue-potential">0</span></div>
+                    <div class="stat-change positive">High value leads</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="charts-container animate__animated animate__fadeIn">
+            <div class="chart-card">
+                <h3>Lead Flow Over Time</h3>
+                <canvas id="leadFlowChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>Lead Status Distribution</h3>
+                <canvas id="statusChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>Vendor Performance</h3>
+                <canvas id="vendorChart"></canvas>
+            </div>
+        </div>
 
         <main>
             <div id="loading" class="loading">Loading...</div>
@@ -94,7 +189,10 @@
     </div>
 
     <!-- Main application script -->
-    <script src="app.js"></script>
+    <script src="/app.js?v=1.0.1"></script>
+    
+    <!-- Version tracking for auto-updates -->
+    <script src="/version.js?v=1.0.1"></script>
     
     <!-- Script to ensure search bar visibility -->
     <script>

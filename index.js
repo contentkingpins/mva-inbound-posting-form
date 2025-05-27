@@ -19,6 +19,26 @@ const dynamoDB = DynamoDBDocumentClient.from(client);
 const VENDORS_TABLE = process.env.VENDORS_TABLE;
 const LEADS_TABLE = process.env.LEADS_TABLE;
 
+// CORS headers for all responses
+const corsHeaders = {
+  'Content-Type': 'application/json',
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS, PUT, DELETE, PATCH',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-api-key'
+};
+
+// Helper function to create consistent API responses
+function createResponse(statusCode, body, headers = {}) {
+  return {
+    statusCode,
+    headers: {
+      ...corsHeaders,
+      ...headers
+    },
+    body: JSON.stringify(body)
+  };
+}
+
 // Main handler function for API Gateway
 exports.handler = async (event) => {
   console.log('Received event:', JSON.stringify(event, null, 2));
@@ -128,7 +148,7 @@ exports.handler = async (event) => {
     } 
     // Handle lead update and get single lead
     else if (path.match(/^\/leads\/[^\/]+$/)) {
-      const leadId = pathParameters.lead_id;
+      const leadId = path.split('/')[2]; // Extract lead ID from path
       if (httpMethod === 'PATCH') {
         return await handleUpdateLead(leadId, JSON.parse(event.body || '{}'), event.vendor);
       } else if (httpMethod === 'GET') {
@@ -137,7 +157,7 @@ exports.handler = async (event) => {
     }
     // Handle sending retainer via DocuSign
     else if (path.match(/^\/leads\/[^\/]+\/send-retainer$/)) {
-      const leadId = pathParameters.lead_id;
+      const leadId = path.split('/')[2]; // Extract lead ID from path
       if (httpMethod === 'POST') {
         return await handleSendRetainer(leadId, JSON.parse(event.body || '{}'), event.vendor);
       }
@@ -157,7 +177,7 @@ exports.handler = async (event) => {
       }
     } else if (path.match(/^\/vendors\/[^\/]+\/regenerate-key$/)) {
       if (httpMethod === 'POST') {
-        const vendorCode = pathParameters.vendor_code;
+        const vendorCode = path.split('/')[2]; // Extract vendor code from path
         return await handleRegenerateApiKey(vendorCode);
       }
     }
@@ -1391,6 +1411,30 @@ async function handleAuthRoutes(path, httpMethod, event) {
   
   const authPath = match[1];
   
+  // Handle get-username endpoint
+  if (authPath === 'get-username' && httpMethod === 'POST') {
+    const getUsernameHandler = require('./get-username-by-email');
+    return await getUsernameHandler.handler(event);
+  }
+  
+  // Handle forgot-password endpoint
+  if (authPath === 'forgot-password' && httpMethod === 'POST') {
+    const forgotPasswordHandler = require('./forgot-password-handler');
+    return await forgotPasswordHandler.handler(event);
+  }
+  
+  // Handle confirm-forgot-password endpoint
+  if (authPath === 'confirm-forgot-password' && httpMethod === 'POST') {
+    const confirmForgotPasswordHandler = require('./confirm-forgot-password');
+    return await confirmForgotPasswordHandler.handler(event);
+  }
+  
+  // Handle confirm endpoint (password reset confirmation)
+  if (authPath === 'confirm' && httpMethod === 'POST') {
+    const confirmForgotPasswordHandler = require('./confirm-forgot-password');
+    return await confirmForgotPasswordHandler.handler(event);
+  }
+  
   // Handle login
   if (authPath === 'login' && httpMethod === 'POST') {
     return authRoutes.handleLogin(event);
@@ -1399,11 +1443,6 @@ async function handleAuthRoutes(path, httpMethod, event) {
   // Handle user registration (admin only)
   if (authPath === 'register' && httpMethod === 'POST') {
     return authRoutes.handleRegister(event);
-  }
-  
-  // Handle password reset request
-  if (authPath === 'forgot-password' && httpMethod === 'POST') {
-    return authRoutes.handleForgotPassword(event);
   }
   
   // Handle reset token verification

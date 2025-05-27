@@ -8,8 +8,8 @@ import {
 
 // Configuration
 const COGNITO_CONFIG = {
-    UserPoolId: 'us-east-1_Lhc964tLD',
-    ClientId: '357mvn7k2nkjhl5nsq8h00o9tr'
+    UserPoolId: 'us-east-1_lhc964tLD',
+    ClientId: '5t6mane4fnvineksoqb4ta0iu1'
 };
 
 // Initialize the Cognito user pool

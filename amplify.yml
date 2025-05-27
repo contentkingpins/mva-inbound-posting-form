@@ -8,11 +8,13 @@ frontend:
     build:
       commands:
         - echo "Creating config.json with Cognito and API configuration"
-        - echo "{\"region\":\"us-east-1\",\"userPoolId\":\"us-east-1_Lhc964tLD\",\"clientId\":\"357mvn7k2nkjhl5nsq8h00o9tr\",\"clientSecret\":\"7h6a92cinn7i5im0l0rpusuna0dpsqc4ha7f7nog0oocc318m46\",\"apiKey\":\"${API_KEY}\",\"apiEndpoint\":\"https://nv01uveape.execute-api.us-east-1.amazonaws.com/prod\"}" > dashboard/config.json
+        - echo "{\"region\":\"us-east-1\",\"userPoolId\":\"us-east-1_lhc964tLD\",\"clientId\":\"5t6mane4fnvineksoqb4ta0iu1\",\"clientSecret\":\"7h6a92cinn7i5im0l0rpusuna0dpsqc4ha7f7nog0oocc318m46\",\"apiKey\":\"${API_KEY}\",\"apiEndpoint\":\"https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod\"}" > dashboard/config.json
         - echo "Config file created successfully"
         - echo "Deploying from dashboard directory"
         - mkdir -p dist
         - cp -R dashboard/* dist/
+        - cp version.js dist/
+        - cp styles.css dist/
         - echo "Build completed successfully"
   artifacts:
     baseDirectory: dist
@@ -21,3 +23,18 @@ frontend:
   cache:
     paths:
       - node_modules/**/*
+  customHeaders:
+    - pattern: '**/*.html'
+      headers:
+        - key: 'Cache-Control'
+          value: 'no-cache, no-store, must-revalidate'
+        - key: 'Pragma'
+          value: 'no-cache'
+    - pattern: '**/*.js'
+      headers:
+        - key: 'Cache-Control'
+          value: 'public, max-age=31536000, immutable'
+    - pattern: '**/*.css'
+      headers:
+        - key: 'Cache-Control'
+          value: 'public, max-age=31536000, immutable'

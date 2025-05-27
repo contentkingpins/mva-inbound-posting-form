@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Authentication - Fixed Endpoint</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 500px; margin: 0 auto; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #007cba; color: white; padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #005a87; }
+        .message { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Authentication Test - Fixed Endpoint</h1>
+    
+    <div class="info message">
+        <strong>Testing with correct endpoint:</strong><br>
+        https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod/auth/get-username
+    </div>
+
+    <div class="form-group">
+        <label for="email">Email Address:</label>
+        <input type="email" id="email" placeholder="Enter any email to test">
+    </div>
+
+    <div class="form-group">
+        <button onclick="testAuth()">Test Authentication Endpoint</button>
+    </div>
+
+    <div id="result"></div>
+
+    <script>
+        async function testAuth() {
+            const email = document.getElementById('email').value;
+            const resultDiv = document.getElementById('result');
+            
+            if (!email) {
+                resultDiv.innerHTML = '<div class="error message">Please enter an email address</div>';
+                return;
+            }
+
+            resultDiv.innerHTML = '<div class="info message">Testing authentication endpoint...</div>';
+
+            try {
+                // Test the CORRECT endpoint
+                const response = await fetch('https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod/auth/get-username', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Origin': 'https://main.d21xta9fg9b6w.amplifyapp.com'
+                    },
+                    body: JSON.stringify({ email: email })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="success message">
+                            <strong>✅ SUCCESS!</strong><br>
+                            Status: ${response.status}<br>
+                            Response: ${JSON.stringify(data, null, 2)}
+                        </div>`;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="success message">
+                            <strong>✅ ENDPOINT WORKING!</strong><br>
+                            Status: ${response.status} (Expected for non-existent user)<br>
+                            Response: ${JSON.stringify(data, null, 2)}<br>
+                            <em>This is normal - the endpoint is responding correctly!</em>
+                        </div>`;
+                }
+
+            } catch (error) {
+                if (error.message.includes('CORS')) {
+                    resultDiv.innerHTML = `
+                        <div class="error message">
+                            <strong>❌ CORS ERROR STILL EXISTS</strong><br>
+                            Error: ${error.message}<br>
+                            This means the endpoint configuration hasn't been deployed yet.
+                        </div>`;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error message">
+                            <strong>❌ ERROR</strong><br>
+                            ${error.message}
+                        </div>`;
+                }
+            }
+        }
+
+        // Test on page load
+        window.addEventListener('load', function() {
+            console.log('🔧 Authentication test page loaded');
+            console.log('📡 Testing endpoint: https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod/auth/get-username');
+        });
+    </script>
+</body>
+</html> 

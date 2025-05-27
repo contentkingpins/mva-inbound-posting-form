@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claim Connectors CRM</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.3.1/dist/amazon-cognito-identity.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Claim Connectors CRM</h1>
+            <div class="controls">
+                <div class="filter-group">
+                    <label for="vendor-filter">Filter by Vendor:</label>
+                    <select id="vendor-filter">
+                        <option value="">All Vendors</option>
+                        <!-- Vendor options will be populated by JavaScript -->
+                    </select>
+                </div>
+                <div class="search-group" style="display: flex !important; visibility: visible !important; opacity: 1 !important; border: 2px solid #4299e1 !important;">
+                    <input type="text" id="lead-search" placeholder="Search by name, email, phone, location..." autocomplete="off" style="display: block !important; visibility: visible !important;">
+                </div>
+                <button id="refresh-btn" class="btn">Refresh Data</button>
+                <div class="auto-refresh">
+                    <input type="checkbox" id="auto-refresh">
+                    <label for="auto-refresh">Auto-refresh (10s)</label>
+                </div>
+                <button id="add-lead-btn" class="btn">Add Lead</button>
+                <button id="export-btn" class="btn">Export CSV</button>
+                <a href="vendors.html" class="btn">Manage Vendors</a>
+                <a href="stats.html" class="btn">Vendor Activity</a>
+            </div>
+        </header>
+
+        <main>
+            <div id="loading" class="loading">Loading...</div>
+            <div id="error" class="error"></div>
+            <table id="leads-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Contact</th>
+                        <th>Incident Type</th>
+                        <th>Disposition</th>
+                        <th>Location</th>
+                        <th>Vendor</th>
+                        <th>Received</th>
+                    </tr>
+                </thead>
+                <tbody id="leads-body">
+                    <!-- Table rows will be populated by JavaScript -->
+                </tbody>
+            </table>
+            <div id="no-data" class="no-data">No leads found</div>
+        </main>
+    </div>
+    
+    <!-- Export Modal -->
+    <div id="export-modal-overlay" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Export Leads to CSV</h3>
+                <button class="modal-close" id="export-modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-form-group">
+                    <label for="export-vendor">Filter by Vendor</label>
+                    <select id="export-vendor">
+                        <option value="">All Vendors</option>
+                        <!-- Vendor options will be populated by JavaScript -->
+                    </select>
+                </div>
+                <div class="modal-form-group">
+                    <label>Date Range</label>
+                    <div class="date-range-inputs">
+                        <div>
+                            <label for="export-start-date">From</label>
+                            <input type="date" id="export-start-date">
+                        </div>
+                        <div>
+                            <label for="export-end-date">To</label>
+                            <input type="date" id="export-end-date">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="export-cancel">Cancel</button>
+                <button class="btn" id="export-download">Download CSV</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modular JavaScript files -->
+    <script src="js/utils.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    
+    <!-- Main application script -->
+    <script src="app.js"></script>
+    
+    <!-- Script to ensure search bar visibility -->
+    <script>
+        // Make sure search bar is visible on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            // Force search bar visibility
+            var searchGroup = document.querySelector('.search-group');
+            if (searchGroup) {
+                searchGroup.style.display = 'flex';
+                searchGroup.style.visibility = 'visible';
+                searchGroup.style.opacity = '1';
+                searchGroup.style.border = '2px solid #4299e1';
+                
+                // Only add search icon if ::before pseudo-element is not working (don't duplicate icons)
+                // Remove this section to avoid duplicate icons, as the CSS ::before is now working
+                
+                // Make sure the input is visible
+                var searchInput = document.getElementById('lead-search');
+                if (searchInput) {
+                    searchInput.style.display = 'block';
+                    searchInput.style.visibility = 'visible';
+                    searchInput.style.width = '100%';
+                    
+                    // Modify the search behavior to maintain collapsible functionality
+                    searchInput.addEventListener('input', function(e) {
+                        // This will be handled by the debounceSearch function in app.js
+                        // Just ensure we're not inadvertently expanding all leads here
+                    });
+                }
+            }
+        });
+    </script>
+</body>
+</html> 

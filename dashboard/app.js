@@ -1,7 +1,93 @@
 // Configuration
-const API_ENDPOINT = 'https://nv01uveape.execute-api.us-east-1.amazonaws.com/prod/leads';
-const EXPORT_ENDPOINT = 'https://nv01uveape.execute-api.us-east-1.amazonaws.com/prod/export';
+const API_ENDPOINT = 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod/leads';
+const EXPORT_ENDPOINT = 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod/export';
 const REFRESH_INTERVAL = 10000; // 10 seconds
+
+// Update notification functionality
+window.showUpdateNotification = function() {
+    // Create notification if it doesn't exist
+    let notification = document.getElementById('update-notification');
+    if (!notification) {
+        notification = document.createElement('div');
+        notification.id = 'update-notification';
+        notification.className = 'update-notification';
+        notification.innerHTML = `
+            <div class="update-content">
+                <span class="update-icon">🔄</span>
+                <span class="update-text">A new version is available!</span>
+                <button class="update-btn" onclick="location.reload()">Update Now</button>
+                <button class="update-dismiss" onclick="this.parentElement.parentElement.style.display='none'">×</button>
+            </div>
+        `;
+        document.body.appendChild(notification);
+        
+        // Add styles
+        const style = document.createElement('style');
+        style.textContent = `
+            .update-notification {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #4299e1;
+                color: white;
+                padding: 16px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 9999;
+                animation: slideIn 0.3s ease-out;
+            }
+            
+            .update-content {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
+            
+            .update-icon {
+                font-size: 20px;
+            }
+            
+            .update-btn {
+                background: white;
+                color: #4299e1;
+                border: none;
+                padding: 6px 12px;
+                border-radius: 4px;
+                font-weight: 600;
+                cursor: pointer;
+            }
+            
+            .update-dismiss {
+                background: transparent;
+                border: none;
+                color: white;
+                font-size: 20px;
+                cursor: pointer;
+                opacity: 0.8;
+                padding: 0;
+                margin-left: 8px;
+            }
+            
+            .update-dismiss:hover {
+                opacity: 1;
+            }
+            
+            @keyframes slideIn {
+                from {
+                    transform: translateX(400px);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    notification.style.display = 'block';
+};
 
 // Cognito token refresh - run every 45 minutes
 function setupTokenRefresh() {
@@ -15,7 +101,7 @@ function setupTokenRefresh() {
             }
             
             // Load config
-            fetch('config.json')
+            fetch('/config.json')
                 .then(response => response.json())
                 .then(config => {
                     const userPool = new AmazonCognitoIdentity.CognitoUserPool({
@@ -105,7 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Check if Cognito is available
             if (typeof AmazonCognitoIdentity !== 'undefined') {
                 // Load config and sign out
-                fetch('config.json')
+                fetch('/config.json')
                     .then(response => response.json())
                     .then(config => {
                         const userPool = new AmazonCognitoIdentity.CognitoUserPool({
@@ -151,6 +237,29 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Initialize the app
     initializeApp();
+    
+    // Hide skeleton loader
+    const skeleton = document.getElementById('skeleton-loader');
+    if (skeleton) {
+        skeleton.style.transition = 'opacity 0.3s ease';
+        skeleton.style.opacity = '0';
+        setTimeout(() => skeleton.remove(), 300);
+    }
+    
+    // Initialize premium UI features with delay for better perceived performance
+    requestAnimationFrame(() => {
+        setTimeout(() => {
+            initializeStatsAnimation();
+            initializeCharts();
+        }, 100);
+    });
+    
+    // Log performance metrics
+    if (window.performance && window.performance.timing) {
+        const timing = window.performance.timing;
+        const loadTime = timing.loadEventEnd - timing.navigationStart;
+        console.log(`Page load time: ${loadTime}ms`);
+    }
 });
 
 // Config initialization
@@ -159,8 +268,17 @@ let API_KEY = '';
 // Function to load configuration
 async function loadConfig() {
     try {
+        // Use preloaded config if available
+        if (window.preloadedConfig) {
+            const config = window.preloadedConfig;
+            API_ENDPOINT = config.apiEndpoint || 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod';
+            API_KEY = config.apiKey || '';
+            console.log('Using preloaded configuration');
+            return;
+        }
+        
         // Try to load config from config.json if it exists
-        const response = await fetch('config.json');
+        const response = await fetch('/config.json');
         if (response.ok) {
             const config = await response.json();
             // Store API endpoint but don't use apiKey for authentication endpoints
@@ -613,10 +731,9 @@ async function handleLeadSubmit(e) {
         at_fault_has_insurance: getRadioValue('has-insurance'),
         is_commercial_vehicle: getRadioValue('commercial-vehicle'),
         has_um_coverage: getRadioValue('um-coverage'),
-        has_commercial_proof: getRadioValue('has-proof'),
+        has_commercial_proof: getRadioValue('has-proof')
         
-        // Include API key for authorization
-        api_key: API_KEY
+        // API key removed - now handled in headers
     };
     
     // Submit the lead
@@ -801,8 +918,45 @@ function filterAndRenderLeads() {
     */
 }
 
+// Simple cache system for API responses
+const apiCache = {
+    data: null,
+    timestamp: null,
+    maxAge: 60000, // Cache for 1 minute
+    
+    set(data) {
+        this.data = data;
+        this.timestamp = Date.now();
+    },
+    
+    get() {
+        if (!this.data || !this.timestamp) return null;
+        if (Date.now() - this.timestamp > this.maxAge) {
+            this.clear();
+            return null;
+        }
+        return this.data;
+    },
+    
+    clear() {
+        this.data = null;
+        this.timestamp = null;
+    }
+};
+
 // Fetch leads from API
 async function fetchLeads() {
+    // Check cache first
+    const cachedData = apiCache.get();
+    if (cachedData && !vendorFilter.value) {
+        leads = cachedData;
+        updateVendorOptions();
+        filterAndRenderLeads();
+        initializeStatsAnimation();
+        initializeCharts();
+        return;
+    }
+    
     showLoading(true);
     hideError();
     
@@ -816,16 +970,22 @@ async function fetchLeads() {
             url += `?vendor_code=${vendorCode}`;
         }
         
+        // Get JWT token from localStorage
         const token = localStorage.getItem('auth_token');
+        
+        // Use Cognito JWT token for authentication
+        const headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        };
+        
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
         
         const response = await fetch(url, {
             method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            mode: 'cors'  // Explicitly state CORS mode for Amplify hosting
+            headers: headers
         });
         
         let newLeads = [];
@@ -897,6 +1057,11 @@ async function fetchLeads() {
         // Store updated leads in localStorage
         localStorage.setItem('leads', JSON.stringify(leads));
         
+        // Cache the data if no vendor filter
+        if (!vendorFilter.value) {
+            apiCache.set(leads);
+        }
+        
         // Store all leads for export functionality
         // In a real app, this might not be efficient for large datasets
         // You might want to fetch data specifically for export instead
@@ -909,6 +1074,10 @@ async function fetchLeads() {
         
         // After leads are fetched and processed
         filterAndRenderLeads();
+        
+        // Update premium UI features with new data
+        initializeStatsAnimation();
+        initializeCharts();
         
     } catch (error) {
         console.error('Error fetching leads:', error);
@@ -994,7 +1163,8 @@ async function exportLeadsToCsv() {
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
-                'x-api-key': API_KEY
+                // Only add x-api-key if we have one
+                ...(API_KEY ? { 'x-api-key': API_KEY } : {})
             },
             mode: 'cors'
         });
@@ -1381,7 +1551,8 @@ async function submitLead(leadData) {
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
-                'x-api-key': leadData.api_key // Include API key if required
+                // Only add x-api-key if we have one
+                ...(API_KEY ? { 'x-api-key': API_KEY } : {})
             },
             body: JSON.stringify(leadData),
             mode: 'cors'
@@ -1480,7 +1651,8 @@ async function updateLeadDisposition(leadId, disposition, notes) {
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
-                'x-api-key': API_KEY
+                // Only add x-api-key if we have one
+                ...(API_KEY ? { 'x-api-key': API_KEY } : {})
             },
             body: JSON.stringify({
                 disposition,
@@ -2190,7 +2362,8 @@ async function updateLeadData(leadId, data) {
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
-                'Authorization': `Bearer ${token}`
+                // Only add x-api-key if we have one
+                ...(API_KEY ? { 'x-api-key': API_KEY } : {})
             },
             body: JSON.stringify(updateData),
             mode: 'cors'
@@ -2434,7 +2607,8 @@ async function sendRetainerAgreement() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+                // Only add x-api-key if we have one
+                ...(API_KEY ? { 'x-api-key': API_KEY } : {})
             },
             body: JSON.stringify({
                 emailSubject: subject,
@@ -2479,5 +2653,219 @@ async function sendRetainerAgreement() {
         statusElement.className = 'status-message error';
         // Re-enable button
         document.getElementById('send-retainer-submit').disabled = false;
+    }
+}
+
+// Initialize animated statistics
+function initializeStatsAnimation() {
+    // Get leads data for calculations
+    const totalLeads = leads.length;
+    const convertedLeads = leads.filter(lead => 
+        lead.disposition === 'Retained for Firm' || 
+        lead.disposition === 'Docs Sent'
+    ).length;
+    const activeLeads = leads.filter(lead => 
+        lead.disposition === 'New' || 
+        lead.disposition === 'Awaiting Proof of Claim'
+    ).length;
+    
+    // Calculate conversion rate
+    const conversionRate = totalLeads > 0 ? Math.round((convertedLeads / totalLeads) * 100) : 0;
+    
+    // Calculate potential revenue (example: $5000 per converted lead)
+    const revenuePotential = activeLeads * 5000;
+    
+    // Animate the numbers using CountUp.js
+    if (typeof CountUp !== 'undefined') {
+        // Total Leads Counter
+        const totalLeadsCounter = new CountUp('total-leads-count', totalLeads, {
+            duration: 2.5,
+            useEasing: true,
+            useGrouping: true,
+            suffix: ''
+        });
+        totalLeadsCounter.start();
+        
+        // Conversion Rate Counter
+        const conversionCounter = new CountUp('conversion-rate', conversionRate, {
+            duration: 2.5,
+            useEasing: true,
+            suffix: ''
+        });
+        conversionCounter.start();
+        
+        // Active Leads Counter
+        const activeLeadsCounter = new CountUp('active-leads-count', activeLeads, {
+            duration: 2.5,
+            useEasing: true,
+            useGrouping: true
+        });
+        activeLeadsCounter.start();
+        
+        // Revenue Potential Counter
+        const revenueCounter = new CountUp('revenue-potential', revenuePotential, {
+            duration: 3,
+            useEasing: true,
+            useGrouping: true,
+            separator: ',',
+            decimal: '.',
+            prefix: ''
+        });
+        revenueCounter.start();
+    }
+}
+
+// Initialize Charts with Chart.js
+function initializeCharts() {
+    if (typeof Chart === 'undefined') return;
+    
+    // Configure Chart.js defaults
+    Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif';
+    Chart.defaults.color = '#4a5568';
+    
+    // Lead Flow Chart (Line Chart)
+    const leadFlowCtx = document.getElementById('leadFlowChart');
+    if (leadFlowCtx) {
+        // Generate sample data for last 7 days
+        const last7Days = [...Array(7)].map((_, i) => {
+            const date = new Date();
+            date.setDate(date.getDate() - (6 - i));
+            return date.toLocaleDateString('en-US', { weekday: 'short' });
+        });
+        
+        const leadFlowData = last7Days.map(() => Math.floor(Math.random() * 20) + 10);
+        
+        new Chart(leadFlowCtx, {
+            type: 'line',
+            data: {
+                labels: last7Days,
+                datasets: [{
+                    label: 'New Leads',
+                    data: leadFlowData,
+                    borderColor: '#4299e1',
+                    backgroundColor: 'rgba(66, 153, 225, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: '#4299e1',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5,
+                    pointHoverRadius: 7
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            borderDash: [5, 5]
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Status Distribution Chart (Doughnut)
+    const statusCtx = document.getElementById('statusChart');
+    if (statusCtx) {
+        // Count leads by status
+        const statusCounts = {};
+        leads.forEach(lead => {
+            const status = lead.disposition || 'New';
+            statusCounts[status] = (statusCounts[status] || 0) + 1;
+        });
+        
+        new Chart(statusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(statusCounts),
+                datasets: [{
+                    data: Object.values(statusCounts),
+                    backgroundColor: [
+                        '#4299e1',
+                        '#48bb78',
+                        '#f6ad55',
+                        '#fc8181',
+                        '#9f7aea',
+                        '#68d391'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 15,
+                            usePointStyle: true
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Vendor Performance Chart (Bar)
+    const vendorCtx = document.getElementById('vendorChart');
+    if (vendorCtx) {
+        // Count leads by vendor
+        const vendorCounts = {};
+        leads.forEach(lead => {
+            const vendor = lead.vendor_code || 'Unknown';
+            vendorCounts[vendor] = (vendorCounts[vendor] || 0) + 1;
+        });
+        
+        new Chart(vendorCtx, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(vendorCounts),
+                datasets: [{
+                    label: 'Total Leads',
+                    data: Object.values(vendorCounts),
+                    backgroundColor: '#667eea',
+                    borderRadius: 8,
+                    barThickness: 40
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            borderDash: [5, 5]
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
     }
 } 

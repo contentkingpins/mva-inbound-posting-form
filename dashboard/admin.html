@@ -3,907 +3,337 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Claim Connectors CRM - Admin Panel</title>
-    <link rel="stylesheet" href="styles.css">
-    <style>
-        .admin-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        
-        .admin-panel {
-            background-color: white;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-        }
-        
-        .user-list {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        .user-list th,
-        .user-list td {
-            padding: 12px 16px;
-            text-align: left;
-            border-bottom: 1px solid #e2e8f0;
-        }
-        
-        .user-list th {
-            background-color: #f7fafc;
-            font-weight: 600;
-            color: #4a5568;
-        }
-        
-        .user-list tr:hover {
-            background-color: #f7fafc;
-        }
-        
-        .user-actions {
-            display: flex;
-            gap: 8px;
-        }
-        
-        .role-pill {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-        
-        .role-admin {
-            background-color: #fed7b2;
-            color: #c05621;
-        }
-        
-        .role-agent {
-            background-color: #bee3f8;
-            color: #2b6cb0;
-        }
-        
-        .admin-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .admin-modal-content {
-            background-color: white;
-            border-radius: 8px;
-            width: 90%;
-            max-width: 500px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-            padding: 24px;
-        }
-        
-        .admin-modal-title {
-            margin-top: 0;
-            margin-bottom: 16px;
-            color: #2d3748;
-        }
-        
-        .admin-form-group {
-            margin-bottom: 16px;
-        }
-        
-        .admin-form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #4a5568;
-        }
-        
-        .admin-form-group input,
-        .admin-form-group select {
-            width: 100%;
-            padding: 10px 12px;
-            border-radius: 6px;
-            border: 1px solid #e2e8f0;
-            font-size: 14px;
-        }
-        
-        .admin-modal-actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 12px;
-            margin-top: 20px;
-        }
-        
-        .loading-container {
-            display: flex;
-            justify-content: center;
-            padding: 30px;
-        }
-        
-        .loading-spinner {
-            border: 3px solid #e2e8f0;
-            border-top: 3px solid #4299e1;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .user-status {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 6px;
-        }
-        
-        .user-active {
-            background-color: #48bb78;
-        }
-        
-        .user-inactive {
-            background-color: #e53e3e;
-        }
-        
-        .create-user-container {
-            margin-bottom: 20px;
-        }
-        
-        .section-header {
-            padding: 10px 0;
-            margin: 20px 0;
-            border-bottom: 1px solid #e2e8f0;
-            color: #2d3748;
-        }
-        
-        .user-info {
-            display: flex;
-            align-items: center;
-        }
-        
-        .btn-circle {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0;
-        }
-        
-        .message-container {
-            margin-bottom: 20px;
-            border-radius: 6px;
-            padding: 12px;
-            display: none;
-        }
-        
-        .success-message {
-            background-color: #c6f6d5;
-            color: #2f855a;
-            border: 1px solid #9ae6b4;
-        }
-        
-        .error-message {
-            background-color: #fed7d7;
-            color: #c53030;
-            border: 1px solid #feb2b2;
-        }
-        
-        .status-toggle {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .toggle-switch {
-            position: relative;
-            display: inline-block;
-            width: 50px;
-            height: 24px;
-        }
-        
-        .toggle-switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-        
-        .toggle-slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #ccc;
-            transition: .4s;
-            border-radius: 24px;
-        }
-        
-        .toggle-slider:before {
-            position: absolute;
-            content: "";
-            height: 16px;
-            width: 16px;
-            left: 4px;
-            bottom: 4px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-        }
-        
-        input:checked + .toggle-slider {
-            background-color: #48bb78;
-        }
-        
-        input:checked + .toggle-slider:before {
-            transform: translateX(26px);
-        }
-        
-        .user-row-disabled {
-            opacity: 0.65;
-            background-color: #f7fafc;
-        }
-        
-        .status-label {
-            font-weight: 600;
-            font-size: 12px;
-        }
-        
-        .status-enabled {
-            color: #48bb78;
-        }
-        
-        .status-disabled {
-            color: #e53e3e;
-        }
-    </style>
+    <title>Admin Dashboard - Lead Management System</title>
+    
+    <!-- Preconnect to CDNs -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com">
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://unpkg.com/lucide@latest/dist/lucide.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    
+    <!-- CountUp.js for number animations -->
+    <script src="https://unpkg.com/countup.js@2.8.0/dist/countUp.umd.js"></script>
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="admin.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <div class="admin-header">
-                <h1>Admin Panel</h1>
-                <div class="controls">
-                    <a href="index.html" class="btn">Back to Dashboard</a>
-                    <button id="logout-btn" class="btn btn-secondary">Logout</button>
+    <!-- Header -->
+    <header class="admin-header">
+        <div class="header-content">
+            <div class="header-left">
+                <h1 class="header-title">
+                    <span class="header-icon">🎨</span>
+                    Admin Dashboard
+                </h1>
+                <div class="header-greeting">
+                    Good <span id="time-greeting">morning</span>, <span id="admin-name">Admin</span> ☕
                 </div>
             </div>
-        </header>
-        
-        <div id="message-container" class="message-container"></div>
-        
-        <div class="create-user-container">
-            <button id="create-user-btn" class="btn">Create New User</button>
+            <div class="header-right">
+                <div class="header-date" id="current-date"></div>
+                <div class="theme-toggle">
+                    <button class="theme-btn active" data-theme="light" title="Light mode">☀️</button>
+                    <button class="theme-btn" data-theme="auto" title="Auto">◐</button>
+                    <button class="theme-btn" data-theme="dark" title="Dark mode">☾</button>
+                </div>
+                <a href="index.html" class="btn btn-secondary">Back to Dashboard</a>
+            </div>
         </div>
-        
-        <div class="admin-panel">
-            <h2 class="section-header">User Management</h2>
-            
-            <div id="loading-container" class="loading-container">
-                <div class="loading-spinner"></div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="admin-main">
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card glass-card">
+                <div class="stat-icon">💰</div>
+                <div class="stat-content">
+                    <div class="stat-label">Revenue</div>
+                    <div class="stat-value">$<span id="revenue-stat">0</span></div>
+                    <div class="stat-change positive">↑ <span id="revenue-change">0</span>% vs last month</div>
+                </div>
             </div>
             
-            <table id="user-table" class="user-list" style="display: none;">
-                <thead>
-                    <tr>
-                        <th>User</th>
-                        <th>Email</th>
-                        <th>Role</th>
-                        <th>Status</th>
-                        <th>Last Login</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="user-table-body">
-                    <!-- User rows will be added here dynamically -->
-                </tbody>
-            </table>
-        </div>
-    </div>
-    
-    <!-- Create/Edit User Modal -->
-    <div id="user-modal" class="admin-modal">
-        <div class="admin-modal-content">
-            <h3 id="user-modal-title" class="admin-modal-title">Create New User</h3>
+            <div class="stat-card glass-card">
+                <div class="stat-icon">📈</div>
+                <div class="stat-content">
+                    <div class="stat-label">Avg CPA</div>
+                    <div class="stat-value">$<span id="cpa-stat">0</span></div>
+                    <div class="stat-change positive">↓ <span id="cpa-change">0</span>% improvement</div>
+                </div>
+            </div>
             
-            <form id="user-form">
-                <input type="hidden" id="edit-mode" value="create">
-                <input type="hidden" id="edit-username" value="">
-                
-                <div class="admin-form-group">
-                    <label for="username">Username*</label>
-                    <input type="text" id="username" required>
+            <div class="stat-card glass-card">
+                <div class="stat-icon">⚡</div>
+                <div class="stat-content">
+                    <div class="stat-label">Active Agents</div>
+                    <div class="stat-value"><span id="agents-stat">0</span></div>
+                    <div class="stat-subtext"><span id="agents-online">0</span> online now</div>
+                </div>
+            </div>
+            
+            <div class="stat-card glass-card">
+                <div class="stat-icon">🎯</div>
+                <div class="stat-content">
+                    <div class="stat-label">Conversion Rate</div>
+                    <div class="stat-value"><span id="conversion-stat">0</span>%</div>
+                    <div class="stat-change positive">↑ <span id="conversion-change">0</span>% vs last month</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Performance Chart -->
+        <div class="chart-section glass-card">
+            <div class="section-header">
+                <h2 class="section-title">📊 Live Performance</h2>
+                <div class="chart-controls">
+                    <button class="period-btn active" data-period="today">Today</button>
+                    <button class="period-btn" data-period="week">Week</button>
+                    <button class="period-btn" data-period="month">Month</button>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="performance-chart"></canvas>
+            </div>
+        </div>
+
+        <!-- Pricing Control -->
+        <div class="pricing-section glass-card">
+            <div class="section-header">
+                <h2 class="section-title">💵 Lead Pricing Control</h2>
+            </div>
+            <div class="pricing-content">
+                <div class="default-pricing">
+                    <label for="default-price">Default Price per Lead</label>
+                    <div class="price-input-group">
+                        <span class="currency">$</span>
+                        <input type="number" id="default-price" value="35" min="10" max="100">
+                        <button class="btn btn-primary" id="update-default-price">Update</button>
+                    </div>
+                    <input type="range" id="price-slider" min="10" max="100" value="35" class="price-slider">
+                    <div class="price-range">
+                        <span>$10</span>
+                        <span>$100</span>
+                    </div>
                 </div>
                 
-                <div class="admin-form-group">
-                    <label for="email">Email*</label>
-                    <input type="email" id="email" required>
+                <div class="smart-pricing">
+                    <div class="feature-badge">Beta</div>
+                    <h3>🎯 Smart Pricing</h3>
+                    <p>Let AI optimize prices based on demand and performance</p>
+                    <div class="smart-pricing-controls">
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="smart-pricing-toggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <button class="btn btn-link">Learn More</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Agency Performance -->
+        <div class="agencies-section">
+            <div class="section-header">
+                <h2 class="section-title">🏢 Agency Performance</h2>
+                <button class="btn btn-primary" id="custom-pricing-btn">Set Custom Pricing</button>
+            </div>
+            
+            <div class="agencies-grid" id="agencies-grid">
+                <!-- Agency cards will be inserted here -->
+            </div>
+        </div>
+
+        <!-- Agents Management -->
+        <div class="agents-section glass-card">
+            <div class="section-header">
+                <h2 class="section-title">👥 Team Management</h2>
+                <button class="btn btn-primary" id="add-agent-btn">
+                    <span class="btn-icon">+</span>
+                    Add Agent
+                </button>
+            </div>
+            
+            <div class="agents-table-container">
+                <div class="table-search">
+                    <input type="text" id="agent-search" placeholder="🔍 Search agents..." class="search-input">
                 </div>
                 
-                <div class="admin-form-group">
-                    <label for="first-name">First Name</label>
-                    <input type="text" id="first-name">
-                </div>
-                
-                <div class="admin-form-group">
-                    <label for="last-name">Last Name</label>
-                    <input type="text" id="last-name">
-                </div>
-                
-                <div class="admin-form-group">
-                    <label for="role">Role*</label>
-                    <select id="role" required>
-                        <option value="agent">Agent</option>
-                        <option value="admin">Administrator</option>
+                <table class="data-table" id="agents-table">
+                    <thead>
+                        <tr>
+                            <th>Agent</th>
+                            <th>Status</th>
+                            <th>Leads</th>
+                            <th>Conv %</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="agents-tbody">
+                        <!-- Agent rows will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Reports Section -->
+        <div class="reports-section glass-card">
+            <div class="section-header">
+                <h2 class="section-title">📊 Reports Center</h2>
+                <div class="report-controls">
+                    <select id="report-agency" class="select-input">
+                        <option value="all">All Agencies</option>
                     </select>
+                    <select id="report-period" class="select-input">
+                        <option value="today">Today</option>
+                        <option value="week">This Week</option>
+                        <option value="month" selected>This Month</option>
+                        <option value="custom">Custom Range</option>
+                    </select>
+                    <button class="btn btn-secondary" id="export-report">
+                        <span class="btn-icon">📥</span>
+                        Export
+                    </button>
                 </div>
-                
-                <div id="password-container" class="admin-form-group">
-                    <label for="password">Password*</label>
-                    <input type="password" id="password" required>
-                </div>
-                
-                <div id="active-container" class="admin-form-group" style="display: none;">
-                    <label for="active">Status</label>
-                    <div class="status-toggle">
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="active-toggle">
-                            <span class="toggle-slider"></span>
-                        </label>
-                        <span id="status-text" class="status-label">Active</span>
-                        <input type="hidden" id="active" value="true">
+            </div>
+            
+            <div class="report-summary" id="report-summary">
+                <!-- Report data will be inserted here -->
+            </div>
+        </div>
+
+        <!-- DocuSign Templates -->
+        <div class="docusign-section glass-card">
+            <div class="section-header">
+                <h2 class="section-title">📄 DocuSign Templates</h2>
+            </div>
+            <div class="docusign-content">
+                <div class="current-template">
+                    <h3>Current Template</h3>
+                    <div class="template-info">
+                        <span class="template-name">Standard Retainer Agreement v2</span>
+                        <span class="template-date">Last updated: <span id="template-date">May 15, 2024</span></span>
+                    </div>
+                    <div class="template-actions">
+                        <button class="btn btn-secondary">Upload New</button>
+                        <button class="btn btn-secondary">Preview</button>
+                        <button class="btn btn-secondary">Test Send</button>
                     </div>
                 </div>
                 
-                <div class="admin-modal-actions">
-                    <button type="button" id="user-modal-cancel" class="btn btn-secondary">Cancel</button>
-                    <button type="submit" id="user-modal-save" class="btn">Save</button>
+                <div class="docusign-automation">
+                    <h3>Automation</h3>
+                    <div class="automation-options">
+                        <button class="btn btn-primary">Bulk Send Retainers</button>
+                        <button class="btn btn-secondary">Auto-Send Settings</button>
+                    </div>
                 </div>
-            </form>
+            </div>
+        </div>
+    </main>
+
+    <!-- Floating Action Button -->
+    <div class="fab-container">
+        <button class="fab" id="fab-button">
+            <span class="fab-icon">+</span>
+        </button>
+        <div class="fab-menu" id="fab-menu">
+            <button class="fab-action" data-action="report">
+                <span>📊</span>
+                Report
+            </button>
+            <button class="fab-action" data-action="agent">
+                <span>👥</span>
+                Agent
+            </button>
+            <button class="fab-action" data-action="pricing">
+                <span>💵</span>
+                Pricing
+            </button>
         </div>
     </div>
-    
-    <!-- Change Password Modal -->
-    <div id="password-modal" class="admin-modal">
-        <div class="admin-modal-content">
-            <h3 class="admin-modal-title">Change Password</h3>
-            
-            <form id="password-form">
-                <input type="hidden" id="password-username" value="">
-                
-                <div class="admin-form-group">
-                    <label for="new-password">New Password*</label>
-                    <input type="password" id="new-password" required>
+
+    <!-- Modals -->
+    <!-- Add Agent Modal -->
+    <div class="modal-overlay" id="add-agent-modal">
+        <div class="modal glass-modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Add New Team Member</h3>
+                <button class="modal-close" data-modal="add-agent-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="conversational-form">
+                    <div class="form-step">
+                        <label>What's their email?</label>
+                        <input type="email" id="new-agent-email" placeholder="jane@example.com" class="form-input">
+                    </div>
+                    <div class="form-step">
+                        <label>What should they do?</label>
+                        <div class="role-options">
+                            <label class="role-option">
+                                <input type="radio" name="agent-role" value="agent" checked>
+                                <span class="role-card">
+                                    <span class="role-icon">👁️</span>
+                                    <span class="role-name">View & manage leads</span>
+                                </span>
+                            </label>
+                            <label class="role-option">
+                                <input type="radio" name="agent-role" value="viewer">
+                                <span class="role-card">
+                                    <span class="role-icon">📊</span>
+                                    <span class="role-name">Just view leads</span>
+                                </span>
+                            </label>
+                            <label class="role-option">
+                                <input type="radio" name="agent-role" value="admin">
+                                <span class="role-card">
+                                    <span class="role-icon">🛡️</span>
+                                    <span class="role-name">Full admin access</span>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
                 </div>
-                
-                <div class="admin-form-group">
-                    <label for="confirm-password">Confirm Password*</label>
-                    <input type="password" id="confirm-password" required>
-                </div>
-                
-                <div class="admin-modal-actions">
-                    <button type="button" id="password-modal-cancel" class="btn btn-secondary">Cancel</button>
-                    <button type="submit" id="password-modal-save" class="btn">Save</button>
-                </div>
-            </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-modal="add-agent-modal">Cancel</button>
+                <button class="btn btn-primary" id="send-agent-invite">Send Invite</button>
+            </div>
         </div>
     </div>
-    
-    <script>
-        const API_ENDPOINT = 'https://nv01uveape.execute-api.us-east-1.amazonaws.com/prod';
-        
-        // DOM elements
-        const userTable = document.getElementById('user-table');
-        const userTableBody = document.getElementById('user-table-body');
-        const loadingContainer = document.getElementById('loading-container');
-        const messageContainer = document.getElementById('message-container');
-        const logoutBtn = document.getElementById('logout-btn');
-        const createUserBtn = document.getElementById('create-user-btn');
-        
-        // User modal elements
-        const userModal = document.getElementById('user-modal');
-        const userModalTitle = document.getElementById('user-modal-title');
-        const userForm = document.getElementById('user-form');
-        const editMode = document.getElementById('edit-mode');
-        const editUsername = document.getElementById('edit-username');
-        const usernameInput = document.getElementById('username');
-        const emailInput = document.getElementById('email');
-        const firstNameInput = document.getElementById('first-name');
-        const lastNameInput = document.getElementById('last-name');
-        const roleInput = document.getElementById('role');
-        const passwordContainer = document.getElementById('password-container');
-        const passwordInput = document.getElementById('password');
-        const activeContainer = document.getElementById('active-container');
-        const activeInput = document.getElementById('active');
-        const userModalCancel = document.getElementById('user-modal-cancel');
-        
-        // Password modal elements
-        const passwordModal = document.getElementById('password-modal');
-        const passwordForm = document.getElementById('password-form');
-        const passwordUsername = document.getElementById('password-username');
-        const newPasswordInput = document.getElementById('new-password');
-        const confirmPasswordInput = document.getElementById('confirm-password');
-        const passwordModalCancel = document.getElementById('password-modal-cancel');
-        
-        // Show message in message container
-        function showMessage(message, isError = false) {
-            messageContainer.textContent = message;
-            messageContainer.classList.remove('success-message', 'error-message');
-            messageContainer.classList.add(isError ? 'error-message' : 'success-message');
-            messageContainer.style.display = 'block';
-            
-            // Auto hide after 5 seconds
-            setTimeout(() => {
-                messageContainer.style.display = 'none';
-            }, 5000);
-        }
-        
-        // When the page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            // Check if user is logged in and is an admin
-            const token = localStorage.getItem('auth_token');
-            const user = JSON.parse(localStorage.getItem('user') || '{}');
-            
-            if (!token || !user.username) {
-                // Not logged in, redirect to login page
-                window.location.href = 'login.html';
-                return;
-            }
-            
-            if (user.role !== 'admin') {
-                // Not an admin, redirect to dashboard
-                window.location.href = 'index.html';
-                return;
-            }
-            
-            // Load the users
-            loadUsers();
-            
-            // Event listeners
-            logoutBtn.addEventListener('click', logout);
-            createUserBtn.addEventListener('click', showCreateUserModal);
-            userModalCancel.addEventListener('click', closeUserModal);
-            passwordModalCancel.addEventListener('click', closePasswordModal);
-            userForm.addEventListener('submit', handleUserFormSubmit);
-            passwordForm.addEventListener('submit', handlePasswordFormSubmit);
-        });
-        
-        // Load users from the API
-        async function loadUsers() {
-            try {
-                showLoading(true);
-                
-                const token = localStorage.getItem('auth_token');
-                const response = await fetch(`${API_ENDPOINT}/auth/users`, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-                
-                const data = await response.json();
-                
-                if (!response.ok) {
-                    throw new Error(data.message || 'Failed to load users');
-                }
-                
-                // Clear the table
-                userTableBody.innerHTML = '';
-                
-                // Add users to the table
-                if (data.users && data.users.length > 0) {
-                    data.users.forEach(user => {
-                        addUserToTable(user);
-                    });
-                    
-                    userTable.style.display = 'table';
-                } else {
-                    // No users found
-                    const noUsersRow = document.createElement('tr');
-                    noUsersRow.innerHTML = `
-                        <td colspan="6" style="text-align: center; padding: 20px;">
-                            No users found. Create a new user to get started.
-                        </td>
-                    `;
-                    userTableBody.appendChild(noUsersRow);
-                    userTable.style.display = 'table';
-                }
-            } catch (error) {
-                console.error('Error loading users:', error);
-                showMessage('Error loading users: ' + error.message, true);
-            } finally {
-                showLoading(false);
-            }
-        }
-        
-        // Add a user to the table
-        function addUserToTable(user) {
-            const row = document.createElement('tr');
-            
-            // Add disabled class if user is inactive
-            if (!user.active) {
-                row.classList.add('user-row-disabled');
-            }
-            
-            // Format the last login time
-            const lastLogin = user.last_login 
-                ? new Date(user.last_login).toLocaleString() 
-                : 'Never';
-            
-            row.innerHTML = `
-                <td>
-                    <div class="user-info">
-                        <strong>${user.username}</strong>
-                    </div>
-                    <div>${user.first_name || ''} ${user.last_name || ''}</div>
-                </td>
-                <td>${user.email}</td>
-                <td>
-                    <span class="role-pill ${user.role === 'admin' ? 'role-admin' : 'role-agent'}">
-                        ${user.role === 'admin' ? 'Admin' : 'Agent'}
-                    </span>
-                </td>
-                <td>
-                    <div class="status-toggle">
-                        <label class="toggle-switch">
-                            <input type="checkbox" class="status-toggle-input" data-username="${user.username}" 
-                                ${user.active ? 'checked' : ''} ${user.role === 'admin' ? 'disabled' : ''}>
-                            <span class="toggle-slider"></span>
-                        </label>
-                        <span class="status-label ${user.active ? 'status-enabled' : 'status-disabled'}">
-                            ${user.active ? 'Active' : 'Inactive'}
-                        </span>
-                    </div>
-                </td>
-                <td>${lastLogin}</td>
-                <td>
-                    <div class="user-actions">
-                        <button class="btn btn-sm edit-user" data-username="${user.username}">Edit</button>
-                        <button class="btn btn-sm reset-password" data-username="${user.username}">Reset Password</button>
-                    </div>
-                </td>
-            `;
-            
-            userTableBody.appendChild(row);
-            
-            // Add event listeners for the buttons
-            const editButton = row.querySelector('.edit-user');
-            const resetPasswordButton = row.querySelector('.reset-password');
-            
-            editButton.addEventListener('click', () => showEditUserModal(user));
-            resetPasswordButton.addEventListener('click', () => showPasswordModal(user.username));
-            
-            // Add event listener for status toggle
-            const statusToggle = row.querySelector('.status-toggle-input');
-            if (statusToggle && user.role !== 'admin') {
-                statusToggle.addEventListener('change', async () => {
-                    try {
-                        const newStatus = statusToggle.checked;
-                        await updateUserStatus(user.username, newStatus);
-                        
-                        // Update UI without reloading
-                        const statusLabel = statusToggle.closest('.status-toggle').querySelector('.status-label');
-                        statusLabel.textContent = newStatus ? 'Active' : 'Inactive';
-                        statusLabel.className = `status-label ${newStatus ? 'status-enabled' : 'status-disabled'}`;
-                        
-                        // Toggle disabled class on the row
-                        if (newStatus) {
-                            row.classList.remove('user-row-disabled');
-                        } else {
-                            row.classList.add('user-row-disabled');
-                        }
-                        
-                        showMessage(`User ${user.username} ${newStatus ? 'activated' : 'deactivated'} successfully`);
-                    } catch (error) {
-                        console.error('Error updating user status:', error);
-                        // Revert toggle if update failed
-                        statusToggle.checked = !statusToggle.checked;
-                        showMessage(`Failed to update user status: ${error.message}`, true);
-                    }
-                });
-            }
-        }
-        
-        // Show the create user modal
-        function showCreateUserModal() {
-            // Reset the form
-            userForm.reset();
-            editMode.value = 'create';
-            editUsername.value = '';
-            
-            // Enable username field
-            usernameInput.disabled = false;
-            
-            // Show password field
-            passwordContainer.style.display = 'block';
-            passwordInput.required = true;
-            
-            // Hide active field (new users are always active)
-            activeContainer.style.display = 'none';
-            
-            // Set modal title
-            userModalTitle.textContent = 'Create New User';
-            
-            // Show the modal
-            userModal.style.display = 'flex';
-        }
-        
-        // Show the edit user modal
-        function showEditUserModal(user) {
-            // Fill the form with user data
-            editMode.value = 'edit';
-            editUsername.value = user.username;
-            usernameInput.value = user.username;
-            emailInput.value = user.email;
-            firstNameInput.value = user.first_name || '';
-            lastNameInput.value = user.last_name || '';
-            roleInput.value = user.role || 'agent';
-            
-            // Set active status with toggle switch
-            const activeToggle = document.getElementById('active-toggle');
-            const statusText = document.getElementById('status-text');
-            const activeInput = document.getElementById('active');
-            
-            activeToggle.checked = user.active;
-            statusText.textContent = user.active ? 'Active' : 'Inactive';
-            statusText.className = `status-label ${user.active ? 'status-enabled' : 'status-disabled'}`;
-            activeInput.value = user.active ? 'true' : 'false';
-            
-            // Add event listener for the toggle
-            activeToggle.addEventListener('change', function() {
-                const isActive = this.checked;
-                statusText.textContent = isActive ? 'Active' : 'Inactive';
-                statusText.className = `status-label ${isActive ? 'status-enabled' : 'status-disabled'}`;
-                activeInput.value = isActive ? 'true' : 'false';
-            });
-            
-            // Disable toggle if user is admin
-            if (user.role === 'admin') {
-                activeToggle.disabled = true;
-                activeToggle.checked = true;
-                statusText.textContent = 'Active (Admin)';
-            } else {
-                activeToggle.disabled = false;
-            }
-            
-            // Disable username field (cannot be changed)
-            usernameInput.disabled = true;
-            
-            // Hide password field (changed separately)
-            passwordContainer.style.display = 'none';
-            passwordInput.required = false;
-            
-            // Show active field
-            activeContainer.style.display = 'block';
-            
-            // Set modal title
-            userModalTitle.textContent = 'Edit User';
-            
-            // Show the modal
-            userModal.style.display = 'flex';
-        }
-        
-        // Close the user modal
-        function closeUserModal() {
-            userModal.style.display = 'none';
-        }
-        
-        // Show the change password modal
-        function showPasswordModal(username) {
-            // Reset the form
-            passwordForm.reset();
-            passwordUsername.value = username;
-            
-            // Set a title that indicates this is an admin reset
-            document.querySelector('#password-modal .admin-modal-title').textContent = 
-                `Reset Password for ${username}`;
-            
-            // Show the modal
-            passwordModal.style.display = 'flex';
-        }
-        
-        // Close the password modal
-        function closePasswordModal() {
-            passwordModal.style.display = 'none';
-        }
-        
-        // Handle user form submit
-        async function handleUserFormSubmit(event) {
-            event.preventDefault();
-            
-            // Get form data
-            const isCreateMode = editMode.value === 'create';
-            const username = isCreateMode ? usernameInput.value : editUsername.value;
-            const email = emailInput.value;
-            const firstName = firstNameInput.value;
-            const lastName = lastNameInput.value;
-            const role = roleInput.value;
-            const password = passwordInput.value;
-            const active = activeInput.value === 'true';
-            
-            // Validate inputs
-            if (!username || !email || (isCreateMode && !password)) {
-                showMessage('Please fill in all required fields', true);
-                return;
-            }
-            
-            try {
-                const token = localStorage.getItem('auth_token');
-                let url, method, data;
-                
-                if (isCreateMode) {
-                    // Creating a new user
-                    url = `${API_ENDPOINT}/auth/register`;
-                    method = 'POST';
-                    data = {
-                        username,
-                        email,
-                        password,
-                        first_name: firstName,
-                        last_name: lastName,
-                        role
-                    };
-                } else {
-                    // Updating an existing user
-                    url = `${API_ENDPOINT}/auth/users/${username}`;
-                    method = 'PATCH';
-                    data = {
-                        email,
-                        first_name: firstName,
-                        last_name: lastName,
-                        role,
-                        active
-                    };
-                }
-                
-                const response = await fetch(url, {
-                    method,
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(data)
-                });
-                
-                const responseData = await response.json();
-                
-                if (!response.ok) {
-                    throw new Error(responseData.message || 'Operation failed');
-                }
-                
-                // Show success message
-                showMessage(isCreateMode ? 'User created successfully' : 'User updated successfully');
-                
-                // Close the modal
-                closeUserModal();
-                
-                // Reload the users
-                loadUsers();
-            } catch (error) {
-                console.error('Error saving user:', error);
-                showMessage('Error: ' + error.message, true);
-            }
-        }
-        
-        // Handle password form submit
-        async function handlePasswordFormSubmit(event) {
-            event.preventDefault();
-            
-            // Get form data
-            const username = passwordUsername.value;
-            const newPassword = newPasswordInput.value;
-            const confirmPassword = confirmPasswordInput.value;
-            
-            // Validate inputs
-            if (!newPassword || !confirmPassword) {
-                showMessage('Please fill in all required fields', true);
-                return;
-            }
-            
-            if (newPassword !== confirmPassword) {
-                showMessage('Passwords do not match', true);
-                return;
-            }
-            
-            try {
-                // Show loading state
-                const saveButton = passwordForm.querySelector('button[type="submit"]');
-                saveButton.textContent = 'Saving...';
-                saveButton.disabled = true;
-                
-                const token = localStorage.getItem('auth_token');
-                const url = `${API_ENDPOINT}/auth/users/${username}/change-password`;
-                
-                // Admin password change doesn't need old password
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        oldPassword: 'admin-reset', // Special value for admin reset
-                        newPassword
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (!response.ok) {
-                    throw new Error(data.message || 'Password change failed');
-                }
-                
-                // Show success message
-                showMessage(`Password for ${username} reset successfully`);
-                
-                // Close the modal
-                closePasswordModal();
-            } catch (error) {
-                console.error('Error changing password:', error);
-                showMessage('Error changing password: ' + error.message, true);
-            } finally {
-                // Reset button state
-                const saveButton = passwordForm.querySelector('button[type="submit"]');
-                saveButton.textContent = 'Save';
-                saveButton.disabled = false;
-            }
-        }
-        
-        // Show/hide loading spinner
-        function showLoading(show) {
-            loadingContainer.style.display = show ? 'flex' : 'none';
-            userTable.style.display = show ? 'none' : 'table';
-        }
-        
-        // Logout
-        function logout() {
-            // Clear local storage
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('user');
-            
-            // Redirect to login page
-            window.location.href = 'login.html';
-        }
-        
-        // Add function to update user status
-        async function updateUserStatus(username, isActive) {
-            const token = localStorage.getItem('auth_token');
-            const url = `${API_ENDPOINT}/auth/users/${username}`;
-            
-            const response = await fetch(url, {
-                method: 'PATCH',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    active: isActive
-                })
-            });
-            
-            const data = await response.json();
-            
-            if (!response.ok) {
-                throw new Error(data.message || 'Operation failed');
-            }
-            
-            return data;
-        }
-    </script>
+
+    <!-- Custom Pricing Modal -->
+    <div class="modal-overlay" id="custom-pricing-modal">
+        <div class="modal glass-modal">
+            <div class="modal-header">
+                <h3 class="modal-title">💵 Custom Vendor Pricing</h3>
+                <button class="modal-close" data-modal="custom-pricing-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="pricing-list" id="vendor-pricing-list">
+                    <!-- Vendor pricing items will be inserted here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-modal="custom-pricing-modal">Cancel</button>
+                <button class="btn btn-primary" id="update-all-prices">Update All</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Scripts -->
+    <script src="admin.js"></script>
 </body>
 </html> 
