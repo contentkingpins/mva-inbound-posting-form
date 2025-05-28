@@ -45,7 +45,7 @@ frontend:
         
         # Ensure index.html exists at root
         - echo "Verifying index.html exists at root..."
-        - if [ ! -f dist/index.html ]; then echo "ERROR: No index.html at root!"; exit 1; fi
+        - 'if [ ! -f dist/index.html ]; then echo "ERROR: No index.html at root!"; exit 1; fi'
         
         - echo "✅ Build completed with permanent configuration solution!"
         - echo "🚀 Zero external config dependencies - faster, more reliable startup!"
