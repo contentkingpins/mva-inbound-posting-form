@@ -1,5 +1,16 @@
-const AWS = require('aws-sdk');
-const cognitoISP = new AWS.CognitoIdentityServiceProvider();
+// Import AWS SDK v3 modules
+const { CognitoIdentityProviderClient, ForgotPasswordCommand } = require("@aws-sdk/client-cognito-identity-provider");
+
+// Initialize the client
+const client = new CognitoIdentityProviderClient();
+
+// Define CORS headers upfront to ensure consistency
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "https://main.d21xta9fg9b6w.amplifyapp.com",
+  "Access-Control-Allow-Headers": "Content-Type,Authorization",
+  "Access-Control-Allow-Methods": "OPTIONS,POST",
+  "Content-Type": "application/json"
+};
 
 /**
  * Lambda function to handle password reset requests for Cognito users
@@ -7,24 +18,17 @@ const cognitoISP = new AWS.CognitoIdentityServiceProvider();
 exports.handler = async (event) => {
   console.log('Event received:', JSON.stringify(event, null, 2));
   
-  // Enable CORS for browser requests
-  const headers = {
-    "Access-Control-Allow-Origin": "https://main.d21xta9fg9b6w.amplifyapp.com",
-    "Access-Control-Allow-Headers": "Content-Type,Authorization",
-    "Access-Control-Allow-Methods": "OPTIONS,POST",
-    "Content-Type": "application/json"
-  };
-  
   // Handle preflight OPTIONS request
   if (event.httpMethod === 'OPTIONS') {
     console.log('Handling OPTIONS request');
     return {
       statusCode: 200,
-      headers,
+      headers: corsHeaders,
       body: ''
     };
   }
   
+  // Wrap all logic in try/catch to ensure CORS headers are always returned
   try {
     console.log('Processing request body');
     let username;
@@ -37,7 +41,7 @@ exports.handler = async (event) => {
       console.error('Error parsing request body:', parseError);
       return {
         statusCode: 400,
-        headers,
+        headers: corsHeaders,
         body: JSON.stringify({ error: "Invalid request body" })
       };
     }
@@ -46,7 +50,7 @@ exports.handler = async (event) => {
       console.log('Username is missing from request');
       return {
         statusCode: 400,
-        headers,
+        headers: corsHeaders,
         body: JSON.stringify({ error: "Username is required" })
       };
     }
@@ -54,18 +58,21 @@ exports.handler = async (event) => {
     // Initiate forgot password flow
     console.log('Initiating forgot password for user:', username);
     const params = {
-      ClientId: process.env.COGNITO_CLIENT_ID || '4ue5rgkh0j9fdnl56sthcmsv3i', // You may need to set this in environment variables
+      ClientId: process.env.COGNITO_CLIENT_ID || '1ekkeqvftfnv0ld0u8utdbafv1', // Updated client ID from your screenshot
       Username: username
     };
     
     console.log('Cognito params:', JSON.stringify(params, null, 2));
     
-    const result = await cognitoISP.forgotPassword(params).promise();
+    // Use SDK v3 command pattern
+    const command = new ForgotPasswordCommand(params);
+    const result = await client.send(command);
+    
     console.log('Cognito result:', JSON.stringify(result, null, 2));
     
     return {
       statusCode: 200,
-      headers,
+      headers: corsHeaders,
       body: JSON.stringify({ 
         message: "Password reset initiated. Check your email for the verification code." 
       })
@@ -77,7 +84,7 @@ exports.handler = async (event) => {
     if (error.code === 'UserNotFoundException') {
       return {
         statusCode: 404,
-        headers,
+        headers: corsHeaders,
         body: JSON.stringify({ error: "User not found" })
       };
     }
@@ -85,14 +92,14 @@ exports.handler = async (event) => {
     if (error.code === 'LimitExceededException') {
       return {
         statusCode: 429,
-        headers,
+        headers: corsHeaders,
         body: JSON.stringify({ error: "Too many requests. Please try again later." })
       };
     }
     
     return {
       statusCode: 500,
-      headers,
+      headers: corsHeaders,
       body: JSON.stringify({ 
         error: error.message,
         code: error.code,

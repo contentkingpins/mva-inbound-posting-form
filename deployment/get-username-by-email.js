@@ -58,7 +58,7 @@ exports.handler = async (event) => {
     
     console.log('Looking up user with email:', email);
     const params = {
-      UserPoolId: process.env.USER_POOL_ID || 'us-east-1_Lhc964tLD',
+      UserPoolId: process.env.USER_POOL_ID || 'us-east-1_lhc964tLD',
       Filter: `email = "${email}"`,
       Limit: 1
     };

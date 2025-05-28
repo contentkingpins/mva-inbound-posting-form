@@ -10,6 +10,7 @@
     "deploy": "aws amplify start-deployment --app-id d21xta9fg9b6w --branch-name main --source-url dist/"
   },
   "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.458.0",
     "@aws-sdk/client-dynamodb": "^3.810.0",
     "@aws-sdk/lib-dynamodb": "^3.810.0",
     "amazon-cognito-identity-js": "^6.3.15",

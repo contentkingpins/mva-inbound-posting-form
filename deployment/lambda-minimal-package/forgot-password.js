@@ -1,5 +1,5 @@
 // Import AWS SDK v3 modules
-const { CognitoIdentityProviderClient, ListUsersCommand } = require("@aws-sdk/client-cognito-identity-provider");
+const { CognitoIdentityProviderClient, ForgotPasswordCommand } = require("@aws-sdk/client-cognito-identity-provider");
 
 // Initialize the client
 const client = new CognitoIdentityProviderClient();
@@ -13,8 +13,7 @@ const corsHeaders = {
 };
 
 /**
- * Lambda function to lookup a Cognito username by email address
- * This keeps credential and admin privileges on the backend
+ * Lambda function to handle password reset requests for Cognito users
  */
 exports.handler = async (event) => {
   console.log('Event received:', JSON.stringify(event, null, 2));
@@ -32,12 +31,12 @@ exports.handler = async (event) => {
   // Wrap all logic in try/catch to ensure CORS headers are always returned
   try {
     console.log('Processing request body');
-    let email;
+    let username;
     
     try {
       const body = JSON.parse(event.body || '{}');
-      email = body.email;
-      console.log('Parsed email:', email);
+      username = body.username;
+      console.log('Parsed username:', username);
     } catch (parseError) {
       console.error('Error parsing request body:', parseError);
       return {
@@ -47,54 +46,63 @@ exports.handler = async (event) => {
       };
     }
     
-    if (!email) {
-      console.log('Email is missing from request');
+    if (!username) {
+      console.log('Username is missing from request');
       return {
         statusCode: 400,
         headers: corsHeaders,
-        body: JSON.stringify({ error: "Email is required" })
+        body: JSON.stringify({ error: "Username is required" })
       };
     }
     
-    console.log('Looking up user with email:', email);
+    // Initiate forgot password flow
+    console.log('Initiating forgot password for user:', username);
     const params = {
-      UserPoolId: process.env.USER_POOL_ID || 'us-east-1_Lhc964tLD',
-      Filter: `email = "${email}"`,
-      Limit: 1
+      ClientId: process.env.COGNITO_CLIENT_ID || '1ekkeqvftfnv0ld0u8utdbafv1', // Updated client ID from your screenshot
+      Username: username
     };
     
     console.log('Cognito params:', JSON.stringify(params, null, 2));
     
     // Use SDK v3 command pattern
-    const command = new ListUsersCommand(params);
+    const command = new ForgotPasswordCommand(params);
     const result = await client.send(command);
     
     console.log('Cognito result:', JSON.stringify(result, null, 2));
     
-    if (result.Users && result.Users.length > 0) {
-      const username = result.Users[0].Username;
-      console.log('Found username:', username);
-      return {
-        statusCode: 200,
-        headers: corsHeaders,
-        body: JSON.stringify({ username })
-      };
-    } else {
-      console.log('User not found');
+    return {
+      statusCode: 200,
+      headers: corsHeaders,
+      body: JSON.stringify({ 
+        message: "Password reset initiated. Check your email for the verification code." 
+      })
+    };
+  } catch (error) {
+    console.error('Error initiating password reset:', error);
+    
+    // Handle different types of errors
+    if (error.code === 'UserNotFoundException') {
       return {
         statusCode: 404,
         headers: corsHeaders,
         body: JSON.stringify({ error: "User not found" })
       };
     }
-  } catch (error) {
-    console.error('Error looking up username by email:', error);
+    
+    if (error.code === 'LimitExceededException') {
+      return {
+        statusCode: 429,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: "Too many requests. Please try again later." })
+      };
+    }
+    
     return {
       statusCode: 500,
       headers: corsHeaders,
       body: JSON.stringify({ 
         error: error.message,
-        stack: error.stack,
+        code: error.code,
         name: error.name
       })
     };
