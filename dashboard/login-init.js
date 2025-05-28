@@ -5,7 +5,7 @@ const { CognitoUserPool, CognitoUser, AuthenticationDetails } = AmazonCognitoIde
 // Cognito configuration object
 const poolData = {
   UserPoolId: 'us-east-1_lhc964tLD',  // Fixed case: lowercase 'l'
-  ClientId: '5t6mane4fnvineksoqb4ta0iu1'  // Using backend Client ID (no secret required)
+  ClientId: '1ekkeqvftfnv0ld0u8utdbafv1'  // Using backend Client ID from integration guide
 };
 
 // Initialize the Cognito User Pool

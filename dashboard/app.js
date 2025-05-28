@@ -1163,11 +1163,18 @@ async function exportLeadsToCsv() {
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
-                // Only add x-api-key if we have one
-                ...(API_KEY ? { 'x-api-key': API_KEY } : {})
+                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
             },
             mode: 'cors'
         });
+        
+        // Handle 401 authentication errors
+        if (response.status === 401) {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user');
+            window.location.href = 'login.html';
+            return;
+        }
         
         if (!response.ok) {
             throw new Error(`HTTP error ${response.status}`);
@@ -1546,17 +1553,27 @@ async function submitLead(leadData) {
     hideError();
     
     try {
+        // Get JWT token from localStorage
+        const token = localStorage.getItem('auth_token');
+        
         const response = await fetch(API_ENDPOINT, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
-                // Only add x-api-key if we have one
-                ...(API_KEY ? { 'x-api-key': API_KEY } : {})
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify(leadData),
             mode: 'cors'
         });
+        
+        // Handle 401 authentication errors
+        if (response.status === 401) {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user');
+            window.location.href = 'login.html';
+            return false;
+        }
         
         const result = await handleLeadSubmissionResponse(response, leadData);
         
@@ -1646,13 +1663,15 @@ function arraysEqual(a, b) {
 // Add a function to update lead disposition and notes
 async function updateLeadDisposition(leadId, disposition, notes) {
     try {
+        // Get JWT token from localStorage
+        const token = localStorage.getItem('auth_token');
+        
         const response = await fetch(`${API_ENDPOINT}/${leadId}`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
-                // Only add x-api-key if we have one
-                ...(API_KEY ? { 'x-api-key': API_KEY } : {})
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({
                 disposition,
@@ -1660,6 +1679,14 @@ async function updateLeadDisposition(leadId, disposition, notes) {
             }),
             mode: 'cors'
         });
+        
+        // Handle 401 authentication errors
+        if (response.status === 401) {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user');
+            window.location.href = 'login.html';
+            throw new Error('Authentication failed');
+        }
         
         if (!response.ok) {
             const errorData = await response.json();
@@ -2362,8 +2389,7 @@ async function updateLeadData(leadId, data) {
             headers: {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json',
-                // Only add x-api-key if we have one
-                ...(API_KEY ? { 'x-api-key': API_KEY } : {})
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify(updateData),
             mode: 'cors'
@@ -2607,8 +2633,7 @@ async function sendRetainerAgreement() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                // Only add x-api-key if we have one
-                ...(API_KEY ? { 'x-api-key': API_KEY } : {})
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({
                 emailSubject: subject,

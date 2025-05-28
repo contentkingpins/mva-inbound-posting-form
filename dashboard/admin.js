@@ -778,25 +778,277 @@ function showToast(message, type = 'info') {
     }, 5000);
 }
 
-// Load dashboard data
+// Load dashboard data from API
 async function loadDashboardData() {
     try {
-        // This would be replaced with actual API calls
-        // For now, using the sample data initialized in each section
+        // Show loading state
+        showLoading(true);
         
-        // Show loading states if needed
-        // const loadingEls = document.querySelectorAll('.skeleton');
-        // loadingEls.forEach(el => el.classList.add('show'));
+        // Fetch admin stats from backend
+        await fetchAdminStats();
         
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Fetch analytics data from backend
+        await fetchAnalyticsData();
         
-        // Data is already loaded in initialize functions
-        // Just show a success message
-        console.log('Dashboard data loaded successfully');
+        // Initialize with real data
+        renderDashboardWithRealData();
         
     } catch (error) {
         console.error('Error loading dashboard data:', error);
-        showToast('Error loading dashboard data', 'error');
+        showToast('Error loading dashboard data. Using sample data.', 'warning');
+        
+        // Fall back to mock data if API fails
+        initializeWithMockData();
+    } finally {
+        showLoading(false);
     }
-} 
+}
+
+// Fetch admin statistics from backend
+async function fetchAdminStats() {
+    try {
+        const token = localStorage.getItem('auth_token');
+        
+        const response = await fetch('https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod/admin/stats', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (response.status === 401) {
+            // Redirect to login if not authorized
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user');
+            window.location.href = 'login.html';
+            return;
+        }
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error ${response.status}`);
+        }
+        
+        const stats = await response.json();
+        updateStatsDisplay(stats);
+        
+    } catch (error) {
+        console.error('Error fetching admin stats:', error);
+        throw error;
+    }
+}
+
+// Fetch analytics data from backend
+async function fetchAnalyticsData() {
+    try {
+        const token = localStorage.getItem('auth_token');
+        
+        const response = await fetch('https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod/admin/analytics', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (response.status === 401) {
+            // Redirect to login if not authorized
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user');
+            window.location.href = 'login.html';
+            return;
+        }
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error ${response.status}`);
+        }
+        
+        const analytics = await response.json();
+        updateAnalyticsDisplay(analytics);
+        
+    } catch (error) {
+        console.error('Error fetching analytics data:', error);
+        throw error;
+    }
+}
+
+// Update stats display with real data
+function updateStatsDisplay(stats) {
+    // Update stats with CountUp animation if available
+    if (typeof CountUp !== 'undefined') {
+        // Total Leads
+        if (stats.totalLeads !== undefined) {
+            new CountUp('total-leads-stat', stats.totalLeads, {
+                duration: 2.5,
+                separator: ',',
+                decimal: '.'
+            }).start();
+        }
+        
+        // Leads This Month
+        if (stats.leadsThisMonth !== undefined) {
+            new CountUp('leads-month-stat', stats.leadsThisMonth, {
+                duration: 2.5,
+                separator: ','
+            }).start();
+        }
+        
+        // Total Vendors
+        if (stats.totalVendors !== undefined) {
+            new CountUp('vendors-stat', stats.totalVendors, {
+                duration: 2
+            }).start();
+        }
+        
+        // Total Users
+        if (stats.totalUsers !== undefined) {
+            new CountUp('users-stat', stats.totalUsers, {
+                duration: 2
+            }).start();
+        }
+        
+        // Conversion Rate
+        if (stats.conversionRate !== undefined) {
+            new CountUp('conversion-stat', stats.conversionRate, {
+                duration: 2.5,
+                suffix: '%'
+            }).start();
+        }
+    } else {
+        // Fallback to direct display if CountUp not available
+        if (stats.totalLeads !== undefined) {
+            document.getElementById('total-leads-stat').textContent = stats.totalLeads.toLocaleString();
+        }
+        if (stats.leadsThisMonth !== undefined) {
+            document.getElementById('leads-month-stat').textContent = stats.leadsThisMonth.toLocaleString();
+        }
+        if (stats.totalVendors !== undefined) {
+            document.getElementById('vendors-stat').textContent = stats.totalVendors;
+        }
+        if (stats.totalUsers !== undefined) {
+            document.getElementById('users-stat').textContent = stats.totalUsers;
+        }
+        if (stats.conversionRate !== undefined) {
+            document.getElementById('conversion-stat').textContent = stats.conversionRate + '%';
+        }
+    }
+    
+    // Store stats for other uses
+    window.adminStats = stats;
+}
+
+// Update analytics display with real data
+function updateAnalyticsDisplay(analytics) {
+    // Update charts with real analytics data
+    if (analytics.leadsByMonth && performanceChart) {
+        updateChartWithRealData(analytics);
+    }
+    
+    // Store analytics for other uses
+    window.adminAnalytics = analytics;
+}
+
+// Update chart with real analytics data
+function updateChartWithRealData(analytics) {
+    if (!performanceChart || !analytics.leadsByMonth) return;
+    
+    // Extract data from analytics
+    const labels = analytics.leadsByMonth.map(item => {
+        const date = new Date(item.month);
+        return date.toLocaleDateString('en-US', { month: 'short' });
+    });
+    
+    const leadsData = analytics.leadsByMonth.map(item => item.leads || 0);
+    const revenueData = analytics.leadsByMonth.map(item => item.revenue || 0);
+    
+    // Update chart
+    performanceChart.data.labels = labels;
+    performanceChart.data.datasets[0].data = leadsData;
+    performanceChart.data.datasets[1].data = revenueData;
+    performanceChart.update();
+}
+
+// Render dashboard with real data
+function renderDashboardWithRealData() {
+    // Update vendor performance if analytics available
+    if (window.adminAnalytics && window.adminAnalytics.vendorPerformance) {
+        updateVendorPerformanceDisplay(window.adminAnalytics.vendorPerformance);
+    }
+    
+    // Update other real-time elements
+    updateLastRefreshTime();
+}
+
+// Update vendor performance display
+function updateVendorPerformanceDisplay(vendorPerformance) {
+    // This function can be expanded to show vendor-specific data
+    // For now, just log the data
+    console.log('Vendor Performance Data:', vendorPerformance);
+}
+
+// Update last refresh time
+function updateLastRefreshTime() {
+    const now = new Date();
+    const timeString = now.toLocaleTimeString();
+    
+    // If there's a last updated element, update it
+    const lastUpdatedEl = document.getElementById('last-updated');
+    if (lastUpdatedEl) {
+        lastUpdatedEl.textContent = `Last updated: ${timeString}`;
+    }
+}
+
+// Show loading state
+function showLoading(show) {
+    const loader = document.getElementById('admin-loader');
+    if (loader) {
+        loader.style.display = show ? 'block' : 'none';
+    }
+    
+    // Could also show skeleton loaders for individual components
+    const statsCards = document.querySelectorAll('.stat-card');
+    statsCards.forEach(card => {
+        if (show) {
+            card.classList.add('loading');
+        } else {
+            card.classList.remove('loading');
+        }
+    });
+}
+
+// Initialize with mock data (fallback)
+function initializeWithMockData() {
+    // Use the existing mock data initialization
+    const mockStats = {
+        totalLeads: 1250,
+        leadsThisMonth: 320,
+        totalVendors: 8,
+        totalUsers: 15,
+        conversionRate: 68
+    };
+    
+    updateStatsDisplay(mockStats);
+    
+    // Use existing chart update with mock data
+    updateChartData('month');
+}
+
+// Add refresh button functionality
+function addRefreshFunctionality() {
+    const refreshBtn = document.getElementById('refresh-dashboard');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+            loadDashboardData();
+        });
+    }
+}
+
+// Initialize refresh functionality when DOM loads
+document.addEventListener('DOMContentLoaded', () => {
+    addRefreshFunctionality();
+    
+    // Auto-refresh every 5 minutes
+    setInterval(() => {
+        loadDashboardData();
+    }, 5 * 60 * 1000);
+}); 
