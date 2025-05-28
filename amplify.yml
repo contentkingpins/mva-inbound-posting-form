@@ -19,41 +19,43 @@ frontend:
         - echo "Building application with injected configuration..."
         - mkdir -p dist
         - mkdir -p dist/js
-        - mkdir -p dist/dashboard
-        - mkdir -p dist/dashboard/js
+        - mkdir -p dist/images
         
-        # Copy the AppConfig module to both locations for proper path resolution
-        - echo "Copying AppConfig module to correct locations..."
+        # Copy the AppConfig module
+        - echo "Copying AppConfig module..."
         - cp js/app-config.js dist/js/ 2>/dev/null || echo "app-config.js not found in js/"
-        - cp js/app-config.js dist/dashboard/js/ 2>/dev/null || echo "Creating dashboard js directory"
         
-        # Copy all dashboard files
+        # Copy all dashboard files to ROOT of dist (this is where the app expects them)
+        - echo "Copying dashboard files to root of dist..."
+        - cp -R dashboard/* dist/
+        
+        # Also maintain dashboard directory for any relative references
+        - mkdir -p dist/dashboard
         - cp -R dashboard/* dist/dashboard/
         
-        # Copy root files
-        - cp *.html dist/ 2>/dev/null || echo "No root HTML files to copy"
+        # Copy other root files (but don't overwrite dashboard files)
         - cp *.css dist/ 2>/dev/null || echo "No root CSS files to copy"
         - cp *.js dist/ 2>/dev/null || echo "No root JS files to copy"
         
-        # Copy entire js directory to maintain structure
+        # Copy entire js directory
         - cp -R js/* dist/js/ 2>/dev/null || echo "JS directory copied"
-        
-        # Also copy critical files to root for backward compatibility
-        - cp dashboard/app.js dist/ 2>/dev/null || echo "app.js copied"
-        - cp dashboard/critical-path.js dist/ 2>/dev/null || echo "critical-path.js copied"
         
         # Copy version file if it exists
         - cp version.js dist/ 2>/dev/null || echo "No version.js file to copy"
+        
+        # Ensure index.html exists at root
+        - echo "Verifying index.html exists at root..."
+        - if [ ! -f dist/index.html ]; then echo "ERROR: No index.html at root!"; exit 1; fi
         
         - echo "✅ Build completed with permanent configuration solution!"
         - echo "🚀 Zero external config dependencies - faster, more reliable startup!"
         
         # Verify build output
         - echo "Verifying build output structure..."
+        - echo "Root directory contents:"
         - ls -la dist/ || true
+        - echo "JS directory contents:"
         - ls -la dist/js/ || true
-        - ls -la dist/dashboard/ || true
-        - ls -la dist/dashboard/js/ || true
   artifacts:
     baseDirectory: dist
     files:
