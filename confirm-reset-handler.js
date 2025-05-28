@@ -119,7 +119,7 @@ exports.handler = async (event) => {
       })
     };
   }
-};
+}; 
 
 /**
  * Confirm Password Reset Implementation using Backend API

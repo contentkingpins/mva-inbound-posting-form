@@ -16,7 +16,7 @@ function getCognitoConfig() {
         return {
             UserPoolId: 'us-east-1_lhc964tLD',
             ClientId: '5t6mane4fnvineksoqb4ta0iu1'
-        };
+};
     }
 }
 
@@ -36,23 +36,23 @@ async function getUsernameByEmail(email) {
         'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod/auth/get-username';
     
     const response = await fetch(apiEndpoint, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ email })
-    });
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ email })
+  });
 
-    if (!response.ok) {
-        if (response.status === 404) {
-            throw new Error('User with this email does not exist');
-        }
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Error looking up username');
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error('User with this email does not exist');
     }
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Error looking up username');
+  }
 
-    const data = await response.json();
-    return data.username;
+  const data = await response.json();
+  return data.username;
 }
 
 // User sign-in function - modified to look up username by email first

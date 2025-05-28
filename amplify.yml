@@ -18,21 +18,42 @@ frontend:
         
         - echo "Building application with injected configuration..."
         - mkdir -p dist
+        - mkdir -p dist/js
+        - mkdir -p dist/dashboard
+        - mkdir -p dist/dashboard/js
+        
+        # Copy the AppConfig module to both locations for proper path resolution
+        - echo "Copying AppConfig module to correct locations..."
+        - cp js/app-config.js dist/js/ 2>/dev/null || echo "app-config.js not found in js/"
+        - cp js/app-config.js dist/dashboard/js/ 2>/dev/null || echo "Creating dashboard js directory"
         
         # Copy all dashboard files
-        - cp -R dashboard/* dist/
+        - cp -R dashboard/* dist/dashboard/
         
         # Copy root files
         - cp *.html dist/ 2>/dev/null || echo "No root HTML files to copy"
         - cp *.css dist/ 2>/dev/null || echo "No root CSS files to copy"
         - cp *.js dist/ 2>/dev/null || echo "No root JS files to copy"
-        - cp -R js dist/ 2>/dev/null || echo "No js directory to copy"
+        
+        # Copy entire js directory to maintain structure
+        - cp -R js/* dist/js/ 2>/dev/null || echo "JS directory copied"
+        
+        # Also copy critical files to root for backward compatibility
+        - cp dashboard/app.js dist/ 2>/dev/null || echo "app.js copied"
+        - cp dashboard/critical-path.js dist/ 2>/dev/null || echo "critical-path.js copied"
         
         # Copy version file if it exists
         - cp version.js dist/ 2>/dev/null || echo "No version.js file to copy"
         
         - echo "✅ Build completed with permanent configuration solution!"
         - echo "🚀 Zero external config dependencies - faster, more reliable startup!"
+        
+        # Verify build output
+        - echo "Verifying build output structure..."
+        - ls -la dist/ || true
+        - ls -la dist/js/ || true
+        - ls -la dist/dashboard/ || true
+        - ls -la dist/dashboard/js/ || true
   artifacts:
     baseDirectory: dist
     files:

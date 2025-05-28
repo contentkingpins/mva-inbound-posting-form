@@ -1,11 +1,12 @@
 // Service Worker for Claim Connectors CRM
-const CACHE_NAME = 'claim-connectors-v1.0.2';
+const CACHE_NAME = 'claim-connectors-v1.0.3';
 const urlsToCache = [
-  '/dashboard/',
-  '/styles.css',
-  '/dashboard/app.js',
-  '/dashboard/critical-path.js',
-  '/js/app-config.js'  // Added AppConfig module instead of config.json
+  './',                    // Dashboard index
+  './styles.css',          // Dashboard styles
+  './app.js',             // Dashboard app
+  './critical-path.js',   // Critical path script
+  './js/app-config.js',   // AppConfig module (relative to dashboard)
+  './admin.css'           // Admin styles
 ];
 
 // Install event - cache initial resources
@@ -14,7 +15,14 @@ self.addEventListener('install', event => {
     caches.open(CACHE_NAME)
       .then(cache => {
         console.log('Opened cache');
-        return cache.addAll(urlsToCache);
+        // Add with error handling
+        return Promise.all(
+          urlsToCache.map(url => {
+            return cache.add(url).catch(err => {
+              console.warn(`Failed to cache ${url}:`, err);
+            });
+          })
+        );
       })
       .then(() => self.skipWaiting()) // Activate immediately
   );

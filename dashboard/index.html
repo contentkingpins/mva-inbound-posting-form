@@ -14,12 +14,19 @@
     <link rel="prefetch" href="/app.js">
     
     <!-- AppConfig module - centralized configuration (load before everything else) -->
-    <script src="/js/app-config.js?v=1.0.2"></script>
+    <link rel="stylesheet" href="admin.css?v=1.0.2">
+    
+    <!-- Critical Performance Optimizations -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="dns-prefetch" href="https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com">
+    
+    <!-- Remove the incorrect app-config.js reference - will be added by inject-config.js -->
+    
+    <!-- Critical Path Script - Load First for Auth Check -->
+    <script>window.appStartTime = Date.now();</script>
+    <script src="/critical-path.js?v=1.0.1" async></script>
     
     <link rel="stylesheet" href="/styles.css?v=1.0.1">
-    
-    <!-- Critical path optimization - loads first -->
-    <script src="/critical-path.js?v=1.0.1" async></script>
     
     <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.3.1/dist/amazon-cognito-identity.min.js"></script>
     <!-- Chart.js for data visualizations -->
@@ -28,6 +35,32 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <!-- CountUp.js for number animations -->
     <script src="https://cdn.jsdelivr.net/npm/countup.js@2.6.2/dist/countUp.umd.js"></script>
+
+<!-- AppConfig Module Reference -->
+<script src="js/app-config.js?v=1748474952146"></script>
+
+<!-- Build-Time Injected Configuration -->
+<script>
+/**
+ * Application Configuration - Injected at Build Time
+ * This eliminates the need for external config.json files and prevents
+ * race conditions, failed fetches, and timing issues.
+ */
+window.APP_CONFIG = {
+  "userPoolId": "us-east-1_lhc964tLD",
+  "clientId": "5t6mane4fnvineksoqb4ta0iu1",
+  "apiEndpoint": "https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod",
+  "apiUrl": "https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod",
+  "apiKey": "",
+  "buildTime": "2025-05-28T23:29:12.145Z",
+  "buildEnv": "production"
+};
+
+// Legacy compatibility - some code might still look for these
+window.preloadedConfig = window.APP_CONFIG;
+
+console.log('🔧 Configuration injected at build time - no external loading needed');
+</script>
 </head>
 <body>
     <!-- Fast Loading Skeleton -->

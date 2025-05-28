@@ -9,29 +9,77 @@
     // No more external config loading needed - window.APP_CONFIG is available immediately!
     
     console.log('🚀 Critical path loading - using build-time injected configuration');
-
-    // Check if user has valid session
+    
+    // Enhanced auth check with proper JWT validation
     const checkAuth = () => {
         const token = localStorage.getItem('auth_token');
-        if (!token) {
-            // Only redirect if we're on a protected page (not login/auth pages)
             const path = window.location.pathname;
+        
+        // Define auth pages that don't need protection
             const isAuthPage = path.includes('login') || 
                              path.includes('verify') || 
                              path.includes('forgot') || 
                              path.includes('reset') ||
                              path.includes('signup');
             
-            if (!isAuthPage) {
+        // If we're on an auth page, don't redirect
+        if (isAuthPage) {
+            console.log('On auth page, skipping auth check');
+            return;
+        }
+        
+        // If no token, redirect to login
+        if (!token) {
                 console.log('No auth token found, redirecting to login');
                 window.location.href = '/login.html';
+            return;
+        }
+        
+        // Validate JWT token structure and expiration
+        try {
+            // Parse JWT token
+            const tokenParts = token.split('.');
+            if (tokenParts.length !== 3) {
+                throw new Error('Invalid token format');
             }
+            
+            // Decode payload
+            const payload = JSON.parse(atob(tokenParts[1]));
+            
+            // Check expiration with 5-minute buffer for clock skew
+            const now = Math.floor(Date.now() / 1000);
+            const clockSkewBuffer = 300; // 5 minutes
+            
+            if (payload.exp && (payload.exp + clockSkewBuffer) < now) {
+                throw new Error('Token expired');
+            }
+            
+            // Check if token was issued in the future (clock issue)
+            if (payload.iat && payload.iat > (now + clockSkewBuffer)) {
+                console.warn('Token issued in future - possible clock/timezone issue');
+                console.warn('Please ensure your system clock is synchronized');
+            }
+            
+            console.log('Token validation passed');
+            
+        } catch (error) {
+            console.error('Token validation failed:', error.message);
+            
+            // Clear invalid token
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user');
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('idToken');
+            localStorage.removeItem('refreshToken');
+            
+            // Redirect to login
+            window.location.href = '/login.html';
         }
     };
-
+    
     // Run auth check
     checkAuth();
-
+    
     // Optimize loading
     window.addEventListener('load', () => {
         // Report load time
@@ -50,11 +98,11 @@
             ga('send', 'timing', 'JS Dependencies', 'load', loadTime);
         }
     });
-
+    
     // Register Service Worker for intelligent caching
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/dashboard/service-worker.js')
+            navigator.serviceWorker.register('./service-worker.js')
                 .then(registration => {
                     console.log('ServiceWorker registered');
                     

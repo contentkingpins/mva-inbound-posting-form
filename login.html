@@ -11,6 +11,32 @@
     <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.3.1/dist/amazon-cognito-identity.min.js"></script>
     <!-- Our login initialization script -->
     <script src="login-init.js"></script>
+
+<!-- AppConfig Module Reference -->
+<script src="js/app-config.js?v=1748474952146"></script>
+
+<!-- Build-Time Injected Configuration -->
+<script>
+/**
+ * Application Configuration - Injected at Build Time
+ * This eliminates the need for external config.json files and prevents
+ * race conditions, failed fetches, and timing issues.
+ */
+window.APP_CONFIG = {
+  "userPoolId": "us-east-1_lhc964tLD",
+  "clientId": "5t6mane4fnvineksoqb4ta0iu1",
+  "apiEndpoint": "https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod",
+  "apiUrl": "https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod",
+  "apiKey": "",
+  "buildTime": "2025-05-28T23:29:12.145Z",
+  "buildEnv": "production"
+};
+
+// Legacy compatibility - some code might still look for these
+window.preloadedConfig = window.APP_CONFIG;
+
+console.log('🔧 Configuration injected at build time - no external loading needed');
+</script>
 </head>
 <body class="auth-page">
     <!-- Hero Background with gradient overlay -->

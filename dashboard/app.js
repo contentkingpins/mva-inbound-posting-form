@@ -131,39 +131,39 @@ function setupTokenRefresh() {
                 { UserPoolId: 'us-east-1_lhc964tLD', ClientId: '5t6mane4fnvineksoqb4ta0iu1' };
             
             const userPool = new AmazonCognitoIdentity.CognitoUserPool(cognitoConfig);
-            
-            const currentUser = userPool.getCurrentUser();
-            if (!currentUser) {
-                console.warn('No user session found');
-                return;
-            }
-            
-            // Get session
-            currentUser.getSession((err, session) => {
-                if (err) {
-                    console.error('Error refreshing session:', err);
                     
-                    // If session can't be refreshed, redirect to login
-                    if (err.name === 'NotAuthorizedException') {
-                        localStorage.removeItem('auth_token');
-                        localStorage.removeItem('user');
-                        window.location.href = '/login.html';
+                    const currentUser = userPool.getCurrentUser();
+                    if (!currentUser) {
+                        console.warn('No user session found');
+                        return;
                     }
-                    return;
-                }
-                
-                if (session.isValid()) {
-                    // Update token in localStorage
-                    const token = session.getIdToken().getJwtToken();
-                    localStorage.setItem('auth_token', token);
-                    console.log('Token refreshed successfully');
-                } else {
-                    console.warn('Session is not valid');
-                    localStorage.removeItem('auth_token');
-                    localStorage.removeItem('user');
+                    
+                    // Get session
+                    currentUser.getSession((err, session) => {
+                        if (err) {
+                            console.error('Error refreshing session:', err);
+                            
+                            // If session can't be refreshed, redirect to login
+                            if (err.name === 'NotAuthorizedException') {
+                                localStorage.removeItem('auth_token');
+                                localStorage.removeItem('user');
+                        window.location.href = '/login.html';
+                            }
+                            return;
+                        }
+                        
+                        if (session.isValid()) {
+                            // Update token in localStorage
+                            const token = session.getIdToken().getJwtToken();
+                            localStorage.setItem('auth_token', token);
+                            console.log('Token refreshed successfully');
+                        } else {
+                            console.warn('Session is not valid');
+                            localStorage.removeItem('auth_token');
+                            localStorage.removeItem('user');
                     window.location.href = '/login.html';
-                }
-            });
+                        }
+                });
         } catch (error) {
             console.error('Token refresh error:', error);
         }
@@ -215,16 +215,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     { UserPoolId: 'us-east-1_lhc964tLD', ClientId: '5t6mane4fnvineksoqb4ta0iu1' };
                 
                 const userPool = new AmazonCognitoIdentity.CognitoUserPool(cognitoConfig);
-                
-                // Get current user and sign out
-                const currentUser = userPool.getCurrentUser();
-                if (currentUser) {
-                    currentUser.signOut();
-                }
-                
-                // Clear local storage and redirect to login page
-                localStorage.removeItem('auth_token');
-                localStorage.removeItem('user');
+                        
+                        // Get current user and sign out
+                        const currentUser = userPool.getCurrentUser();
+                        if (currentUser) {
+                            currentUser.signOut();
+                        }
+                        
+                        // Clear local storage and redirect to login page
+                        localStorage.removeItem('auth_token');
+                        localStorage.removeItem('user');
                 window.location.href = '/login.html';
             } else {
                 // Fallback to traditional logout if Cognito is not available

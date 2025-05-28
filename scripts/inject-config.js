@@ -55,6 +55,10 @@ console.log(`   API Key: ${APP_CONFIG.apiKey ? '[PRESENT]' : '[NOT SET]'}`);
 
 // Create the configuration script that will be injected
 const configScript = `
+<!-- AppConfig Module Reference -->
+<script src="js/app-config.js?v=${Date.now()}"></script>
+
+<!-- Build-Time Injected Configuration -->
 <script>
 /**
  * Application Configuration - Injected at Build Time
@@ -69,16 +73,32 @@ window.preloadedConfig = window.APP_CONFIG;
 console.log('🔧 Configuration injected at build time - no external loading needed');
 </script>`;
 
-// Files to inject configuration into
+// Files to inject configuration into - expanded list
 const htmlFiles = [
+    // Dashboard files
     'dashboard/index.html',
     'dashboard/login.html',
     'dashboard/admin.html',
+    'dashboard/signup.html',
+    'dashboard/forgot-password.html',
+    'dashboard/reset-password.html',
+    'dashboard/verify.html',
+    'dashboard/stats.html',
+    'dashboard/vendors.html',
+    // Root files
+    'index.html',
     'login.html',
-    'index.html'
+    'signup.html',
+    'admin.html',
+    'verify.html',
+    'reset-password.html',
+    'forgot-password.html',
+    'stats.html',
+    'vendors.html'
 ];
 
 let injectedCount = 0;
+let processedFiles = [];
 
 htmlFiles.forEach(filePath => {
     if (fs.existsSync(filePath)) {
@@ -88,11 +108,18 @@ htmlFiles.forEach(filePath => {
             // Remove any existing config injection to prevent duplicates
             content = content.replace(/<script>[\s\S]*?window\.APP_CONFIG[\s\S]*?<\/script>/g, '');
             
+            // Remove any existing app-config.js references to prevent duplicates
+            content = content.replace(/<script src="[^"]*app-config\.js[^"]*"><\/script>\s*/g, '');
+            
+            // Also check for the comment
+            content = content.replace(/<!-- AppConfig Module Reference -->\s*/g, '');
+            
             // Inject the new configuration script before closing </head>
             if (content.includes('</head>')) {
                 content = content.replace('</head>', `${configScript}\n</head>`);
                 fs.writeFileSync(filePath, content);
                 console.log(`✅ Injected config into: ${filePath}`);
+                processedFiles.push(filePath);
                 injectedCount++;
             } else {
                 console.warn(`⚠️  No </head> tag found in: ${filePath}`);
@@ -100,12 +127,12 @@ htmlFiles.forEach(filePath => {
         } catch (error) {
             console.error(`❌ Error processing ${filePath}:`, error.message);
         }
-    } else {
-        console.log(`ℹ️  File not found (skipping): ${filePath}`);
     }
 });
 
 console.log(`\n🎉 Configuration injection complete!`);
 console.log(`📊 Summary: ${injectedCount} files updated`);
+console.log(`📋 Processed files:`);
+processedFiles.forEach(file => console.log(`   - ${file}`));
 console.log(`🚀 Your app will now start faster with zero config loading delays`);
 console.log(`✨ No more race conditions, fetch failures, or timing issues!`); 
