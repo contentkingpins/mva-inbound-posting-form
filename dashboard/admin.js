@@ -32,13 +32,9 @@ function checkAuth() {
     const token = localStorage.getItem('auth_token');
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     
-    if (!token || !user.username) {
-        window.location.href = 'login.html';
-        return;
-    }
-    
-    if (user.role !== 'admin') {
-        window.location.href = 'index.html';
+    if (!token || !user.username || user.role !== 'admin') {
+        // Not logged in or not admin, redirect to login page
+        window.location.href = '/login.html';
         return;
     }
     
@@ -818,10 +814,10 @@ async function fetchAdminStats() {
         });
         
         if (response.status === 401) {
-            // Redirect to login if not authorized
+            // Token expired or invalid, redirect to login
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user');
-            window.location.href = 'login.html';
+            window.location.href = '/login.html';
             return;
         }
         
@@ -852,10 +848,10 @@ async function fetchAnalyticsData() {
         });
         
         if (response.status === 401) {
-            // Redirect to login if not authorized
+            // Token expired or invalid, redirect to login
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user');
-            window.location.href = 'login.html';
+            window.location.href = '/login.html';
             return;
         }
         
