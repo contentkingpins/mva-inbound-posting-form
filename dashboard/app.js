@@ -1,7 +1,25 @@
-// Configuration - Graceful loading with fallback (approved by backend team)
+// Configuration - Now handled by build-time injection and AppConfig module
 const API_ENDPOINT = 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod/leads';
 const EXPORT_ENDPOINT = 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod/export';
 const REFRESH_INTERVAL = 10000; // 10 seconds
+
+// Configuration is now handled by AppConfig module - no more complex loading logic needed!
+function getAppConfig() {
+    // Use AppConfig module if available, otherwise fallback
+    if (window.AppConfig) {
+        return window.AppConfig.get();
+    } else if (window.APP_CONFIG) {
+        return window.APP_CONFIG;
+    } else {
+        // Emergency fallback
+        return {
+            userPoolId: 'us-east-1_lhc964tLD',
+            clientId: '5t6mane4fnvineksoqb4ta0iu1',
+            apiEndpoint: 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod',
+            apiUrl: 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod'
+        };
+    }
+}
 
 // Approved fallback configuration (no secrets)
 const FALLBACK_CONFIG = {
@@ -10,16 +28,6 @@ const FALLBACK_CONFIG = {
     apiEndpoint: 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod',
     apiUrl: 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod'
 };
-
-// Centralized config getter
-function getAppConfig() {
-    // Use preloaded config if available (from critical-path.js)
-    if (window.preloadedConfig) {
-        return window.preloadedConfig;
-    }
-    // Fallback to hardcoded config
-    return FALLBACK_CONFIG;
-}
 
 // Update notification functionality
 window.showUpdateNotification = function() {
@@ -117,12 +125,12 @@ function setupTokenRefresh() {
                 return;
             }
             
-            // Use graceful config loading
-            const config = getAppConfig();
-            const userPool = new AmazonCognitoIdentity.CognitoUserPool({
-                UserPoolId: config.userPoolId,
-                ClientId: config.clientId
-            });
+            // Use AppConfig module for instant Cognito configuration
+            const cognitoConfig = window.AppConfig ? 
+                window.AppConfig.getCognitoConfig() :
+                { UserPoolId: 'us-east-1_lhc964tLD', ClientId: '5t6mane4fnvineksoqb4ta0iu1' };
+            
+            const userPool = new AmazonCognitoIdentity.CognitoUserPool(cognitoConfig);
             
             const currentUser = userPool.getCurrentUser();
             if (!currentUser) {
@@ -201,12 +209,12 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('logout-btn').addEventListener('click', () => {
             // Check if Cognito is available
             if (typeof AmazonCognitoIdentity !== 'undefined') {
-                // Use graceful config loading
-                const config = getAppConfig();
-                const userPool = new AmazonCognitoIdentity.CognitoUserPool({
-                    UserPoolId: config.userPoolId,
-                    ClientId: config.clientId
-                });
+                // Use AppConfig module for instant Cognito configuration
+                const cognitoConfig = window.AppConfig ? 
+                    window.AppConfig.getCognitoConfig() :
+                    { UserPoolId: 'us-east-1_lhc964tLD', ClientId: '5t6mane4fnvineksoqb4ta0iu1' };
+                
+                const userPool = new AmazonCognitoIdentity.CognitoUserPool(cognitoConfig);
                 
                 // Get current user and sign out
                 const currentUser = userPool.getCurrentUser();
@@ -266,46 +274,17 @@ document.addEventListener('DOMContentLoaded', () => {
 // Config initialization
 let API_KEY = '';
 
-// Function to load configuration with graceful fallback
-async function loadConfig() {
-    try {
-        // Use preloaded config if available (from critical-path.js)
-        if (window.preloadedConfig) {
-            const config = window.preloadedConfig;
-            API_ENDPOINT = config.apiEndpoint || 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod';
-            API_KEY = config.apiKey || '';
-            console.log('Using preloaded configuration');
-            return;
-        }
-        
-        // Try to load external config gracefully
-        try {
-            const response = await fetch('/config.json');
-            if (response.ok) {
-                const config = await response.json();
-                // Store API endpoint but don't use apiKey for authentication endpoints
-                API_ENDPOINT = config.apiEndpoint || 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod';
-                API_KEY = config.apiKey || ''; // Keep API_KEY for non-auth endpoints
-                console.log('External configuration loaded');
-            } else {
-                console.log('Using fallback configuration - external config not available');
-                // Use fallback config
-                API_ENDPOINT = FALLBACK_CONFIG.apiEndpoint;
-                API_KEY = ''; // No API key in fallback
-            }
-        } catch (error) {
-            console.log('Using fallback configuration - external config failed to load');
-            // Use fallback config
-            API_ENDPOINT = FALLBACK_CONFIG.apiEndpoint;
-            API_KEY = ''; // No API key in fallback
-        }
-        
-        // No longer using token as API key for auth endpoints
-    } catch (error) {
-        console.error('Error in config loading:', error);
-        // Ensure we have a working endpoint
-        API_ENDPOINT = FALLBACK_CONFIG.apiEndpoint;
+// Simplified configuration using AppConfig module - no more complex loading!
+function loadConfig() {
+    // Configuration is now handled by AppConfig module - instant access, no async loading!
+    console.log('✅ Using AppConfig module - no external loading needed');
+    
+    if (window.AppConfig) {
+        console.log('Configuration debug info:', window.AppConfig.getDebugConfig());
     }
+    
+    // No more async loading, race conditions, or timing issues!
+    return Promise.resolve();
 }
 
 // DOM Elements
@@ -345,11 +324,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Clear any mock data in localStorage
     clearMockData();
     
-    // Load configuration before fetching data
+    // Load configuration - now instant with AppConfig module!
     await loadConfig();
     
-    // Check if API key is available for non-auth endpoints
-    // Remove the error message for missing API key since auth doesn't need it
+    // Start fetching leads immediately - no more timing delays needed!
     fetchLeads();
     
     // Event Listeners

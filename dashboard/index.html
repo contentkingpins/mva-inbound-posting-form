@@ -10,9 +10,11 @@
     <link rel="preconnect" href="https://cognito-idp.us-east-1.amazonaws.com">
     <link rel="preconnect" href="https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com">
     
-    <!-- Prefetch critical resources -->
-    <link rel="prefetch" href="/config.json">
+    <!-- Prefetch critical resources (removed config.json as it's now build-time injected) -->
     <link rel="prefetch" href="/app.js">
+    
+    <!-- AppConfig module - centralized configuration (load before everything else) -->
+    <script src="/js/app-config.js?v=1.0.2"></script>
     
     <link rel="stylesheet" href="/styles.css?v=1.0.1">
     

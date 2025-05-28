@@ -1,11 +1,11 @@
 // Service Worker for Claim Connectors CRM
-const CACHE_NAME = 'claim-connectors-v1.0.1';
+const CACHE_NAME = 'claim-connectors-v1.0.2';
 const urlsToCache = [
   '/dashboard/',
   '/styles.css',
   '/dashboard/app.js',
   '/dashboard/critical-path.js',
-  '/config.json'
+  '/js/app-config.js'  // Added AppConfig module instead of config.json
 ];
 
 // Install event - cache initial resources
@@ -44,6 +44,12 @@ self.addEventListener('fetch', event => {
   // Skip API requests - always fetch fresh
   if (event.request.url.includes('/api/') || 
       event.request.url.includes('execute-api.amazonaws.com')) {
+    return;
+  }
+  
+  // Skip config.json requests since we no longer use them
+  if (event.request.url.includes('config.json')) {
+    console.log('Skipping config.json request - using build-time injection instead');
     return;
   }
   

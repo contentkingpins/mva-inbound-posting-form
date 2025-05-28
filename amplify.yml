@@ -5,17 +5,34 @@ frontend:
       commands:
         - echo "Setting up build environment"
         - nvm use 16
+        - echo "Making config injection script executable"
+        - chmod +x scripts/inject-config.js
     build:
       commands:
-        - echo "Creating config.json with Cognito and API configuration"
-        - echo "{\"region\":\"us-east-1\",\"userPoolId\":\"us-east-1_lhc964tLD\",\"clientId\":\"5t6mane4fnvineksoqb4ta0iu1\",\"clientSecret\":\"7h6a92cinn7i5im0l0rpusuna0dpsqc4ha7f7nog0oocc318m46\",\"apiKey\":\"${API_KEY}\",\"apiEndpoint\":\"https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod\"}" > dashboard/config.json
-        - echo "Config file created successfully"
-        - echo "Deploying from dashboard directory"
+        - echo "🔧 Starting permanent configuration solution build..."
+        - echo "Using build-time config injection instead of external config.json files"
+        
+        # Run the configuration injection script
+        - echo "Running build-time configuration injection..."
+        - node scripts/inject-config.js
+        
+        - echo "Building application with injected configuration..."
         - mkdir -p dist
+        
+        # Copy all dashboard files
         - cp -R dashboard/* dist/
-        - cp version.js dist/
-        - cp styles.css dist/
-        - echo "Build completed successfully"
+        
+        # Copy root files
+        - cp *.html dist/ 2>/dev/null || echo "No root HTML files to copy"
+        - cp *.css dist/ 2>/dev/null || echo "No root CSS files to copy"
+        - cp *.js dist/ 2>/dev/null || echo "No root JS files to copy"
+        - cp -R js dist/ 2>/dev/null || echo "No js directory to copy"
+        
+        # Copy version file if it exists
+        - cp version.js dist/ 2>/dev/null || echo "No version.js file to copy"
+        
+        - echo "✅ Build completed with permanent configuration solution!"
+        - echo "🚀 Zero external config dependencies - faster, more reliable startup!"
   artifacts:
     baseDirectory: dist
     files:
@@ -24,17 +41,28 @@ frontend:
     paths:
       - node_modules/**/*
   customHeaders:
+    # HTML files - no cache for content files
     - pattern: '**/*.html'
       headers:
         - key: 'Cache-Control'
           value: 'no-cache, no-store, must-revalidate'
         - key: 'Pragma'
           value: 'no-cache'
+    
+    # JavaScript files - long cache (they have injected config now)
     - pattern: '**/*.js'
       headers:
         - key: 'Cache-Control'
           value: 'public, max-age=31536000, immutable'
+    
+    # CSS files - long cache
     - pattern: '**/*.css'
+      headers:
+        - key: 'Cache-Control'
+          value: 'public, max-age=31536000, immutable'
+    
+    # Images - long cache
+    - pattern: '**/*.{png,jpg,jpeg,gif,svg,ico}'
       headers:
         - key: 'Cache-Control'
           value: 'public, max-age=31536000, immutable'

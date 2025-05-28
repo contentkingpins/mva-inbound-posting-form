@@ -1,15 +1,27 @@
-// Initialize Cognito Authentication
+// Initialize Cognito Authentication using AppConfig module
 // Import from the global object since we're loading the SDK via script tag
 const { CognitoUserPool, CognitoUser, AuthenticationDetails } = AmazonCognitoIdentity;
 
-// Cognito configuration object
-const poolData = {
-  UserPoolId: 'us-east-1_lhc964tLD',  // Fixed case: lowercase 'l'
-  ClientId: '5t6mane4fnvineksoqb4ta0iu1'  // Reverted to original working Client ID
-};
+// Get Cognito configuration from AppConfig module (build-time injected)
+function getCognitoConfig() {
+    if (window.AppConfig) {
+        return window.AppConfig.getCognitoConfig();
+    } else if (window.APP_CONFIG) {
+        return {
+            UserPoolId: window.APP_CONFIG.userPoolId,
+            ClientId: window.APP_CONFIG.clientId
+        };
+    } else {
+        // Emergency fallback
+        return {
+            UserPoolId: 'us-east-1_lhc964tLD',
+            ClientId: '5t6mane4fnvineksoqb4ta0iu1'
+        };
+    }
+}
 
-// Initialize the Cognito User Pool
-const userPool = new CognitoUserPool(poolData);
+// Initialize the Cognito User Pool with AppConfig
+const userPool = new CognitoUserPool(getCognitoConfig());
 
 /**
  * Get username by email using backend API endpoint
@@ -18,24 +30,29 @@ const userPool = new CognitoUserPool(poolData);
  * @returns {Promise<string>} - User's Cognito username
  */
 async function getUsernameByEmail(email) {
-              const response = await fetch('https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod/auth/get-username', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ email })
-  });
+    // Get API endpoint from AppConfig
+    const apiEndpoint = window.AppConfig ? 
+        window.AppConfig.getApiEndpoint('/auth/get-username') :
+        'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod/auth/get-username';
+    
+    const response = await fetch(apiEndpoint, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email })
+    });
 
-  if (!response.ok) {
-    if (response.status === 404) {
-      throw new Error('User with this email does not exist');
+    if (!response.ok) {
+        if (response.status === 404) {
+            throw new Error('User with this email does not exist');
+        }
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error looking up username');
     }
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Error looking up username');
-  }
 
-  const data = await response.json();
-  return data.username;
+    const data = await response.json();
+    return data.username;
 }
 
 // User sign-in function - modified to look up username by email first
