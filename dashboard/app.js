@@ -1,7 +1,25 @@
-// Configuration
+// Configuration - Graceful loading with fallback (approved by backend team)
 const API_ENDPOINT = 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod/leads';
 const EXPORT_ENDPOINT = 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod/export';
 const REFRESH_INTERVAL = 10000; // 10 seconds
+
+// Approved fallback configuration (no secrets)
+const FALLBACK_CONFIG = {
+    userPoolId: 'us-east-1_lhc964tLD',
+    clientId: '5t6mane4fnvineksoqb4ta0iu1',
+    apiEndpoint: 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod',
+    apiUrl: 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod'
+};
+
+// Centralized config getter
+function getAppConfig() {
+    // Use preloaded config if available (from critical-path.js)
+    if (window.preloadedConfig) {
+        return window.preloadedConfig;
+    }
+    // Fallback to hardcoded config
+    return FALLBACK_CONFIG;
+}
 
 // Update notification functionality
 window.showUpdateNotification = function() {
@@ -94,57 +112,50 @@ function setupTokenRefresh() {
     // Function to refresh token
     function refreshCognitoToken() {
         try {
-            // Check if Cognito is available
             if (typeof AmazonCognitoIdentity === 'undefined') {
                 console.warn('Cognito SDK not loaded');
                 return;
             }
             
-            // Load config
-            fetch('/config.json')
-                .then(response => response.json())
-                .then(config => {
-                    const userPool = new AmazonCognitoIdentity.CognitoUserPool({
-                        UserPoolId: config.userPoolId,
-                        ClientId: config.clientId
-                    });
+            // Use graceful config loading
+            const config = getAppConfig();
+            const userPool = new AmazonCognitoIdentity.CognitoUserPool({
+                UserPoolId: config.userPoolId,
+                ClientId: config.clientId
+            });
+            
+            const currentUser = userPool.getCurrentUser();
+            if (!currentUser) {
+                console.warn('No user session found');
+                return;
+            }
+            
+            // Get session
+            currentUser.getSession((err, session) => {
+                if (err) {
+                    console.error('Error refreshing session:', err);
                     
-                    const currentUser = userPool.getCurrentUser();
-                    if (!currentUser) {
-                        console.warn('No user session found');
-                        return;
+                    // If session can't be refreshed, redirect to login
+                    if (err.name === 'NotAuthorizedException') {
+                        localStorage.removeItem('auth_token');
+                        localStorage.removeItem('user');
+                        window.location.href = 'login.html';
                     }
-                    
-                    // Get session
-                    currentUser.getSession((err, session) => {
-                        if (err) {
-                            console.error('Error refreshing session:', err);
-                            
-                            // If session can't be refreshed, redirect to login
-                            if (err.name === 'NotAuthorizedException') {
-                                localStorage.removeItem('auth_token');
-                                localStorage.removeItem('user');
-                                window.location.href = 'login.html';
-                            }
-                            return;
-                        }
-                        
-                        if (session.isValid()) {
-                            // Update token in localStorage
-                            const token = session.getIdToken().getJwtToken();
-                            localStorage.setItem('auth_token', token);
-                            console.log('Token refreshed successfully');
-                        } else {
-                            console.warn('Session is not valid');
-                            localStorage.removeItem('auth_token');
-                            localStorage.removeItem('user');
-                            window.location.href = 'login.html';
-                        }
-                    });
-                })
-                .catch(error => {
-                    console.error('Error loading config:', error);
-                });
+                    return;
+                }
+                
+                if (session.isValid()) {
+                    // Update token in localStorage
+                    const token = session.getIdToken().getJwtToken();
+                    localStorage.setItem('auth_token', token);
+                    console.log('Token refreshed successfully');
+                } else {
+                    console.warn('Session is not valid');
+                    localStorage.removeItem('auth_token');
+                    localStorage.removeItem('user');
+                    window.location.href = 'login.html';
+                }
+            });
         } catch (error) {
             console.error('Token refresh error:', error);
         }
@@ -190,33 +201,23 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('logout-btn').addEventListener('click', () => {
             // Check if Cognito is available
             if (typeof AmazonCognitoIdentity !== 'undefined') {
-                // Load config and sign out
-                fetch('/config.json')
-                    .then(response => response.json())
-                    .then(config => {
-                        const userPool = new AmazonCognitoIdentity.CognitoUserPool({
-                            UserPoolId: config.userPoolId,
-                            ClientId: config.clientId
-                        });
-                        
-                        // Get current user and sign out
-                        const currentUser = userPool.getCurrentUser();
-                        if (currentUser) {
-                            currentUser.signOut();
-                        }
-                        
-                        // Clear local storage and redirect to login page
-                        localStorage.removeItem('auth_token');
-                        localStorage.removeItem('user');
-                        window.location.href = 'login.html';
-                    })
-                    .catch(error => {
-                        console.error('Error loading config:', error);
-                        // Fallback to traditional logout if config can't be loaded
-                        localStorage.removeItem('auth_token');
-                        localStorage.removeItem('user');
-                        window.location.href = 'login.html';
-                    });
+                // Use graceful config loading
+                const config = getAppConfig();
+                const userPool = new AmazonCognitoIdentity.CognitoUserPool({
+                    UserPoolId: config.userPoolId,
+                    ClientId: config.clientId
+                });
+                
+                // Get current user and sign out
+                const currentUser = userPool.getCurrentUser();
+                if (currentUser) {
+                    currentUser.signOut();
+                }
+                
+                // Clear local storage and redirect to login page
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('user');
+                window.location.href = 'login.html';
             } else {
                 // Fallback to traditional logout if Cognito is not available
                 localStorage.removeItem('auth_token');
@@ -265,10 +266,10 @@ document.addEventListener('DOMContentLoaded', () => {
 // Config initialization
 let API_KEY = '';
 
-// Function to load configuration
+// Function to load configuration with graceful fallback
 async function loadConfig() {
     try {
-        // Use preloaded config if available
+        // Use preloaded config if available (from critical-path.js)
         if (window.preloadedConfig) {
             const config = window.preloadedConfig;
             API_ENDPOINT = config.apiEndpoint || 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod';
@@ -277,26 +278,33 @@ async function loadConfig() {
             return;
         }
         
-        // Try to load config from config.json if it exists
-        const response = await fetch('/config.json');
-        if (response.ok) {
-            const config = await response.json();
-            // Store API endpoint but don't use apiKey for authentication endpoints
-            API_ENDPOINT = config.apiEndpoint || 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod';
-            API_KEY = config.apiKey || ''; // Keep API_KEY for non-auth endpoints
-            console.log('Configuration loaded');
-        } else {
-            console.warn('Could not load config.json, using default configuration');
-            // If running in development, you might set a default for testing
-            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                console.warn('Using development settings');
-                // Don't set a default API key - leave it blank to force proper configuration
+        // Try to load external config gracefully
+        try {
+            const response = await fetch('/config.json');
+            if (response.ok) {
+                const config = await response.json();
+                // Store API endpoint but don't use apiKey for authentication endpoints
+                API_ENDPOINT = config.apiEndpoint || 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod';
+                API_KEY = config.apiKey || ''; // Keep API_KEY for non-auth endpoints
+                console.log('External configuration loaded');
+            } else {
+                console.log('Using fallback configuration - external config not available');
+                // Use fallback config
+                API_ENDPOINT = FALLBACK_CONFIG.apiEndpoint;
+                API_KEY = ''; // No API key in fallback
             }
+        } catch (error) {
+            console.log('Using fallback configuration - external config failed to load');
+            // Use fallback config
+            API_ENDPOINT = FALLBACK_CONFIG.apiEndpoint;
+            API_KEY = ''; // No API key in fallback
         }
         
         // No longer using token as API key for auth endpoints
     } catch (error) {
-        console.error('Error loading configuration:', error);
+        console.error('Error in config loading:', error);
+        // Ensure we have a working endpoint
+        API_ENDPOINT = FALLBACK_CONFIG.apiEndpoint;
     }
 }
 

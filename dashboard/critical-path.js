@@ -5,21 +5,34 @@
     // Start performance timing
     window.appStartTime = Date.now();
     
-    // Prefetch critical resources
-    const criticalResources = [
-        '/config.json',
-        '/app.js',
-        'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod/leads'
-    ];
+    // Approved fallback configuration (no secrets)
+    const FALLBACK_CONFIG = {
+        userPoolId: 'us-east-1_lhc964tLD',
+        clientId: '5t6mane4fnvineksoqb4ta0iu1',
+        apiUrl: 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod'
+    };
     
-    // Prefetch config immediately
-    fetch('/config.json')
-        .then(r => r.json())
-        .then(config => {
-            window.preloadedConfig = config;
-            console.log('Config preloaded');
-        })
-        .catch(e => console.warn('Config preload failed:', e));
+    // Graceful config loading with fallback (approved by backend team)
+    async function loadConfigGracefully() {
+        try {
+            const response = await fetch('/config.json');
+            if (response.ok) {
+                const config = await response.json();
+                window.preloadedConfig = { ...FALLBACK_CONFIG, ...config };
+                console.log('External config loaded successfully');
+            } else {
+                window.preloadedConfig = FALLBACK_CONFIG;
+                console.log('Using fallback config - external config not available');
+            }
+        } catch (error) {
+            // Fail silently with fallback - no blocking errors!
+            window.preloadedConfig = FALLBACK_CONFIG;
+            console.log('Using fallback config - external config failed to load');
+        }
+    }
+    
+    // Load config without blocking app initialization
+    loadConfigGracefully();
     
     // Check if user has valid session
     const checkAuth = () => {
@@ -43,7 +56,7 @@
     // Run auth check
     checkAuth();
     
-    // Optimize Cognito loading
+    // Optimize loading
     window.addEventListener('load', () => {
         // Report load time
         const loadTime = Date.now() - window.appStartTime;
