@@ -319,46 +319,7 @@ let allLeads = []; // For export functionality - store all leads
 let searchTerm = ''; // Store the current search term
 let searchDebounceTimer = null; // For debouncing search input
 
-// Initialize
-document.addEventListener('DOMContentLoaded', async () => {
-    // Clear any mock data in localStorage
-    clearMockData();
-    
-    // Load configuration - now instant with AppConfig module!
-    await loadConfig();
-    
-    // Start fetching leads immediately - no more timing delays needed!
-    fetchLeads();
-    
-    // Event Listeners
-    refreshBtn.addEventListener('click', fetchLeads);
-    vendorFilter.addEventListener('change', filterAndRenderLeads);
-    searchInput.addEventListener('input', debounceSearch);
-    autoRefreshCb.addEventListener('change', toggleAutoRefresh);
-    
-    // Export Modal Listeners
-    exportBtn.addEventListener('click', openExportModal);
-    exportModalClose.addEventListener('click', closeExportModal);
-    exportCancelBtn.addEventListener('click', closeExportModal);
-    exportDownloadBtn.addEventListener('click', exportLeadsToCsv);
-    
-    // New Lead Listeners
-    addLeadBtn.addEventListener('click', openAddLeadModal);
-    
-    // Set default date values for export
-    const today = new Date();
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(today.getDate() - 30);
-    
-    exportEndDate.valueAsDate = today;
-    exportStartDate.valueAsDate = thirtyDaysAgo;
-    
-    // Focus the search input for better UX
-    searchInput.focus();
-    
-    // Create the add lead modal
-    createAddLeadModal();
-});
+// Initialize - REMOVED duplicate DOMContentLoaded (moved to first listener)
 
 // Function to clear mock data from localStorage
 function clearMockData() {
