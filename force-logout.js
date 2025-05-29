@@ -4,8 +4,8 @@
 (function() {
     console.log('🔄 Running one-time force logout to fix auth issues...');
     
-    // Check if we've already run this
-    const forceLogoutCompleted = localStorage.getItem('force_logout_completed_v1');
+    // Check if we've already run this - using v2 to force re-run
+    const forceLogoutCompleted = localStorage.getItem('force_logout_completed_v2');
     
     if (!forceLogoutCompleted) {
         console.log('🧹 Clearing all authentication data...');
@@ -16,6 +16,9 @@
         localStorage.removeItem('accessToken');
         localStorage.removeItem('idToken');
         localStorage.removeItem('refreshToken');
+        
+        // Clear the old version flag too
+        localStorage.removeItem('force_logout_completed_v1');
         
         // Clear sessionStorage
         sessionStorage.clear();
@@ -31,16 +34,51 @@
                 const cognitoUser = userPool.getCurrentUser();
                 
                 if (cognitoUser) {
+                    // First try to get and clear the session
+                    cognitoUser.getSession((err, session) => {
+                        if (!err && session) {
+                            // Global sign out to invalidate all tokens
+                            cognitoUser.globalSignOut({
+                                onSuccess: function(result) {
+                                    console.log('✅ Global sign out successful');
+                                },
+                                onFailure: function(err) {
+                                    console.log('Global sign out failed:', err);
+                                }
+                            });
+                        }
+                    });
+                    
+                    // Also do a local signout
                     cognitoUser.signOut();
-                    console.log('✅ Signed out of Cognito');
+                    console.log('✅ Signed out of Cognito locally');
+                    
+                    // Clear any cached user data
+                    cognitoUser.clearCachedTokens();
+                }
+                
+                // Also try to clear the user pool's current user
+                userPool.getCurrentUser()?.signOut();
+                
+                // Clear Cognito's storage
+                if (window.localStorage) {
+                    // Clear any Cognito-specific keys
+                    Object.keys(localStorage).forEach(key => {
+                        if (key.includes('CognitoIdentityServiceProvider') || 
+                            key.includes('aws.cognito') ||
+                            key.includes('amplify')) {
+                            localStorage.removeItem(key);
+                            console.log(`Cleared Cognito key: ${key}`);
+                        }
+                    });
                 }
             } catch (e) {
-                console.log('Could not sign out of Cognito:', e);
+                console.log('Error during Cognito cleanup:', e);
             }
         }
         
-        // Mark that we've completed the force logout
-        localStorage.setItem('force_logout_completed_v1', 'true');
+        // Mark that we've completed the force logout v2
+        localStorage.setItem('force_logout_completed_v2', 'true');
         
         console.log('✅ Force logout completed - all users must log in again');
         
