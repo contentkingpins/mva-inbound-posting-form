@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Agent Dashboard</title>
+    
+    <!-- Copy all the same head content from agent.html -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="agent.css">
+    
+    <style>
+        /* Test banner */
+        .test-banner {
+            background-color: #f59e0b;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            font-weight: 600;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+        
+        .agent-header {
+            margin-top: 52px; /* Account for test banner */
+        }
+    </style>
+</head>
+<body>
+    <!-- Test Banner -->
+    <div class="test-banner">
+        ⚠️ TEST MODE - This is a demo of the agent dashboard without authentication
+    </div>
+
+    <!-- Copy all body content from agent.html -->
+    <header class="agent-header">
+        <div class="header-content">
+            <div class="header-left">
+                <h1 class="header-title">Agent Dashboard</h1>
+                <div class="header-greeting">
+                    Welcome back, <span id="agent-name">Test Agent</span>!
+                </div>
+            </div>
+            <div class="header-right">
+                <button class="notification-btn" id="notification-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                    </svg>
+                    <span class="notification-badge" id="notification-count">3</span>
+                </button>
+                <button class="btn btn-secondary" onclick="alert('In test mode - logout disabled')">Logout</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="agent-main">
+        <!-- Quick Stats -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-icon">📋</div>
+                <div class="stat-content">
+                    <h3 class="stat-value" id="available-leads">8</h3>
+                    <p class="stat-label">Available Leads</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">👤</div>
+                <div class="stat-content">
+                    <h3 class="stat-value" id="my-leads">3</h3>
+                    <p class="stat-label">My Active Leads</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">✅</div>
+                <div class="stat-content">
+                    <h3 class="stat-value" id="completed-retainers">5</h3>
+                    <p class="stat-label">Completed This Month</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📈</div>
+                <div class="stat-content">
+                    <h3 class="stat-value" id="conversion-rate">62%</h3>
+                    <p class="stat-label">Conversion Rate</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lead Pools -->
+        <div class="lead-sections">
+            <!-- Available Leads Pool -->
+            <section class="lead-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <span class="title-icon">🎯</span>
+                        Available Leads
+                    </h2>
+                    <div class="section-actions">
+                        <input type="text" class="search-input" id="search-available" placeholder="Search leads...">
+                        <button class="btn btn-sm btn-secondary" onclick="refreshAvailableLeads()">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 2v6h-6"></path>
+                                <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
+                                <path d="M3 22v-6h6"></path>
+                                <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
+                            </svg>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="leads-grid" id="available-leads-grid">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+            </section>
+
+            <!-- My Leads -->
+            <section class="lead-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <span class="title-icon">👤</span>
+                        My Active Leads
+                    </h2>
+                    <div class="section-actions">
+                        <select class="filter-select" id="filter-my-leads">
+                            <option value="all">All Status</option>
+                            <option value="new">New</option>
+                            <option value="contacted">Contacted</option>
+                            <option value="interested">Interested</option>
+                            <option value="negotiating">Negotiating</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="leads-table-container">
+                    <table class="leads-table" id="my-leads-table">
+                        <thead>
+                            <tr>
+                                <th>Lead Info</th>
+                                <th>Contact</th>
+                                <th>Status</th>
+                                <th>Claimed</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="my-leads-tbody">
+                            <!-- Will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Lead Details Modal -->
+    <div class="modal" id="lead-details-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Lead Details</h3>
+                <button class="modal-close" onclick="closeModal('lead-details-modal')">&times;</button>
+            </div>
+            <div class="modal-body" id="lead-details-content">
+                <!-- Lead details will be inserted here -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('lead-details-modal')">Close</button>
+                <button class="btn btn-primary" id="modal-action-btn">Claim Lead</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Modified agent.js for test mode -->
+    <script>
+        // Override the checkAuth function to skip authentication
+        window.TEST_MODE = true;
+        
+        // Set a test user
+        const currentUser = {
+            email: 'testagent@example.com',
+            name: 'Test Agent',
+            role: 'agent'
+        };
+    </script>
+    
+    <!-- Load the regular agent.js but skip auth check -->
+    <script src="agent.js"></script>
+    
+    <script>
+        // Override checkAuth to prevent redirect
+        function checkAuth() {
+            console.log('Test mode - authentication skipped');
+            document.getElementById('agent-name').textContent = 'Test Agent';
+        }
+        
+        // Auto-load data after a short delay
+        setTimeout(() => {
+            loadDashboardData();
+        }, 500);
+    </script>
+</body>
+</html> 

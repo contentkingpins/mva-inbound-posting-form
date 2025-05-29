@@ -228,16 +228,36 @@ async function completePasswordReset() {
           localStorage.setItem('refreshToken', tokens.refreshToken);
           localStorage.setItem('auth_token', tokens.idToken); // For compatibility
           
-          // Create user object
+          // Create user object with email first
           const user = { email: email };
           
-          // Get user attributes
+          // Get user attributes after password reset
           cognitoUser.getUserAttributes((err, attributes) => {
             if (err) {
               console.error('Error getting user attributes:', err);
+              // Try to get user info from the ID token
+              try {
+                const idToken = result.getIdToken();
+                const payload = idToken.decodePayload();
+                console.log('ID Token payload:', payload);
+                
+                // Extract user info from token
+                if (payload.email) user.email = payload.email;
+                if (payload['custom:role']) user['custom:role'] = payload['custom:role'];
+                if (payload.name) user.name = payload.name;
+                
+                localStorage.setItem('user', JSON.stringify(user));
+              } catch (tokenError) {
+                console.error('Error parsing ID token:', tokenError);
+                // Save basic user info anyway
+                localStorage.setItem('user', JSON.stringify(user));
+              }
             } else if (attributes) {
               attributes.forEach(attr => {
-                user[attr.getName()] = attr.getValue();
+                const name = attr.getName();
+                const value = attr.getValue();
+                console.log(`User attribute: ${name} = ${value}`);
+                user[name] = value;
               });
               
               // Store user info
@@ -255,9 +275,16 @@ async function completePasswordReset() {
             messageElement.style.display = 'none';
             passwordResetLoader.style.display = 'none';
             
-            // Redirect to dashboard after a delay
+            // Redirect after a delay based on role
             setTimeout(() => {
-              window.location.href = 'index.html';
+              const userData = JSON.parse(localStorage.getItem('user') || '{}');
+              const userRole = userData['custom:role'] || userData.role || 'agent'; // Default to agent if no role
+              
+              if (userRole === 'admin') {
+                window.location.href = 'admin.html';
+              } else {
+                window.location.href = 'agent.html';
+              }
             }, 2000);
             
             resolve(result);
@@ -349,7 +376,15 @@ document.addEventListener('DOMContentLoaded', function() {
           
           if (session && session.isValid()) {
             console.log('User already logged in with valid data, redirecting...');
-            window.location.href = 'index.html';
+            // Check user role and redirect appropriately
+            const userData = JSON.parse(localStorage.getItem('user') || '{}');
+            const userRole = userData['custom:role'] || userData.role || 'agent'; // Default to agent if no role
+            
+            if (userRole === 'admin') {
+              window.location.href = 'admin.html';
+            } else {
+              window.location.href = 'agent.html';
+            }
           }
         });
       }
@@ -468,9 +503,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 localStorage.setItem('user', JSON.stringify(user));
               }
               
-              // Redirect to dashboard only after user data is saved
-              console.log('User data saved, redirecting to dashboard...');
-              window.location.href = 'index.html';
+              // Check user role and redirect appropriately
+              console.log('User data saved, redirecting based on role...');
+              const userData = JSON.parse(localStorage.getItem('user') || '{}');
+              const userRole = userData['custom:role'] || userData.role || 'agent'; // Default to agent if no role
+              
+              if (userRole === 'admin') {
+                window.location.href = 'admin.html';
+              } else {
+                window.location.href = 'agent.html';
+              }
             });
           }
         } catch (error) {
