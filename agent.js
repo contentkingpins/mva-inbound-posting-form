@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadDashboardData();
     
     // Set up auto-refresh
-    setInterval(refreshAvailableLeads, 30000); // Refresh every 30 seconds
+    setInterval(refreshAvailableLeads, 15000); // Refresh every 15 seconds
 });
 
 // Authentication check

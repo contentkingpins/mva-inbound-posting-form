@@ -9,6 +9,9 @@ let API_ENDPOINT = '';
 // Initialize on load
 document.addEventListener('DOMContentLoaded', () => {
     initializeApp();
+    
+    // Set up auto-refresh for real-time updates
+    setInterval(refreshLeads, 15000); // Refresh every 15 seconds
 });
 
 // Initialize application
@@ -210,6 +213,9 @@ function updateStats() {
     document.getElementById('active-count').textContent = activeCount;
     document.getElementById('retained-count').textContent = retainedCount;
     document.getElementById('conversion-rate').textContent = conversionRate + '%';
+    
+    // Update badge
+    updateMyLeadsCount();
 }
 
 // Open Lead Modal
@@ -755,4 +761,64 @@ style.textContent = `
         to { transform: translateX(100%); opacity: 0; }
     }
 `;
-document.head.appendChild(style); 
+document.head.appendChild(style);
+
+// Switch between tabs
+function switchTab(tabId) {
+    // Update tab buttons
+    document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelector(`[onclick="switchTab('${tabId}')"]`).classList.add('active');
+    
+    // Update tab content
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    document.getElementById(tabId).classList.add('active');
+    
+    // Refresh content if needed
+    if (tabId === 'live-dashboard') {
+        refreshLeads();
+    } else if (tabId === 'my-leads') {
+        refreshMyLeads();
+    }
+}
+
+// Refresh My Leads
+async function refreshMyLeads() {
+    showNotification('Refreshing my leads...', 'info');
+    try {
+        await loadMyLeads();
+        updateStats();
+        showNotification('My leads updated', 'success');
+    } catch (error) {
+        console.error('Failed to refresh my leads:', error);
+        showNotification('Failed to refresh my leads', 'error');
+    }
+}
+
+// Update My Leads Count Badge
+function updateMyLeadsCount() {
+    const badge = document.getElementById('my-leads-count');
+    if (badge) {
+        badge.textContent = myLeads.length;
+        badge.style.display = myLeads.length > 0 ? 'inline' : 'none';
+    }
+}
+
+// Extend the existing updateStats function
+function updateStats() {
+    const availableCount = availableLeads.length;
+    const activeCount = myLeads.length;
+    const retainedCount = myLeads.filter(l => l.disposition === 'Retained for Firm').length;
+    const conversionRate = activeCount > 0 ? Math.round((retainedCount / activeCount) * 100) : 0;
+    
+    document.getElementById('available-count').textContent = availableCount;
+    document.getElementById('active-count').textContent = activeCount;
+    document.getElementById('retained-count').textContent = retainedCount;
+    document.getElementById('conversion-rate').textContent = conversionRate + '%';
+    
+    // Update badge
+    updateMyLeadsCount();
+} 
