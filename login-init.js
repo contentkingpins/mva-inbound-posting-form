@@ -1,33 +1,6 @@
 // Login page initialization
 console.log('Login page loading...');
 
-// MIGRATION: Fix old user data format (username → email)
-(function migrateAuthData() {
-    const currentUser = localStorage.getItem('user');
-    if (currentUser) {
-        try {
-            const user = JSON.parse(currentUser);
-            // Check if user has old format (username but no email)
-            if (user.username && !user.email) {
-                console.log('📦 Migrating old auth format on login page...');
-                const migratedUser = {
-                    ...user,
-                    email: user.username  // username was actually the email
-                };
-                delete migratedUser.username;
-                localStorage.setItem('user', JSON.stringify(migratedUser));
-                console.log('✅ Auth data migrated to new format');
-                // Don't reload here - let normal login flow continue
-            }
-        } catch (error) {
-            console.error('Migration error:', error);
-            // Clear corrupted data
-            localStorage.removeItem('user');
-            localStorage.removeItem('auth_token');
-        }
-    }
-})();
-
 // Initialize Cognito Authentication
 // Import from the global object since we're loading the SDK via script tag
 const { CognitoUserPool, CognitoUser, AuthenticationDetails } = AmazonCognitoIdentity;
@@ -341,8 +314,46 @@ document.addEventListener('DOMContentLoaded', function() {
     const successMessage = document.getElementById('success-message');
     const loginLoader = document.getElementById('login-loader');
 
-    // Check if already logged in
+    // Check if already logged in - BUT ONLY AFTER MIGRATION HAS RUN
     const redirectIfLoggedIn = () => {
+      // First ensure migration has completed
+      const currentUser = localStorage.getItem('user');
+      const authToken = localStorage.getItem('auth_token');
+      
+      // If we have no user data OR no auth token, don't redirect even if Cognito has a session
+      if (!currentUser || !authToken) {
+        console.log('Missing user data or auth token in localStorage');
+        
+        // Check if Cognito thinks we're logged in
+        const cognitoUser = userPool.getCurrentUser();
+        if (cognitoUser) {
+          console.log('Cognito has session but localStorage is missing data - signing out of Cognito');
+          cognitoUser.signOut();
+          // Clear only auth-related data
+          localStorage.removeItem('user');
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('idToken');
+          localStorage.removeItem('refreshToken');
+          sessionStorage.clear();
+        }
+        return;
+      }
+      
+      if (currentUser) {
+        try {
+          const user = JSON.parse(currentUser);
+          // Only proceed if user has correct format (email field exists)
+          if (!user.email) {
+            console.log('User data missing email field, not redirecting');
+            return;
+          }
+        } catch (e) {
+          console.log('Invalid user data, not redirecting');
+          return;
+        }
+      }
+      
       const cognitoUser = userPool.getCurrentUser();
       if (cognitoUser) {
         cognitoUser.getSession((err, session) => {
@@ -359,8 +370,8 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     };
     
-    // Call redirect check
-    redirectIfLoggedIn();
+    // Call redirect check with a small delay to ensure migration runs first
+    setTimeout(redirectIfLoggedIn, 100);
     
     // Add verification resend UI if needed
     function showResendVerificationUI(email) {
