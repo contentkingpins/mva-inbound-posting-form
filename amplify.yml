@@ -9,55 +9,51 @@ frontend:
         - chmod +x scripts/inject-config.js
     build:
       commands:
-        - echo "🔧 Starting permanent configuration solution build..."
-        - echo "Using build-time config injection instead of external config.json files"
+        - echo "🔧 Starting build process..."
+        - echo "Using build-time config injection"
         
         # Run the configuration injection script
         - echo "Running build-time configuration injection..."
         - node scripts/inject-config.js
         
-        - echo "Building application with proper structure..."
+        - echo "Building application..."
         - mkdir -p dist
         - mkdir -p dist/js
-        - mkdir -p dist/dashboard
-        - mkdir -p dist/dashboard/images
+        - mkdir -p dist/images
         
-        # Copy root index.html (redirect page)
-        - echo "Copying root index.html..."
-        - cp index.html dist/
+        # Copy all files to dist
+        - echo "Copying all HTML files..."
+        - cp *.html dist/
         
-        # Copy shared resources to root
-        - echo "Copying shared JS resources..."
+        # Copy all JS files
+        - echo "Copying JavaScript files..."
+        - cp *.js dist/ 2>/dev/null || true
+        
+        # Copy CSS files
+        - echo "Copying CSS files..."
+        - cp *.css dist/ 2>/dev/null || true
+        
+        # Copy js directory
+        - echo "Copying js directory..."
         - cp -R js/* dist/js/ 2>/dev/null || echo "JS directory copied"
         
-        # Copy dashboard files to dashboard subdirectory
-        - echo "Copying dashboard files to dashboard subdirectory..."
-        - cp -R dashboard/* dist/dashboard/
-        
-        # Copy critical files from dashboard to root (where dashboard expects them)
-        - echo "Copying critical files to root for dashboard references..."
-        - cp dashboard/app.js dist/ 
-        - cp dashboard/critical-path.js dist/
-        - cp dashboard/styles.css dist/
-        - cp version.js dist/ 2>/dev/null || true
-        
-        # Ensure proper structure
-        - echo "Verifying build structure..."
-        - 'if [ ! -f dist/index.html ]; then echo "ERROR: No root index.html!"; exit 1; fi'
-        - 'if [ ! -f dist/dashboard/index.html ]; then echo "ERROR: No dashboard index.html!"; exit 1; fi'
-        - 'if [ ! -f dist/js/app-config.js ]; then echo "ERROR: No app-config.js!"; exit 1; fi'
-        
-        - echo "✅ Build completed with proper structure!"
-        - echo "🚀 Clean architecture with proper path resolution!"
+        # Copy images directory
+        - echo "Copying images directory..."
+        - cp -R images/* dist/images/ 2>/dev/null || echo "Images directory copied"
         
         # Verify build output
-        - echo "=== Build Output Structure ==="
-        - echo "Root contents:"
+        - echo "=== Build Complete ==="
+        - echo "Verifying critical files..."
+        - 'if [ ! -f dist/index.html ]; then echo "ERROR: No index.html!"; exit 1; fi'
+        - 'if [ ! -f dist/app.js ]; then echo "ERROR: No app.js!"; exit 1; fi'
+        - 'if [ ! -f dist/js/app-config.js ]; then echo "ERROR: No app-config.js!"; exit 1; fi'
+        
+        - echo "✅ Build completed successfully!"
+        - echo "🚀 Application deployed at root level"
+        
+        # List build output
+        - echo "Build contents:"
         - ls -la dist/ || true
-        - echo "Dashboard contents:"
-        - ls -la dist/dashboard/ || true
-        - echo "JS contents:"
-        - ls -la dist/js/ || true
   artifacts:
     baseDirectory: dist
     files:

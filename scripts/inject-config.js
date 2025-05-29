@@ -75,16 +75,16 @@ console.log('🔧 Configuration injected at build time - no external loading nee
 
 // Files to inject configuration into - expanded list
 const htmlFiles = [
-    // Dashboard files only (root duplicates have been removed)
-    'dashboard/index.html',
-    'dashboard/login.html',
-    'dashboard/admin.html',
-    'dashboard/signup.html',
-    'dashboard/forgot-password.html',
-    'dashboard/reset-password.html',
-    'dashboard/verify.html',
-    'dashboard/stats.html',
-    'dashboard/vendors.html'
+    // All HTML files at root level
+    'index.html',
+    'login.html',
+    'admin.html',
+    'signup.html',
+    'forgot-password.html',
+    'reset-password.html',
+    'verify.html',
+    'stats.html',
+    'vendors.html'
 ];
 
 let injectedCount = 0;

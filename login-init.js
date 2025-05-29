@@ -1,27 +1,15 @@
-// Initialize Cognito Authentication using AppConfig module
+// Initialize Cognito Authentication
 // Import from the global object since we're loading the SDK via script tag
 const { CognitoUserPool, CognitoUser, AuthenticationDetails } = AmazonCognitoIdentity;
 
-// Get Cognito configuration from AppConfig module (build-time injected)
-function getCognitoConfig() {
-    if (window.AppConfig) {
-        return window.AppConfig.getCognitoConfig();
-    } else if (window.APP_CONFIG) {
-        return {
-            UserPoolId: window.APP_CONFIG.userPoolId,
-            ClientId: window.APP_CONFIG.clientId
-        };
-    } else {
-        // Emergency fallback
-        return {
-            UserPoolId: 'us-east-1_lhc964tLD',
-            ClientId: '5t6mane4fnvineksoqb4ta0iu1'
+// Cognito configuration object
+const poolData = {
+  UserPoolId: 'us-east-1_lhc964tLD',  // Fixed case: lowercase 'l'
+  ClientId: '5t6mane4fnvineksoqb4ta0iu1'  // Reverted to original working Client ID
 };
-    }
-}
 
-// Initialize the Cognito User Pool with AppConfig
-const userPool = new CognitoUserPool(getCognitoConfig());
+// Initialize the Cognito User Pool
+const userPool = new CognitoUserPool(poolData);
 
 /**
  * Get username by email using backend API endpoint
@@ -30,12 +18,7 @@ const userPool = new CognitoUserPool(getCognitoConfig());
  * @returns {Promise<string>} - User's Cognito username
  */
 async function getUsernameByEmail(email) {
-    // Get API endpoint from AppConfig
-    const apiEndpoint = window.AppConfig ? 
-        window.AppConfig.getApiEndpoint('/auth/get-username') :
-        'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod/auth/get-username';
-    
-    const response = await fetch(apiEndpoint, {
+              const response = await fetch('https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod/auth/get-username', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -271,7 +254,7 @@ async function completePasswordReset() {
             
             // Redirect to dashboard after a delay
             setTimeout(() => {
-              window.location.href = 'dashboard/';
+              window.location.href = '/';
             }, 2000);
             
             resolve(result);
@@ -340,7 +323,7 @@ document.addEventListener('DOMContentLoaded', function() {
           
           if (session.isValid()) {
             console.log('User already logged in, redirecting...');
-            window.location.href = 'dashboard/';
+            window.location.href = '/';
           }
         });
       }
@@ -457,7 +440,7 @@ document.addEventListener('DOMContentLoaded', function() {
               }
               
               // Redirect to dashboard
-              window.location.href = 'dashboard/';
+              window.location.href = '/';
             });
           }
         } catch (error) {
