@@ -58,7 +58,7 @@ exports.handler = async (event) => {
     // Initiate forgot password flow
     console.log('Initiating forgot password for user:', username);
     const params = {
-      ClientId: process.env.COGNITO_CLIENT_ID || '1ekkeqvftfnv0ld0u8utdbafv1', // Updated client ID from your screenshot
+      ClientId: process.env.COGNITO_CLIENT_ID || '5t6mane4fnvineksoqb4ta0iu1', // Fixed to match main client ID
       Username: username
     };
     

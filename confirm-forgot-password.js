@@ -60,7 +60,7 @@ exports.handler = async (event) => {
     // Confirm forgot password
     console.log('Confirming password reset for user:', username);
     const params = {
-      ClientId: process.env.COGNITO_CLIENT_ID || '1ekkeqvftfnv0ld0u8utdbafv1', // Updated client ID from your screenshot
+      ClientId: process.env.COGNITO_CLIENT_ID || '5t6mane4fnvineksoqb4ta0iu1', // Fixed to match main client ID
       Username: username,
       ConfirmationCode: confirmationCode,
       Password: newPassword

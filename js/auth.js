@@ -18,14 +18,14 @@ async function loadAuthConfig() {
         } else {
             console.warn('Could not load config.json, using default configuration');
             CONFIG = {
-                userPoolId: 'us-east-1_Lhc964tLD',
+                userPoolId: 'us-east-1_lhc964tLD',
                 clientId: '5t6mane4fnvineksoqb4ta0iu1'
             };
         }
     } catch (error) {
         console.error('Error loading auth configuration:', error);
         CONFIG = {
-            userPoolId: 'us-east-1_Lhc964tLD',
+            userPoolId: 'us-east-1_lhc964tLD',
             clientId: '5t6mane4fnvineksoqb4ta0iu1'
         };
     }
