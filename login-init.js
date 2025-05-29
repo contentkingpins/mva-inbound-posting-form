@@ -314,47 +314,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const successMessage = document.getElementById('success-message');
     const loginLoader = document.getElementById('login-loader');
 
-    // Check if already logged in - BUT ONLY AFTER MIGRATION HAS RUN
+    // Check if already logged in
     const redirectIfLoggedIn = () => {
-      // First ensure migration has completed
-      const currentUser = localStorage.getItem('user');
-      const authToken = localStorage.getItem('auth_token');
-      
-      // If we have no user data OR no auth token, don't redirect even if Cognito has a session
-      if (!currentUser || !authToken) {
-        console.log('Missing user data or auth token in localStorage');
-        
-        // Check if Cognito thinks we're logged in
-        const cognitoUser = userPool.getCurrentUser();
-        if (cognitoUser) {
-          console.log('Cognito has session but localStorage is missing data');
-          
-          // One-time cleanup: If we haven't cleaned this mismatch before, do it once
-          const mismatchCleaned = localStorage.getItem('cognito_mismatch_cleaned_v1');
-          if (!mismatchCleaned) {
-            console.log('One-time cleanup: Clearing orphaned Cognito session');
-            cognitoUser.signOut();
-            localStorage.setItem('cognito_mismatch_cleaned_v1', 'true');
-            console.log('Orphaned session cleared. Please log in.');
-          }
-        }
-        return;
-      }
-      
-      if (currentUser) {
-        try {
-          const user = JSON.parse(currentUser);
-          // Only proceed if user has correct format (email field exists)
-          if (!user.email) {
-            console.log('User data missing email field, not redirecting');
-            return;
-          }
-        } catch (e) {
-          console.log('Invalid user data, not redirecting');
-          return;
-        }
-      }
-      
       const cognitoUser = userPool.getCurrentUser();
       if (cognitoUser) {
         cognitoUser.getSession((err, session) => {
@@ -363,7 +324,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
           }
           
-          if (session.isValid()) {
+          if (session && session.isValid()) {
             console.log('User already logged in, redirecting...');
             window.location.href = 'index.html';
           }
@@ -371,8 +332,8 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     };
     
-    // Call redirect check with a small delay to ensure migration runs first
-    setTimeout(redirectIfLoggedIn, 100);
+    // Call redirect check
+    redirectIfLoggedIn();
     
     // Add verification resend UI if needed
     function showResendVerificationUI(email) {
