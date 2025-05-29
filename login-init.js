@@ -226,7 +226,7 @@ async function completePasswordReset() {
           localStorage.setItem('auth_token', tokens.idToken); // For compatibility
           
           // Create user object
-          const user = { username: email };
+          const user = { email: email };
           
           // Get user attributes
           cognitoUser.getUserAttributes((err, attributes) => {
@@ -428,7 +428,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('Error getting user attributes:', err);
               } else {
                 // Create user object
-                const user = { username: email };
+                const user = { email: email };
                 if (attributes) {
                   attributes.forEach(attr => {
                     user[attr.getName()] = attr.getValue();

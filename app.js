@@ -182,7 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const token = localStorage.getItem('auth_token');
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     
-    if (!token || !user.username) {
+    if (!token || !user.email) {
         // Not logged in, redirect to login page
         window.location.href = 'login.html';
         return;
@@ -197,7 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const userInfo = document.createElement('div');
         userInfo.className = 'user-info';
         userInfo.innerHTML = `
-            <span>Welcome, <strong>${user.name || user.username}</strong></span>
+            <span>Welcome, <strong>${user.name || user.email}</strong></span>
             <span class="role-badge ${user.role === 'admin' ? 'role-admin' : 'role-agent'}">
                 ${user.role === 'admin' ? 'Admin' : 'Agent'}
             </span>

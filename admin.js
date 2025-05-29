@@ -32,14 +32,14 @@ function checkAuth() {
     const token = localStorage.getItem('auth_token');
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     
-    if (!token || !user.username || user.role !== 'admin') {
+    if (!token || !user.email || user.role !== 'admin') {
         // Not logged in or not admin, redirect to login page
         window.location.href = 'login.html';
         return;
     }
     
     // Set admin name
-    document.getElementById('admin-name').textContent = user.name || user.username;
+    document.getElementById('admin-name').textContent = user.name || user.email;
 }
 
 // Initialize date/time
