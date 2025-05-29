@@ -34,10 +34,11 @@ frontend:
         - echo "Copying dashboard files to dashboard subdirectory..."
         - cp -R dashboard/* dist/dashboard/
         
-        # Copy critical root files that dashboard might reference
-        - cp app.js dist/ 2>/dev/null || true
-        - cp critical-path.js dist/ 2>/dev/null || true
-        - cp styles.css dist/ 2>/dev/null || true
+        # Copy critical files from dashboard to root (where dashboard expects them)
+        - echo "Copying critical files to root for dashboard references..."
+        - cp dashboard/app.js dist/ 
+        - cp dashboard/critical-path.js dist/
+        - cp dashboard/styles.css dist/
         - cp version.js dist/ 2>/dev/null || true
         
         # Ensure proper structure
