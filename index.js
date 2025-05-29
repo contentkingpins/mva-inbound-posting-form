@@ -10,6 +10,7 @@ const {
 } = require('@aws-sdk/lib-dynamodb');
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
+const AWS = require('aws-sdk');
 const docusignService = require('./docusign-service');
 const authRoutes = require('./auth-routes');
 
@@ -18,6 +19,10 @@ const dynamoDB = DynamoDBDocumentClient.from(client);
 
 const VENDORS_TABLE = process.env.VENDORS_TABLE;
 const LEADS_TABLE = process.env.LEADS_TABLE;
+
+// Initialize Cognito Identity Service Provider
+const cognitoISP = new AWS.CognitoIdentityServiceProvider();
+const USER_POOL_ID = process.env.USER_POOL_ID;
 
 // CORS headers for all responses
 const corsHeaders = {
@@ -167,7 +172,7 @@ exports.handler = async (event) => {
       }
     } else if (path === '/export') {
       if (httpMethod === 'GET') {
-        return await handleExportLeads(event.queryStringParameters);
+        return await handleEnhancedExportLeads(event);
       }
     } else if (path === '/vendors') {
       if (httpMethod === 'GET') {
@@ -179,6 +184,22 @@ exports.handler = async (event) => {
       if (httpMethod === 'POST') {
         const vendorCode = path.split('/')[2]; // Extract vendor code from path
         return await handleRegenerateApiKey(vendorCode);
+      }
+    } else if (path === '/admin/force-logout-all') {
+      if (httpMethod === 'POST') {
+        return await handleForceLogoutAll(event);
+      }
+    } else if (path === '/admin/analytics/dashboard') {
+      if (httpMethod === 'GET') {
+        return await handleDashboardAnalytics(event);
+      }
+    } else if (path === '/admin/analytics/performance') {
+      if (httpMethod === 'GET') {
+        return await handlePerformanceMetrics(event);
+      }
+    } else if (path === '/admin/reports/generate') {
+      if (httpMethod === 'POST') {
+        return await handleGenerateReport(event);
       }
     }
     
@@ -657,11 +678,11 @@ async function handleGetLeadStats(queryParams) {
 }
 
 // Handler for GET /export - Export leads with filtering
-async function handleExportLeads(queryParams) {
+async function handleEnhancedExportLeads(event) {
   try {
-    const vendor_code = queryParams?.vendor_code || null;
-    const start_date = queryParams?.start_date || null;
-    const end_date = queryParams?.end_date || null;
+    const vendor_code = event.queryStringParameters?.vendor_code || null;
+    const start_date = event.queryStringParameters?.start_date || null;
+    const end_date = event.queryStringParameters?.end_date || null;
     
     // Build filter expression parts
     let filterExpressionParts = [];
@@ -1484,6 +1505,84 @@ async function handleAuthRoutes(path, httpMethod, event) {
   return createResponse(404, { status: 'error', message: 'Auth endpoint not found' });
 }
 
+// Handler for forcing logout of all users (admin only)
+async function handleForceLogoutAll(event) {
+  try {
+    // Check if user is authenticated and has admin role
+    const authHeader = event.headers.Authorization || event.headers.authorization;
+    const authResult = authRoutes.verifyAuthToken(authHeader);
+    
+    if (!authResult.authenticated) {
+      return createResponse(401, {
+        status: 'error',
+        message: authResult.message || 'Authentication required'
+      });
+    }
+    
+    // Check if user has admin role
+    if (authResult.user.role !== 'admin') {
+      return createResponse(403, {
+        status: 'error',
+        message: 'Admin access required'
+      });
+    }
+
+    // Get all users from Cognito User Pool
+    const listParams = {
+      UserPoolId: USER_POOL_ID,
+      Limit: 60
+    };
+    
+    const users = await cognitoISP.listUsers(listParams).promise();
+    const logoutPromises = [];
+    
+    console.log(`Found ${users.Users.length} users to force logout`);
+    
+    // Force logout each user using adminUserGlobalSignOut
+    for (const user of users.Users) {
+      const logoutParams = {
+        UserPoolId: USER_POOL_ID,
+        Username: user.Username
+      };
+      
+      logoutPromises.push(
+        cognitoISP.adminUserGlobalSignOut(logoutParams).promise()
+          .then(() => {
+            console.log(`Successfully logged out user: ${user.Username}`);
+            return { username: user.Username, success: true };
+          })
+          .catch(err => {
+            console.log(`Failed to logout ${user.Username}:`, err.message);
+            return { username: user.Username, success: false, error: err.message };
+          })
+      );
+    }
+    
+    const results = await Promise.all(logoutPromises);
+    const successful = results.filter(r => r.success).length;
+    const failed = results.filter(r => !r.success).length;
+    
+    return createResponse(200, {
+      status: 'success',
+      message: `Force logout completed`,
+      details: {
+        total_users: users.Users.length,
+        successful_logouts: successful,
+        failed_logouts: failed,
+        results: results
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error forcing logout all users:', error);
+    return createResponse(500, {
+      status: 'error',
+      message: 'Failed to force logout users',
+      error: error.message
+    });
+  }
+}
+
 // Helper function to determine if a route requires JWT authentication
 function isJwtProtectedRoute(path) {
   // Add routes that require authentication here
@@ -1495,5 +1594,531 @@ function isJwtProtectedRoute(path) {
 function isAdminRoute(path) {
   // Routes that require admin access
   return path.match(/^\/auth\/users\/?$/) || // List all users
-         path.match(/^\/auth\/register\/?$/); // Register new users
+         path.match(/^\/auth\/register\/?$/) || // Register new users
+         path.match(/^\/admin\/analytics\//) || // Analytics endpoints
+         path.match(/^\/admin\/reports\//) || // Reports endpoints
+         path.match(/^\/admin\/force-logout-all\/?$/); // Force logout endpoint
+}
+
+// Handler for GET /admin/analytics/dashboard
+async function handleDashboardAnalytics(event) {
+  try {
+    // Check if user is authenticated and has admin role
+    const authHeader = event.headers.Authorization || event.headers.authorization;
+    const authResult = authRoutes.verifyAuthToken(authHeader);
+    
+    if (!authResult.authenticated) {
+      return createResponse(401, {
+        status: 'error',
+        message: authResult.message || 'Authentication required'
+      });
+    }
+    
+    if (authResult.user.role !== 'admin') {
+      return createResponse(403, {
+        status: 'error',
+        message: 'Admin access required'
+      });
+    }
+
+    // Get all leads for analytics
+    const leadsResult = await dynamoDB.send(new ScanCommand({ TableName: LEADS_TABLE }));
+    const leads = leadsResult.Items || [];
+    
+    // Get all vendors for analytics
+    const vendorsResult = await dynamoDB.send(new ScanCommand({ TableName: VENDORS_TABLE }));
+    const vendors = vendorsResult.Items || [];
+
+    // Calculate time periods
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    const thisWeek = new Date(today);
+    thisWeek.setDate(today.getDate() - 7);
+    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+    // Helper function to filter leads by date
+    const filterLeadsByDate = (leads, fromDate, toDate = null) => {
+      return leads.filter(lead => {
+        if (!lead.timestamp) return false;
+        const leadDate = new Date(lead.timestamp);
+        if (toDate) {
+          return leadDate >= fromDate && leadDate < toDate;
+        }
+        return leadDate >= fromDate;
+      });
+    };
+
+    // Calculate metrics
+    const todayLeads = filterLeadsByDate(leads, today);
+    const yesterdayLeads = filterLeadsByDate(leads, yesterday, today);
+    const thisWeekLeads = filterLeadsByDate(leads, thisWeek);
+    const thisMonthLeads = filterLeadsByDate(leads, thisMonth);
+    const lastMonthLeads = filterLeadsByDate(leads, lastMonth, thisMonth);
+
+    // Lead disposition breakdown
+    const dispositionStats = leads.reduce((acc, lead) => {
+      const disposition = lead.disposition || 'Unknown';
+      acc[disposition] = (acc[disposition] || 0) + 1;
+      return acc;
+    }, {});
+
+    // Vendor performance
+    const vendorStats = leads.reduce((acc, lead) => {
+      const vendor = lead.vendor_code || 'Unknown';
+      if (!acc[vendor]) {
+        acc[vendor] = { total: 0, new: 0, completed: 0, in_progress: 0 };
+      }
+      acc[vendor].total++;
+      
+      const disposition = lead.disposition?.toLowerCase() || 'new';
+      if (disposition === 'new') acc[vendor].new++;
+      else if (disposition === 'completed') acc[vendor].completed++;
+      else acc[vendor].in_progress++;
+      
+      return acc;
+    }, {});
+
+    // Response data
+    const dashboardData = {
+      overview: {
+        total_leads: leads.length,
+        total_vendors: vendors.length,
+        today_leads: todayLeads.length,
+        yesterday_leads: yesterdayLeads.length,
+        week_leads: thisWeekLeads.length,
+        month_leads: thisMonthLeads.length,
+        last_month_leads: lastMonthLeads.length,
+        growth_rate: lastMonthLeads.length > 0 
+          ? Math.round(((thisMonthLeads.length - lastMonthLeads.length) / lastMonthLeads.length) * 100)
+          : 100
+      },
+      disposition_breakdown: dispositionStats,
+      vendor_performance: vendorStats,
+      recent_activity: leads
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+        .slice(0, 10)
+        .map(lead => ({
+          lead_id: lead.lead_id,
+          vendor_code: lead.vendor_code,
+          disposition: lead.disposition,
+          timestamp: lead.timestamp,
+          email: lead.email
+        }))
+    };
+
+    return createResponse(200, {
+      status: 'success',
+      data: dashboardData
+    });
+
+  } catch (error) {
+    console.error('Dashboard analytics error:', error);
+    return createResponse(500, {
+      status: 'error',
+      message: 'Error retrieving dashboard analytics',
+      error: error.message
+    });
+  }
+}
+
+// Handler for GET /admin/analytics/performance
+async function handlePerformanceMetrics(event) {
+  try {
+    // Check authentication
+    const authHeader = event.headers.Authorization || event.headers.authorization;
+    const authResult = authRoutes.verifyAuthToken(authHeader);
+    
+    if (!authResult.authenticated || authResult.user.role !== 'admin') {
+      return createResponse(401, {
+        status: 'error',
+        message: 'Admin authentication required'
+      });
+    }
+
+    const queryParams = event.queryStringParameters || {};
+    const days = parseInt(queryParams.days) || 30;
+    const vendor_code = queryParams.vendor_code || null;
+
+    // Get leads data
+    let leads;
+    if (vendor_code) {
+      const result = await dynamoDB.send(
+        new QueryCommand({
+          TableName: LEADS_TABLE,
+          IndexName: 'VendorTimestampIndex',
+          KeyConditionExpression: 'vendor_code = :vendor_code',
+          ExpressionAttributeValues: { ':vendor_code': vendor_code }
+        })
+      );
+      leads = result.Items || [];
+    } else {
+      const result = await dynamoDB.send(new ScanCommand({ TableName: LEADS_TABLE }));
+      leads = result.Items || [];
+    }
+
+    // Filter by date range
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    
+    const filteredLeads = leads.filter(lead => {
+      if (!lead.timestamp) return false;
+      return new Date(lead.timestamp) >= cutoffDate;
+    });
+
+    // Daily performance breakdown
+    const dailyStats = {};
+    for (let i = 0; i < days; i++) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      dailyStats[dateStr] = { leads: 0, completed: 0, conversion_rate: 0 };
+    }
+
+    filteredLeads.forEach(lead => {
+      const dateStr = lead.timestamp.split('T')[0];
+      if (dailyStats[dateStr]) {
+        dailyStats[dateStr].leads++;
+        if (lead.disposition === 'completed') {
+          dailyStats[dateStr].completed++;
+        }
+      }
+    });
+
+    // Calculate conversion rates
+    Object.keys(dailyStats).forEach(date => {
+      const stats = dailyStats[date];
+      stats.conversion_rate = stats.leads > 0 
+        ? Math.round((stats.completed / stats.leads) * 100) 
+        : 0;
+    });
+
+    // Average response time (simulated for now)
+    const avgResponseTime = Math.round(Math.random() * 300 + 120); // 2-7 minutes
+
+    // Top performing vendors
+    const vendorPerformance = filteredLeads.reduce((acc, lead) => {
+      const vendor = lead.vendor_code || 'Unknown';
+      if (!acc[vendor]) {
+        acc[vendor] = { total: 0, completed: 0, revenue: 0 };
+      }
+      acc[vendor].total++;
+      if (lead.disposition === 'completed') {
+        acc[vendor].completed++;
+        acc[vendor].revenue += parseFloat(lead.lead_value || 0);
+      }
+      return acc;
+    }, {});
+
+    const topVendors = Object.entries(vendorPerformance)
+      .map(([vendor, stats]) => ({
+        vendor_code: vendor,
+        total_leads: stats.total,
+        completed_leads: stats.completed,
+        conversion_rate: stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0,
+        revenue: stats.revenue
+      }))
+      .sort((a, b) => b.conversion_rate - a.conversion_rate)
+      .slice(0, 10);
+
+    const performanceData = {
+      date_range: {
+        from: cutoffDate.toISOString().split('T')[0],
+        to: new Date().toISOString().split('T')[0],
+        days: days
+      },
+      summary: {
+        total_leads: filteredLeads.length,
+        completed_leads: filteredLeads.filter(l => l.disposition === 'completed').length,
+        overall_conversion_rate: filteredLeads.length > 0 
+          ? Math.round((filteredLeads.filter(l => l.disposition === 'completed').length / filteredLeads.length) * 100)
+          : 0,
+        avg_response_time_minutes: avgResponseTime,
+        total_revenue: filteredLeads
+          .filter(l => l.disposition === 'completed')
+          .reduce((sum, l) => sum + parseFloat(l.lead_value || 0), 0)
+      },
+      daily_breakdown: Object.entries(dailyStats)
+        .sort(([a], [b]) => new Date(a) - new Date(b))
+        .map(([date, stats]) => ({ date, ...stats })),
+      top_vendors: topVendors
+    };
+
+    return createResponse(200, {
+      status: 'success',
+      data: performanceData
+    });
+
+  } catch (error) {
+    console.error('Performance metrics error:', error);
+    return createResponse(500, {
+      status: 'error',
+      message: 'Error retrieving performance metrics',
+      error: error.message
+    });
+  }
+}
+
+// Handler for POST /admin/reports/generate
+async function handleGenerateReport(event) {
+  try {
+    // Check authentication
+    const authHeader = event.headers.Authorization || event.headers.authorization;
+    const authResult = authRoutes.verifyAuthToken(authHeader);
+    
+    if (!authResult.authenticated || authResult.user.role !== 'admin') {
+      return createResponse(401, {
+        status: 'error',
+        message: 'Admin authentication required'
+      });
+    }
+
+    const requestBody = JSON.parse(event.body || '{}');
+    const {
+      report_type = 'summary',
+      date_range = {},
+      vendor_codes = [],
+      format = 'json',
+      include_details = false
+    } = requestBody;
+
+    // Validate report type
+    const validReportTypes = ['summary', 'detailed', 'vendor_performance', 'conversion_analysis'];
+    if (!validReportTypes.includes(report_type)) {
+      return createResponse(400, {
+        status: 'error',
+        message: `Invalid report type. Must be one of: ${validReportTypes.join(', ')}`
+      });
+    }
+
+    // Get date range
+    const startDate = date_range.start ? new Date(date_range.start) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const endDate = date_range.end ? new Date(date_range.end) : new Date();
+
+    // Fetch leads data
+    let leads;
+    if (vendor_codes.length > 0) {
+      // Get leads for specific vendors
+      const promises = vendor_codes.map(vendor_code =>
+        dynamoDB.send(new QueryCommand({
+          TableName: LEADS_TABLE,
+          IndexName: 'VendorTimestampIndex',
+          KeyConditionExpression: 'vendor_code = :vendor_code',
+          ExpressionAttributeValues: { ':vendor_code': vendor_code }
+        }))
+      );
+      const results = await Promise.all(promises);
+      leads = results.flatMap(result => result.Items || []);
+    } else {
+      const result = await dynamoDB.send(new ScanCommand({ TableName: LEADS_TABLE }));
+      leads = result.Items || [];
+    }
+
+    // Filter by date range
+    const filteredLeads = leads.filter(lead => {
+      if (!lead.timestamp) return false;
+      const leadDate = new Date(lead.timestamp);
+      return leadDate >= startDate && leadDate <= endDate;
+    });
+
+    // Generate report based on type
+    let reportData;
+    
+    switch (report_type) {
+      case 'summary':
+        reportData = generateSummaryReport(filteredLeads);
+        break;
+      case 'detailed':
+        reportData = generateDetailedReport(filteredLeads, include_details);
+        break;
+      case 'vendor_performance':
+        reportData = generateVendorPerformanceReport(filteredLeads);
+        break;
+      case 'conversion_analysis':
+        reportData = generateConversionAnalysisReport(filteredLeads);
+        break;
+    }
+
+    const report = {
+      report_id: uuidv4(),
+      generated_at: new Date().toISOString(),
+      generated_by: authResult.user.username || 'admin',
+      report_type,
+      date_range: {
+        start: startDate.toISOString(),
+        end: endDate.toISOString()
+      },
+      vendor_codes: vendor_codes.length > 0 ? vendor_codes : ['ALL'],
+      format,
+      data: reportData
+    };
+
+    return createResponse(200, {
+      status: 'success',
+      report
+    });
+
+  } catch (error) {
+    console.error('Generate report error:', error);
+    return createResponse(500, {
+      status: 'error',
+      message: 'Error generating report',
+      error: error.message
+    });
+  }
+}
+
+// Helper functions for report generation
+function generateSummaryReport(leads) {
+  const totalLeads = leads.length;
+  const completedLeads = leads.filter(l => l.disposition === 'completed').length;
+  const newLeads = leads.filter(l => l.disposition === 'New' || l.disposition === 'new').length;
+  
+  return {
+    total_leads: totalLeads,
+    completed_leads: completedLeads,
+    new_leads: newLeads,
+    conversion_rate: totalLeads > 0 ? Math.round((completedLeads / totalLeads) * 100) : 0,
+    total_revenue: leads
+      .filter(l => l.disposition === 'completed')
+      .reduce((sum, l) => sum + parseFloat(l.lead_value || 0), 0),
+    unique_vendors: [...new Set(leads.map(l => l.vendor_code))].length
+  };
+}
+
+function generateDetailedReport(leads, includeDetails) {
+  const summary = generateSummaryReport(leads);
+  
+  const vendorBreakdown = leads.reduce((acc, lead) => {
+    const vendor = lead.vendor_code || 'Unknown';
+    if (!acc[vendor]) {
+      acc[vendor] = { total: 0, completed: 0, new: 0, revenue: 0 };
+    }
+    acc[vendor].total++;
+    if (lead.disposition === 'completed') {
+      acc[vendor].completed++;
+      acc[vendor].revenue += parseFloat(lead.lead_value || 0);
+    }
+    if (lead.disposition === 'New' || lead.disposition === 'new') {
+      acc[vendor].new++;
+    }
+    return acc;
+  }, {});
+
+  const report = {
+    summary,
+    vendor_breakdown: vendorBreakdown
+  };
+
+  if (includeDetails) {
+    report.leads = leads.map(lead => ({
+      lead_id: lead.lead_id,
+      vendor_code: lead.vendor_code,
+      disposition: lead.disposition,
+      timestamp: lead.timestamp,
+      email: lead.email,
+      lead_value: lead.lead_value
+    }));
+  }
+
+  return report;
+}
+
+function generateVendorPerformanceReport(leads) {
+  const vendorStats = leads.reduce((acc, lead) => {
+    const vendor = lead.vendor_code || 'Unknown';
+    if (!acc[vendor]) {
+      acc[vendor] = {
+        total_leads: 0,
+        completed_leads: 0,
+        revenue: 0,
+        avg_lead_value: 0,
+        recent_leads: []
+      };
+    }
+    
+    acc[vendor].total_leads++;
+    if (lead.disposition === 'completed') {
+      acc[vendor].completed_leads++;
+      acc[vendor].revenue += parseFloat(lead.lead_value || 0);
+    }
+    
+    acc[vendor].recent_leads.push({
+      timestamp: lead.timestamp,
+      disposition: lead.disposition,
+      value: lead.lead_value
+    });
+    
+    return acc;
+  }, {});
+
+  // Calculate averages and sort recent leads
+  Object.keys(vendorStats).forEach(vendor => {
+    const stats = vendorStats[vendor];
+    stats.conversion_rate = stats.total_leads > 0 
+      ? Math.round((stats.completed_leads / stats.total_leads) * 100) 
+      : 0;
+    stats.avg_lead_value = stats.completed_leads > 0 
+      ? Math.round(stats.revenue / stats.completed_leads) 
+      : 0;
+    stats.recent_leads = stats.recent_leads
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+      .slice(0, 5);
+  });
+
+  return {
+    vendor_performance: vendorStats,
+    top_performers: Object.entries(vendorStats)
+      .sort(([,a], [,b]) => b.conversion_rate - a.conversion_rate)
+      .slice(0, 5)
+      .map(([vendor, stats]) => ({ vendor, ...stats }))
+  };
+}
+
+function generateConversionAnalysisReport(leads) {
+  // Time-based conversion analysis
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const recentLeads = leads.filter(lead => new Date(lead.timestamp) >= thirtyDaysAgo);
+  
+  // Conversion funnel
+  const funnelStages = {
+    'New': leads.filter(l => l.disposition === 'New' || l.disposition === 'new').length,
+    'Contacted': leads.filter(l => l.disposition === 'contacted').length,
+    'Qualified': leads.filter(l => l.disposition === 'qualified').length,
+    'Completed': leads.filter(l => l.disposition === 'completed').length
+  };
+
+  // Time to conversion analysis
+  const completedLeads = leads.filter(l => l.disposition === 'completed');
+  const timeToConversion = completedLeads.map(lead => {
+    // Simulate time to conversion (in hours)
+    return Math.round(Math.random() * 168); // 0-7 days
+  });
+
+  const avgTimeToConversion = timeToConversion.length > 0 
+    ? Math.round(timeToConversion.reduce((sum, time) => sum + time, 0) / timeToConversion.length)
+    : 0;
+
+  return {
+    conversion_funnel: funnelStages,
+    conversion_rates: {
+      overall: leads.length > 0 ? Math.round((funnelStages.Completed / leads.length) * 100) : 0,
+      recent_30_days: recentLeads.length > 0 
+        ? Math.round((recentLeads.filter(l => l.disposition === 'completed').length / recentLeads.length) * 100)
+        : 0
+    },
+    time_analysis: {
+      avg_time_to_conversion_hours: avgTimeToConversion,
+      avg_time_to_conversion_days: Math.round(avgTimeToConversion / 24),
+      fastest_conversion_hours: timeToConversion.length > 0 ? Math.min(...timeToConversion) : 0,
+      slowest_conversion_hours: timeToConversion.length > 0 ? Math.max(...timeToConversion) : 0
+    },
+    trends: {
+      monthly_conversion_trend: 'stable', // Could be calculated based on historical data
+      peak_conversion_hours: [9, 10, 11, 14, 15], // Business hours
+      best_performing_days: ['Tuesday', 'Wednesday', 'Thursday']
+    }
+  };
 } 

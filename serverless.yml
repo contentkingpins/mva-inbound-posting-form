@@ -114,6 +114,15 @@ functions:
           method: post
           cors: true
           private: true # Require API key
+      # Admin force logout all users endpoint
+      - http:
+          path: /admin/force-logout-all
+          method: post
+          cors: true
+      - http:
+          path: /admin/force-logout-all
+          method: options
+          cors: true
   
   # New function to lookup username by email
   getUsernameByEmail:
