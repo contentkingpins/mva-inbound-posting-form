@@ -109,11 +109,11 @@ function renderAvailableLeads() {
             
             <div class="lead-info">
                 <div class="lead-detail">
-                    <span>📧</span>
+                    <span>✉</span>
                     <span>${escapeHtml(lead.email)}</span>
                 </div>
                 <div class="lead-detail">
-                    <span>📱</span>
+                    <span>☎</span>
                     <span>${formatPhone(lead.phone_home)}</span>
                 </div>
                 <div class="lead-detail">
@@ -121,7 +121,7 @@ function renderAvailableLeads() {
                     <span>${escapeHtml(lead.city)}, ${escapeHtml(lead.state)}</span>
                 </div>
                 <div class="lead-detail">
-                    <span>🏷️</span>
+                    <span>⚖</span>
                     <span>${escapeHtml(lead.incident_type || 'Not specified')}</span>
                 </div>
             </div>
@@ -168,11 +168,11 @@ function renderMyLeads() {
             
             <div class="lead-info">
                 <div class="lead-detail">
-                    <span>📧</span>
+                    <span>✉</span>
                     <span>${escapeHtml(lead.email)}</span>
                 </div>
                 <div class="lead-detail">
-                    <span>📱</span>
+                    <span>☎</span>
                     <span>${formatPhone(lead.phone_home)}</span>
                 </div>
                 <div class="lead-detail">
@@ -180,7 +180,7 @@ function renderMyLeads() {
                     <span>Claimed: ${formatDate(lead.claimedAt)}</span>
                 </div>
                 <div class="lead-detail">
-                    <span>🏷️</span>
+                    <span>⚖</span>
                     <span>${escapeHtml(lead.incident_type || 'Not specified')}</span>
                 </div>
             </div>
