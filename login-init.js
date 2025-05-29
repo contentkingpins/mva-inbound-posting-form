@@ -328,9 +328,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const cognitoUser = userPool.getCurrentUser();
         if (cognitoUser) {
           console.log('Cognito has session but localStorage is missing data');
-          // REMOVED: Don't sign out here - this was causing login issues
-          // cognitoUser.signOut();
-          // Just return and let the user log in normally
+          
+          // One-time cleanup: If we haven't cleaned this mismatch before, do it once
+          const mismatchCleaned = localStorage.getItem('cognito_mismatch_cleaned_v1');
+          if (!mismatchCleaned) {
+            console.log('One-time cleanup: Clearing orphaned Cognito session');
+            cognitoUser.signOut();
+            localStorage.setItem('cognito_mismatch_cleaned_v1', 'true');
+            console.log('Orphaned session cleared. Please log in.');
+          }
         }
         return;
       }
