@@ -56,7 +56,7 @@ console.log(`   API Key: ${APP_CONFIG.apiKey ? '[PRESENT]' : '[NOT SET]'}`);
 // Create the configuration script that will be injected
 const configScript = `
 <!-- AppConfig Module Reference -->
-<script src="js/app-config.js?v=${Date.now()}"></script>
+<script src="/js/app-config.js?v=${Date.now()}"></script>
 
 <!-- Build-Time Injected Configuration -->
 <script>
@@ -75,7 +75,7 @@ console.log('🔧 Configuration injected at build time - no external loading nee
 
 // Files to inject configuration into - expanded list
 const htmlFiles = [
-    // Dashboard files
+    // Dashboard files only (root duplicates have been removed)
     'dashboard/index.html',
     'dashboard/login.html',
     'dashboard/admin.html',
@@ -84,17 +84,7 @@ const htmlFiles = [
     'dashboard/reset-password.html',
     'dashboard/verify.html',
     'dashboard/stats.html',
-    'dashboard/vendors.html',
-    // Root files
-    'index.html',
-    'login.html',
-    'signup.html',
-    'admin.html',
-    'verify.html',
-    'reset-password.html',
-    'forgot-password.html',
-    'stats.html',
-    'vendors.html'
+    'dashboard/vendors.html'
 ];
 
 let injectedCount = 0;

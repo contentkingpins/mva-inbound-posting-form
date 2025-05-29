@@ -147,7 +147,7 @@ function setupTokenRefresh() {
                             if (err.name === 'NotAuthorizedException') {
                                 localStorage.removeItem('auth_token');
                                 localStorage.removeItem('user');
-                        window.location.href = '/login.html';
+                        window.location.href = '/dashboard/login.html';
                             }
                             return;
                         }
@@ -161,7 +161,7 @@ function setupTokenRefresh() {
                             console.warn('Session is not valid');
                             localStorage.removeItem('auth_token');
                             localStorage.removeItem('user');
-                    window.location.href = '/login.html';
+                    window.location.href = '/dashboard/login.html';
                         }
                 });
         } catch (error) {
@@ -184,7 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (!token || !user.username) {
         // Not logged in, redirect to login page
-        window.location.href = '/login.html';
+        window.location.href = '/dashboard/login.html';
         return;
     }
     
@@ -225,12 +225,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         // Clear local storage and redirect to login page
                         localStorage.removeItem('auth_token');
                         localStorage.removeItem('user');
-                window.location.href = '/login.html';
+                window.location.href = '/dashboard/login.html';
             } else {
                 // Fallback to traditional logout if Cognito is not available
                 localStorage.removeItem('auth_token');
                 localStorage.removeItem('user');
-                window.location.href = '/login.html';
+                window.location.href = '/dashboard/login.html';
             }
         });
         
@@ -981,7 +981,7 @@ async function fetchLeads() {
                 // Token expired or invalid, redirect to login
                 localStorage.removeItem('auth_token');
                 localStorage.removeItem('user');
-                window.location.href = '/login.html';
+                window.location.href = '/dashboard/login.html';
                 return;
             }
             
@@ -1158,7 +1158,7 @@ async function exportLeadsToCsv() {
         if (response.status === 401) {
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user');
-            window.location.href = '/login.html';
+            window.location.href = '/dashboard/login.html';
             return;
         }
         
@@ -1557,7 +1557,7 @@ async function submitLead(leadData) {
         if (response.status === 401) {
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user');
-            window.location.href = '/login.html';
+            window.location.href = '/dashboard/login.html';
             return false;
         }
         
@@ -1670,7 +1670,7 @@ async function updateLeadDisposition(leadId, disposition, notes) {
         if (response.status === 401) {
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user');
-            window.location.href = '/login.html';
+            window.location.href = '/dashboard/login.html';
             throw new Error('Authentication failed');
         }
         
@@ -2386,7 +2386,7 @@ async function updateLeadData(leadId, data) {
                 // Token expired or invalid, redirect to login
                 localStorage.removeItem('auth_token');
                 localStorage.removeItem('user');
-                window.location.href = '/login.html';
+                window.location.href = '/dashboard/login.html';
                 return;
             }
             
@@ -2636,7 +2636,7 @@ async function sendRetainerAgreement() {
                 // Token expired or invalid, redirect to login
                 localStorage.removeItem('auth_token');
                 localStorage.removeItem('user');
-                window.location.href = '/login.html';
+                window.location.href = '/dashboard/login.html';
                 return;
             }
             

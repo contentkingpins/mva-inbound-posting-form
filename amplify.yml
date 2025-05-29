@@ -16,45 +16,46 @@ frontend:
         - echo "Running build-time configuration injection..."
         - node scripts/inject-config.js
         
-        - echo "Building application with injected configuration..."
+        - echo "Building application with proper structure..."
         - mkdir -p dist
         - mkdir -p dist/js
-        - mkdir -p dist/images
-        
-        # Copy the AppConfig module
-        - echo "Copying AppConfig module..."
-        - cp js/app-config.js dist/js/ 2>/dev/null || echo "app-config.js not found in js/"
-        
-        # Copy all dashboard files to ROOT of dist (this is where the app expects them)
-        - echo "Copying dashboard files to root of dist..."
-        - cp -R dashboard/* dist/
-        
-        # Also maintain dashboard directory for any relative references
         - mkdir -p dist/dashboard
-        - cp -R dashboard/* dist/dashboard/
+        - mkdir -p dist/dashboard/images
         
-        # Copy other root files (but don't overwrite dashboard files)
-        - cp *.css dist/ 2>/dev/null || echo "No root CSS files to copy"
-        - cp *.js dist/ 2>/dev/null || echo "No root JS files to copy"
+        # Copy root index.html (redirect page)
+        - echo "Copying root index.html..."
+        - cp index.html dist/
         
-        # Copy entire js directory
+        # Copy shared resources to root
+        - echo "Copying shared JS resources..."
         - cp -R js/* dist/js/ 2>/dev/null || echo "JS directory copied"
         
-        # Copy version file if it exists
-        - cp version.js dist/ 2>/dev/null || echo "No version.js file to copy"
+        # Copy dashboard files to dashboard subdirectory
+        - echo "Copying dashboard files to dashboard subdirectory..."
+        - cp -R dashboard/* dist/dashboard/
         
-        # Ensure index.html exists at root
-        - echo "Verifying index.html exists at root..."
-        - 'if [ ! -f dist/index.html ]; then echo "ERROR: No index.html at root!"; exit 1; fi'
+        # Copy critical root files that dashboard might reference
+        - cp app.js dist/ 2>/dev/null || true
+        - cp critical-path.js dist/ 2>/dev/null || true
+        - cp styles.css dist/ 2>/dev/null || true
+        - cp version.js dist/ 2>/dev/null || true
         
-        - echo "✅ Build completed with permanent configuration solution!"
-        - echo "🚀 Zero external config dependencies - faster, more reliable startup!"
+        # Ensure proper structure
+        - echo "Verifying build structure..."
+        - 'if [ ! -f dist/index.html ]; then echo "ERROR: No root index.html!"; exit 1; fi'
+        - 'if [ ! -f dist/dashboard/index.html ]; then echo "ERROR: No dashboard index.html!"; exit 1; fi'
+        - 'if [ ! -f dist/js/app-config.js ]; then echo "ERROR: No app-config.js!"; exit 1; fi'
+        
+        - echo "✅ Build completed with proper structure!"
+        - echo "🚀 Clean architecture with proper path resolution!"
         
         # Verify build output
-        - echo "Verifying build output structure..."
-        - echo "Root directory contents:"
+        - echo "=== Build Output Structure ==="
+        - echo "Root contents:"
         - ls -la dist/ || true
-        - echo "JS directory contents:"
+        - echo "Dashboard contents:"
+        - ls -la dist/dashboard/ || true
+        - echo "JS contents:"
         - ls -la dist/js/ || true
   artifacts:
     baseDirectory: dist
