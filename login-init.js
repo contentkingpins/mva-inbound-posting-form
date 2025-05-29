@@ -1,3 +1,33 @@
+// Login page initialization
+console.log('Login page loading...');
+
+// MIGRATION: Fix old user data format (username → email)
+(function migrateAuthData() {
+    const currentUser = localStorage.getItem('user');
+    if (currentUser) {
+        try {
+            const user = JSON.parse(currentUser);
+            // Check if user has old format (username but no email)
+            if (user.username && !user.email) {
+                console.log('📦 Migrating old auth format on login page...');
+                const migratedUser = {
+                    ...user,
+                    email: user.username  // username was actually the email
+                };
+                delete migratedUser.username;
+                localStorage.setItem('user', JSON.stringify(migratedUser));
+                console.log('✅ Auth data migrated to new format');
+                // Don't reload here - let normal login flow continue
+            }
+        } catch (error) {
+            console.error('Migration error:', error);
+            // Clear corrupted data
+            localStorage.removeItem('user');
+            localStorage.removeItem('auth_token');
+        }
+    }
+})();
+
 // Initialize Cognito Authentication
 // Import from the global object since we're loading the SDK via script tag
 const { CognitoUserPool, CognitoUser, AuthenticationDetails } = AmazonCognitoIdentity;

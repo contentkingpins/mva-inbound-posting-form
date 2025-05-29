@@ -10,6 +10,32 @@
     
     console.log('🚀 Critical path loading - using build-time injected configuration');
     
+    // MIGRATION: Fix old user data format (username → email)
+    (function migrateAuthData() {
+        const currentUser = localStorage.getItem('user');
+        if (currentUser) {
+            try {
+                const user = JSON.parse(currentUser);
+                // Check if user has old format (username but no email)
+                if (user.username && !user.email) {
+                    console.log('📦 Migrating old auth format...');
+                    const migratedUser = {
+                        ...user,
+                        email: user.username  // username was actually the email
+                    };
+                    delete migratedUser.username;
+                    localStorage.setItem('user', JSON.stringify(migratedUser));
+                    console.log('✅ Auth data migrated to new format');
+                }
+            } catch (error) {
+                console.error('Migration error:', error);
+                // Clear corrupted data
+                localStorage.removeItem('user');
+                localStorage.removeItem('auth_token');
+            }
+        }
+    })();
+    
     // Enhanced auth check with proper JWT validation
     const checkAuth = () => {
         const token = localStorage.getItem('auth_token');
