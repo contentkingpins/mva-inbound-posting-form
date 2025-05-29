@@ -391,7 +391,6 @@ let allLeads = []; // For export functionality - store all leads
 let searchTerm = ''; // Store the current search term
 let searchDebounceTimer = null; // For debouncing search input
 
-// Initialize - REMOVED duplicate DOMContentLoaded (moved to first listener)
 
 // Function to clear mock data from localStorage
 function clearMockData() {
@@ -713,14 +712,7 @@ async function handleLeadSubmit(e) {
     
     if (!isValid) {
         return;
-    }
-    
-    // Helper function to get radio button value
-    const getRadioValue = (name) => {
-        const radio = document.querySelector(`input[name="${name}"]:checked`);
-        return radio ? radio.value : null;
-    };
-    
+    }    
     // Calculate deadline based on accident date (keep it for now for compatibility)
     let deadline60Days = 'yes'; // Default to yes since we're not using accident date anymore
     const accidentDate = new Date().toISOString().split('T')[0]; // Use today's date as a placeholder
@@ -1486,32 +1478,6 @@ function formatDateYMD(dateString) {
 // Update local storage
 function updateLocalStorage() {
     localStorage.setItem('leads', JSON.stringify(leads));
-}
-
-// Toggle lead details expansion
-function toggleLeadDetails(lead) {
-    const leadId = lead.lead_id;
-    const detailRow = document.getElementById(`detail-${leadId}`);
-    const leadRow = document.querySelector(`tr[data-lead-id="${leadId}"]`);
-    
-    if (detailRow) {
-        // Detail row exists, remove it
-        detailRow.remove();
-        leadRow.classList.remove('expanded');
-        expandedLeadId = null;
-    } else {
-        // Remove any existing expanded row
-        const existingDetailRow = document.querySelector('.detail-row');
-        if (existingDetailRow) {
-            existingDetailRow.remove();
-            document.querySelector('tr.expanded').classList.remove('expanded');
-        }
-        
-        // Add the new detail row
-        leadRow.classList.add('expanded');
-        expandedLeadId = leadId;
-        addDetailRow(lead);
-    }
 }
 
 // Show error notification
