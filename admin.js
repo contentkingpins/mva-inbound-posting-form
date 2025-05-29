@@ -34,7 +34,7 @@ function checkAuth() {
     
     if (!token || !user.username || user.role !== 'admin') {
         // Not logged in or not admin, redirect to login page
-        window.location.href = '/login.html';
+        window.location.href = 'login.html';
         return;
     }
     
@@ -817,7 +817,7 @@ async function fetchAdminStats() {
             // Token expired or invalid, redirect to login
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user');
-            window.location.href = '/login.html';
+            window.location.href = 'login.html';
             return;
         }
         
@@ -851,7 +851,7 @@ async function fetchAnalyticsData() {
             // Token expired or invalid, redirect to login
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user');
-            window.location.href = '/login.html';
+            window.location.href = 'login.html';
             return;
         }
         

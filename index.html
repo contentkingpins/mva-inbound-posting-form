@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com">
     
     <!-- Prefetch critical resources (removed config.json as it's now build-time injected) -->
-    <link rel="prefetch" href="/app.js">
+    <link rel="prefetch" href="app.js">
     
     <!-- AppConfig module - centralized configuration (load before everything else) -->
     <link rel="stylesheet" href="admin.css?v=1.0.2">
@@ -23,13 +23,14 @@
     <!-- Remove the incorrect app-config.js reference - will be added by inject-config.js -->
     
     <!-- Critical Path Script - Load First for Auth Check -->
+    <script>window.appStartTime = Date.now();</script>
+    <script src="critical-path.js?v=1.0.1" async></script>
     
-
-<!-- Build-Time Injected Configuration -->
-
+    <link rel="stylesheet" href="styles.css?v=1.0.1">
+    <link rel="stylesheet" href="admin.css?v=1.0.2">
 
 <!-- AppConfig Module Reference -->
-<script src="/js/app-config.js?v=1748478905227"></script>
+<script src="js/app-config.js?v=1748481232267"></script>
 
 <!-- Build-Time Injected Configuration -->
 <script>
@@ -44,7 +45,7 @@ window.APP_CONFIG = {
   "apiEndpoint": "https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod",
   "apiUrl": "https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod",
   "apiKey": "",
-  "buildTime": "2025-05-29T00:35:05.226Z",
+  "buildTime": "2025-05-29T01:13:52.266Z",
   "buildEnv": "production"
 };
 
@@ -53,6 +54,15 @@ window.preloadedConfig = window.APP_CONFIG;
 
 console.log('🔧 Configuration injected at build time - no external loading needed');
 </script>
+
+    <!-- External Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.3.1/dist/amazon-cognito-identity.min.js"></script>
+    <!-- Chart.js for data visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- Animate.css for smooth animations -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+    <!-- CountUp.js for number animations -->
+    <script src="https://cdn.jsdelivr.net/npm/countup.js@2.6.2/dist/countUp.umd.js"></script>
 </head>
 <body>
     <!-- Fast Loading Skeleton -->
@@ -216,10 +226,10 @@ console.log('🔧 Configuration injected at build time - no external loading nee
     </div>
 
     <!-- Main application script -->
-    <script src="/app.js?v=1.0.1"></script>
+    <script src="app.js?v=1.0.1"></script>
     
     <!-- Version tracking for auto-updates -->
-    <script src="/version.js?v=1.0.1"></script>
+    <script src="version.js?v=1.0.1"></script>
     
     <!-- Script to ensure search bar visibility -->
     <script>

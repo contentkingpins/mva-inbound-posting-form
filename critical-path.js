@@ -31,7 +31,7 @@
         // If no token, redirect to login
         if (!token) {
                 console.log('No auth token found, redirecting to login');
-                window.location.href = '/login.html';
+                window.location.href = 'login.html';
             return;
         }
         
@@ -73,7 +73,7 @@
             localStorage.removeItem('refreshToken');
             
             // Redirect to login
-            window.location.href = '/login.html';
+            window.location.href = 'login.html';
         }
     };
     
