@@ -1,5 +1,5 @@
 // Import AWS SDK v3 modules
-const { CognitoIdentityProviderClient, ConfirmForgotPasswordCommand } = require("@aws-sdk/client-cognito-identity-provider");
+const { CognitoIdentityProviderClient, ForgotPasswordCommand } = require("@aws-sdk/client-cognito-identity-provider");
 
 // Initialize the client
 const client = new CognitoIdentityProviderClient();
@@ -13,7 +13,7 @@ const corsHeaders = {
 };
 
 /**
- * Lambda function to handle confirmation of password reset requests
+ * Lambda function to handle password reset requests for Cognito users
  */
 exports.handler = async (event) => {
   console.log('Event received:', JSON.stringify(event, null, 2));
@@ -31,13 +31,11 @@ exports.handler = async (event) => {
   // Wrap all logic in try/catch to ensure CORS headers are always returned
   try {
     console.log('Processing request body');
-    let username, confirmationCode, newPassword;
+    let username;
     
     try {
       const body = JSON.parse(event.body || '{}');
       username = body.username;
-      confirmationCode = body.code;
-      newPassword = body.password;
       console.log('Parsed username:', username);
     } catch (parseError) {
       console.error('Error parsing request body:', parseError);
@@ -48,28 +46,26 @@ exports.handler = async (event) => {
       };
     }
     
-    if (!username || !confirmationCode || !newPassword) {
-      console.log('Required fields missing from request');
+    if (!username) {
+      console.log('Username is missing from request');
       return {
         statusCode: 400,
         headers: corsHeaders,
-        body: JSON.stringify({ error: "Username, confirmation code, and new password are required" })
+        body: JSON.stringify({ error: "Username is required" })
       };
     }
     
-    // Confirm forgot password
-    console.log('Confirming password reset for user:', username);
+    // Initiate forgot password flow
+    console.log('Initiating forgot password for user:', username);
     const params = {
-      ClientId: process.env.COGNITO_CLIENT_ID || '5t6mane4fnvineksoqb4ta0iu1', // Fixed to match main client ID
-      Username: username,
-      ConfirmationCode: confirmationCode,
-      Password: newPassword
+      ClientId: process.env.COGNITO_CLIENT_ID || '1ekkeqvftfnv0ld0u8utdbafv1', // Updated client ID from your screenshot
+      Username: username
     };
     
-    console.log('Cognito params:', JSON.stringify({...params, Password: '***REDACTED***'}, null, 2));
+    console.log('Cognito params:', JSON.stringify(params, null, 2));
     
     // Use SDK v3 command pattern
-    const command = new ConfirmForgotPasswordCommand(params);
+    const command = new ForgotPasswordCommand(params);
     const result = await client.send(command);
     
     console.log('Cognito result:', JSON.stringify(result, null, 2));
@@ -78,29 +74,13 @@ exports.handler = async (event) => {
       statusCode: 200,
       headers: corsHeaders,
       body: JSON.stringify({ 
-        message: "Password has been reset successfully. You can now log in with your new password." 
+        message: "Password reset initiated. Check your email for the verification code." 
       })
     };
   } catch (error) {
-    console.error('Error confirming password reset:', error);
+    console.error('Error initiating password reset:', error);
     
     // Handle different types of errors
-    if (error.code === 'CodeMismatchException') {
-      return {
-        statusCode: 400,
-        headers: corsHeaders,
-        body: JSON.stringify({ error: "Invalid verification code provided" })
-      };
-    }
-    
-    if (error.code === 'ExpiredCodeException') {
-      return {
-        statusCode: 400,
-        headers: corsHeaders,
-        body: JSON.stringify({ error: "Verification code has expired. Please request a new code." })
-      };
-    }
-    
     if (error.code === 'UserNotFoundException') {
       return {
         statusCode: 404,
@@ -114,14 +94,6 @@ exports.handler = async (event) => {
         statusCode: 429,
         headers: corsHeaders,
         body: JSON.stringify({ error: "Too many requests. Please try again later." })
-      };
-    }
-    
-    if (error.code === 'InvalidPasswordException') {
-      return {
-        statusCode: 400,
-        headers: corsHeaders,
-        body: JSON.stringify({ error: "Password does not meet complexity requirements" })
       };
     }
     
