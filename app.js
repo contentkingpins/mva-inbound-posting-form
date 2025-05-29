@@ -271,6 +271,78 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// Initialize the application after authentication
+async function initializeApp() {
+    try {
+        // Clear any mock data in localStorage
+        clearMockData();
+        
+        // Load configuration - now instant with AppConfig module!
+        await loadConfig();
+        
+        // Start fetching leads immediately - no more timing delays needed!
+        fetchLeads();
+        
+        // Event Listeners
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', fetchLeads);
+        }
+        if (vendorFilter) {
+            vendorFilter.addEventListener('change', filterAndRenderLeads);
+        }
+        if (searchInput) {
+            searchInput.addEventListener('input', debounceSearch);
+        }
+        if (autoRefreshCb) {
+            autoRefreshCb.addEventListener('change', toggleAutoRefresh);
+        }
+        
+        // Export Modal Listeners
+        if (exportBtn) {
+            exportBtn.addEventListener('click', openExportModal);
+        }
+        if (exportModalClose) {
+            exportModalClose.addEventListener('click', closeExportModal);
+        }
+        if (exportCancelBtn) {
+            exportCancelBtn.addEventListener('click', closeExportModal);
+        }
+        if (exportDownloadBtn) {
+            exportDownloadBtn.addEventListener('click', exportLeadsToCsv);
+        }
+        
+        // New Lead Listeners
+        if (addLeadBtn) {
+            addLeadBtn.addEventListener('click', openAddLeadModal);
+        }
+        
+        // Set default date values for export
+        const today = new Date();
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(today.getDate() - 30);
+        
+        if (exportEndDate) {
+            exportEndDate.valueAsDate = today;
+        }
+        if (exportStartDate) {
+            exportStartDate.valueAsDate = thirtyDaysAgo;
+        }
+        
+        // Focus the search input for better UX
+        if (searchInput) {
+            searchInput.focus();
+        }
+        
+        // Create the add lead modal
+        createAddLeadModal();
+        
+        console.log('Application initialized successfully');
+    } catch (error) {
+        console.error('Error initializing application:', error);
+        showError('Failed to initialize application. Please refresh the page.');
+    }
+}
+
 // Config initialization
 let API_KEY = '';
 
