@@ -283,7 +283,7 @@ async function completePasswordReset() {
               if (userRole === 'admin') {
                 window.location.href = 'admin.html';
               } else {
-                window.location.href = 'agent.html';
+                window.location.href = 'agent-aurora.html';
               }
             }, 2000);
             
@@ -383,7 +383,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (userRole === 'admin') {
               window.location.href = 'admin.html';
             } else {
-              window.location.href = 'agent.html';
+              window.location.href = 'agent-aurora.html';
             }
           }
         });
@@ -511,7 +511,7 @@ document.addEventListener('DOMContentLoaded', function() {
               if (userRole === 'admin') {
                 window.location.href = 'admin.html';
               } else {
-                window.location.href = 'agent.html';
+                window.location.href = 'agent-aurora.html';
               }
             });
           }

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aurora Glass - Agent Dashboard</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Aurora Glass Styles -->
+    <link rel="stylesheet" href="agent-aurora.css">
+
+    <!-- AppConfig -->
+    <script src="/js/app-config.js?v=1748481232267"></script>
+    <script>
+    window.APP_CONFIG = {
+      "userPoolId": "us-east-1_lhc964tLD",
+      "clientId": "5t6mane4fnvineksoqb4ta0iu1",
+      "apiEndpoint": "https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod",
+      "apiUrl": "https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod",
+      "apiKey": "",
+      "buildTime": "2025-05-29T01:13:52.266Z",
+      "buildEnv": "production"
+    };
+    window.preloadedConfig = window.APP_CONFIG;
+    </script>
+</head>
+<body>
+    <!-- Aurora Background -->
+    <div class="aurora-bg"></div>
+    
+    <!-- Floating Particles -->
+    <div class="particles" id="particles-container"></div>
+    
+    <!-- Dashboard Container -->
+    <div class="dashboard-container">
+        <!-- Glass Header -->
+        <header class="glass-header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1 class="holo-title">Agent Portal</h1>
+                    <p style="color: var(--text-secondary); margin-top: 0.5rem;">
+                        Welcome back, <span id="agent-name" style="color: var(--accent-neon);">Agent</span>
+                    </p>
+                </div>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <button class="neon-btn magnetic" onclick="logout()">
+                        <span>Logout</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="glass-stat" data-tilt>
+                <div class="stat-icon">🎯</div>
+                <div class="stat-value" id="available-count">0</div>
+                <div class="stat-label" style="color: var(--text-secondary);">Available Leads</div>
+                <div class="liquid-fill"></div>
+            </div>
+            
+            <div class="glass-stat" data-tilt>
+                <div class="stat-icon">🚀</div>
+                <div class="stat-value" id="active-count">0</div>
+                <div class="stat-label" style="color: var(--text-secondary);">Active Leads</div>
+                <div class="liquid-fill"></div>
+            </div>
+            
+            <div class="glass-stat" data-tilt>
+                <div class="stat-icon">💎</div>
+                <div class="stat-value" id="completed-count">0</div>
+                <div class="stat-label" style="color: var(--text-secondary);">Completed</div>
+                <div class="liquid-fill"></div>
+            </div>
+            
+            <div class="glass-stat" data-tilt>
+                <div class="stat-icon">⚡</div>
+                <div class="stat-value" id="conversion-rate">0%</div>
+                <div class="stat-label" style="color: var(--text-secondary);">Conversion</div>
+                <div class="liquid-fill"></div>
+            </div>
+        </div>
+
+        <!-- Leads Container -->
+        <div class="leads-container">
+            <!-- Available Leads Section -->
+            <section class="glass-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <span class="title-glow">⚡</span>
+                        Available Leads
+                    </h2>
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <input type="text" class="glass-input" id="search-leads" placeholder="Search leads...">
+                        <button class="neon-btn magnetic" onclick="refreshLeads()">
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="leads-grid" id="available-leads-grid">
+                    <!-- Lead cards will be inserted here -->
+                </div>
+            </section>
+
+            <!-- My Leads Section -->
+            <section class="glass-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <span class="title-glow">🌟</span>
+                        My Active Leads
+                    </h2>
+                    <select class="glass-input" id="filter-status" style="width: auto;">
+                        <option value="all">All Status</option>
+                        <option value="new">New</option>
+                        <option value="contacted">Contacted</option>
+                        <option value="interested">Interested</option>
+                        <option value="negotiating">Negotiating</option>
+                    </select>
+                </div>
+                
+                <div class="leads-grid" id="my-leads-grid">
+                    <!-- My lead cards will be inserted here -->
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Lead Details Modal (Glass Style) -->
+    <div class="modal-overlay" id="lead-modal" style="display: none;">
+        <div class="glass-modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Lead Details</h3>
+                <button class="close-btn" onclick="closeModal()">×</button>
+            </div>
+            <div class="modal-content" id="lead-details">
+                <!-- Lead details will be inserted here -->
+            </div>
+            <div class="modal-footer">
+                <button class="neon-btn magnetic" id="modal-action">Claim Lead</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Aurora Glass JS -->
+    <script src="agent-aurora.js"></script>
+</body>
+</html> 

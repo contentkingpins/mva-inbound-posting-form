@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aurora Glass Dashboard - Demo</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Aurora Glass Styles -->
+    <link rel="stylesheet" href="agent-aurora.css">
+    
+    <style>
+        /* Demo Banner */
+        .demo-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(90deg, var(--aurora-1), var(--aurora-2));
+            color: white;
+            padding: 0.75rem;
+            text-align: center;
+            font-weight: 600;
+            z-index: 9999;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .dashboard-container {
+            margin-top: 3rem; /* Account for demo banner */
+        }
+    </style>
+</head>
+<body>
+    <!-- Demo Banner -->
+    <div class="demo-banner">
+        🚀 AURORA GLASS DEMO - Experience the Future of Agent Dashboards
+    </div>
+
+    <!-- Aurora Background -->
+    <div class="aurora-bg"></div>
+    
+    <!-- Floating Particles -->
+    <div class="particles" id="particles-container"></div>
+    
+    <!-- Dashboard Container -->
+    <div class="dashboard-container">
+        <!-- Glass Header -->
+        <header class="glass-header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1 class="holo-title">Agent Portal</h1>
+                    <p style="color: var(--text-secondary); margin-top: 0.5rem;">
+                        Welcome back, <span id="agent-name" style="color: var(--accent-neon);">Test Agent</span>
+                    </p>
+                </div>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <button class="neon-btn magnetic" onclick="alert('Demo Mode - Logout disabled')">
+                        <span>Logout</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="glass-stat" data-tilt>
+                <div class="stat-icon">🎯</div>
+                <div class="stat-value" id="available-count">12</div>
+                <div class="stat-label" style="color: var(--text-secondary);">Available Leads</div>
+                <div class="liquid-fill"></div>
+            </div>
+            
+            <div class="glass-stat" data-tilt>
+                <div class="stat-icon">🚀</div>
+                <div class="stat-value" id="active-count">5</div>
+                <div class="stat-label" style="color: var(--text-secondary);">Active Leads</div>
+                <div class="liquid-fill"></div>
+            </div>
+            
+            <div class="glass-stat" data-tilt>
+                <div class="stat-icon">💎</div>
+                <div class="stat-value" id="completed-count">8</div>
+                <div class="stat-label" style="color: var(--text-secondary);">Completed</div>
+                <div class="liquid-fill"></div>
+            </div>
+            
+            <div class="glass-stat" data-tilt>
+                <div class="stat-icon">⚡</div>
+                <div class="stat-value" id="conversion-rate">73%</div>
+                <div class="stat-label" style="color: var(--text-secondary);">Conversion</div>
+                <div class="liquid-fill"></div>
+            </div>
+        </div>
+
+        <!-- Leads Container -->
+        <div class="leads-container">
+            <!-- Available Leads Section -->
+            <section class="glass-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <span class="title-glow">⚡</span>
+                        Available Leads
+                    </h2>
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <input type="text" class="glass-input" id="search-leads" placeholder="Search leads...">
+                        <button class="neon-btn magnetic" onclick="refreshLeads()">
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="leads-grid" id="available-leads-grid">
+                    <!-- Lead cards will be inserted here -->
+                </div>
+            </section>
+
+            <!-- My Leads Section -->
+            <section class="glass-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <span class="title-glow">🌟</span>
+                        My Active Leads
+                    </h2>
+                    <select class="glass-input" id="filter-status" style="width: auto;">
+                        <option value="all">All Status</option>
+                        <option value="new">New</option>
+                        <option value="contacted">Contacted</option>
+                        <option value="interested">Interested</option>
+                        <option value="negotiating">Negotiating</option>
+                    </select>
+                </div>
+                
+                <div class="leads-grid" id="my-leads-grid">
+                    <!-- My lead cards will be inserted here -->
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Aurora Glass JS -->
+    <script src="agent-aurora.js"></script>
+    
+    <!-- Demo Override -->
+    <script>
+        // Override auth check for demo
+        window.checkAuth = function() {
+            currentUser = {
+                email: 'demo@aurora.glass',
+                name: 'Test Agent',
+                role: 'agent'
+            };
+            document.getElementById('agent-name').textContent = 'Test Agent';
+        };
+        
+        // Auto-start the demo
+        console.log('🚀 Aurora Glass Dashboard Demo Started');
+    </script>
+</body>
+</html> 
