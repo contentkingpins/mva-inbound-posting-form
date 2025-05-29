@@ -8,7 +8,9 @@ let API_ENDPOINT = '';
 
 // Initialize on load
 document.addEventListener('DOMContentLoaded', () => {
-    initializeApp();
+    initializeApp().catch(error => {
+        console.error('Failed to initialize app:', error);
+    });
     
     // Set up auto-refresh for real-time updates
     setInterval(refreshLeads, 15000); // Refresh every 15 seconds
@@ -17,21 +19,25 @@ document.addEventListener('DOMContentLoaded', () => {
 // Initialize application
 async function initializeApp() {
     try {
-        // Get API endpoint from config
-        API_ENDPOINT = window.APP_CONFIG?.apiEndpoint || '';
+        // First check authentication
+        const isAuthenticated = await checkAuth();
+        if (!isAuthenticated) {
+            return;
+        }
         
-        // Check authentication
-        await checkAuth();
+        // Initialize UI components
+        initializeUI();
         
-        // Load dashboard data
+        // Load initial data
         await loadDashboardData();
         
-        // Initialize event listeners
-        initEventListeners();
+        // Setup real-time updates
+        setupAutoRefresh();
         
+        console.log('✅ Application initialized successfully');
     } catch (error) {
-        console.error('Failed to initialize app:', error);
-        showNotification('Failed to load dashboard', 'error');
+        console.error('Error initializing application:', error);
+        window.location.href = 'login.html';
     }
 }
 
@@ -43,10 +49,15 @@ async function checkAuth() {
     if (!token || !userStr) {
         console.error('Missing auth token or user data');
         window.location.href = 'login.html';
-        return;
+        return false;
     }
     
     try {
+        // Wait for Cognito SDK to be ready
+        if (typeof AmazonCognitoIdentity === 'undefined') {
+            throw new Error('Cognito SDK not loaded');
+        }
+        
         // Parse user data
         currentUser = JSON.parse(userStr);
         
@@ -54,17 +65,17 @@ async function checkAuth() {
         if (!currentUser.email || !currentUser.role) {
             console.error('Invalid user data:', currentUser);
             window.location.href = 'login.html';
-            return;
+            return false;
         }
         
         // Verify user is an agent
         if (currentUser.role === 'admin') {
             console.log('Admin user detected, redirecting to admin dashboard');
             window.location.href = 'admin.html';
-            return;
+            return false;
         }
         
-        // Verify Cognito session is valid
+        // Get Cognito configuration
         const cognitoConfig = window.AppConfig ? 
             window.AppConfig.getCognitoConfig() :
             { UserPoolId: 'us-east-1_lhc964tLD', ClientId: '5t6mane4fnvineksoqb4ta0iu1' };
@@ -73,19 +84,13 @@ async function checkAuth() {
         const cognitoUser = userPool.getCurrentUser();
         
         if (!cognitoUser) {
-            console.error('No Cognito session found');
-            window.location.href = 'login.html';
-            return;
+            throw new Error('No Cognito session found');
         }
         
         // Verify session is valid
         await new Promise((resolve, reject) => {
             cognitoUser.getSession((err, session) => {
                 if (err || !session || !session.isValid()) {
-                    console.error('Invalid or expired session:', err);
-                    localStorage.removeItem('auth_token');
-                    localStorage.removeItem('user');
-                    window.location.href = 'login.html';
                     reject(err || new Error('Invalid session'));
                     return;
                 }
@@ -98,24 +103,21 @@ async function checkAuth() {
                 localStorage.setItem('accessToken', accessToken);
                 localStorage.setItem('idToken', idToken);
                 localStorage.setItem('refreshToken', refreshToken);
-                localStorage.setItem('auth_token', idToken); // For backward compatibility
+                localStorage.setItem('auth_token', idToken);
                 
                 resolve();
             });
         });
         
-        // Set agent name in UI
-        const agentNameElement = document.getElementById('agent-name');
-        if (agentNameElement) {
-            agentNameElement.textContent = currentUser.name || currentUser.email.split('@')[0];
-        }
-        
-        // Initialize real-time updates
-        initializeRealTimeUpdates();
+        console.log('✅ Authentication check passed');
+        return true;
         
     } catch (error) {
         console.error('Error during authentication check:', error);
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user');
         window.location.href = 'login.html';
+        return false;
     }
 }
 
