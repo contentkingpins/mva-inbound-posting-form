@@ -1,6 +1,6 @@
 import authService from './auth-service.js';
 
-const API_ENDPOINT = 'https://nv01uveape.execute-api.us-east-1.amazonaws.com/prod';
+const API_ENDPOINT = 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod';
 
 // Helper function to make authenticated API requests
 async function fetchWithAuth(endpoint, options = {}) {
@@ -16,18 +16,12 @@ async function fetchWithAuth(endpoint, options = {}) {
   // Get token from local storage
   const token = localStorage.getItem('auth_token');
   
-  // Add authentication header
+  // Add authentication header - use JWT Bearer token as per backend guide
   const headers = {
     ...options.headers,
     'Authorization': `Bearer ${token}`,
     'Content-Type': 'application/json'
   };
-  
-  // Add x-api-key header if needed
-  const apiKey = localStorage.getItem('api_key');
-  if (apiKey) {
-    headers['x-api-key'] = apiKey;
-  }
   
   try {
     // Make the API request
@@ -41,6 +35,10 @@ async function fetchWithAuth(endpoint, options = {}) {
       try {
         // Try to refresh token
         await authService.refreshTokens();
+        
+        // Get the refreshed token
+        const newToken = localStorage.getItem('auth_token');
+        headers['Authorization'] = `Bearer ${newToken}`;
         
         // Retry the request with new token
         return fetchWithAuth(endpoint, options);
@@ -87,24 +85,32 @@ export const LeadsAPI = {
   
   // Update lead
   updateLead: (leadId, leadData) => fetchWithAuth(`/leads/${leadId}`, {
-    method: 'PUT',
+    method: 'PATCH',
     body: JSON.stringify(leadData)
   }),
   
   // Update lead disposition
-  updateDisposition: (leadId, disposition, notes) => fetchWithAuth(`/leads/${leadId}/disposition`, {
-    method: 'PUT',
+  updateDisposition: (leadId, disposition, notes) => fetchWithAuth(`/leads/${leadId}`, {
+    method: 'PATCH',
     body: JSON.stringify({ disposition, notes })
   }),
   
   // Export leads
   exportLeads: (filters) => fetchWithAuth('/export', {
-    method: 'POST',
-    body: JSON.stringify(filters)
+    method: 'GET'
   })
 };
 
-// API methods for Users
+// API methods for Admin endpoints
+export const AdminAPI = {
+  // Get dashboard statistics
+  getStats: () => fetchWithAuth('/admin/stats'),
+  
+  // Get analytics data
+  getAnalytics: () => fetchWithAuth('/admin/analytics')
+};
+
+// API methods for Users (admin only)
 export const UsersAPI = {
   // Get all users (admin only)
   getUsers: () => fetchWithAuth('/auth/users'),
@@ -131,5 +137,6 @@ export const UsersAPI = {
 export default {
   fetchWithAuth,
   LeadsAPI,
+  AdminAPI,
   UsersAPI
 }; 

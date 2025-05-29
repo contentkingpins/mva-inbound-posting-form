@@ -107,4 +107,116 @@ exports.handler = async (event) => {
       })
     };
   }
-}; 
+};
+
+/**
+ * Forgot Password Implementation using Backend API
+ * This uses the new backend endpoints for password reset functionality
+ */
+
+// Initialize forgot password functionality
+document.addEventListener('DOMContentLoaded', function() {
+    initializeForgotPasswordForm();
+});
+
+function initializeForgotPasswordForm() {
+    const forgotPasswordForm = document.getElementById('forgot-password-form');
+    const emailInput = document.getElementById('email');
+    const errorMessage = document.getElementById('error-message');
+    const successMessage = document.getElementById('success-message');
+    const submitButton = document.getElementById('submit-btn');
+    const loader = document.getElementById('loader');
+
+    if (forgotPasswordForm) {
+        forgotPasswordForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            
+            // Clear previous messages
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+            errorMessage.textContent = '';
+            successMessage.textContent = '';
+            
+            // Show loader and disable button
+            loader.style.display = 'inline-block';
+            submitButton.disabled = true;
+            
+            try {
+                // Get email value
+                const email = emailInput.value.trim();
+                
+                if (!email) {
+                    throw new Error('Please enter your email address');
+                }
+                
+                // First, get the username for this email
+                const username = await getUsernameByEmail(email);
+                
+                // Then initiate forgot password flow
+                await initiateForgotPassword(username);
+                
+                // Show success message
+                successMessage.textContent = 'Password reset code sent to your email. Please check your inbox.';
+                successMessage.style.display = 'block';
+                
+                // Optionally redirect to confirm page after delay
+                setTimeout(() => {
+                    window.location.href = `reset-password.html?email=${encodeURIComponent(email)}`;
+                }, 3000);
+                
+            } catch (error) {
+                console.error('Forgot password error:', error);
+                errorMessage.textContent = error.message || 'An error occurred. Please try again.';
+                errorMessage.style.display = 'block';
+            } finally {
+                // Hide loader and re-enable button
+                loader.style.display = 'none';
+                submitButton.disabled = false;
+            }
+        });
+    }
+}
+
+/**
+ * Get username by email using backend API endpoint
+ */
+async function getUsernameByEmail(email) {
+    const response = await fetch('https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod/auth/get-username', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email })
+    });
+
+    if (!response.ok) {
+        if (response.status === 404) {
+            throw new Error('No account found with this email address');
+        }
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error looking up account');
+    }
+
+    const data = await response.json();
+    return data.username;
+}
+
+/**
+ * Initiate forgot password using backend API endpoint
+ */
+async function initiateForgotPassword(username) {
+    const response = await fetch('https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod/auth/forgot-password', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ username })
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send password reset code');
+    }
+
+    return await response.json();
+} 

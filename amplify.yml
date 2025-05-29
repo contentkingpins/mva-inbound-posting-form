@@ -5,17 +5,55 @@ frontend:
       commands:
         - echo "Setting up build environment"
         - nvm use 16
+        - echo "Making config injection script executable"
+        - chmod +x scripts/inject-config.js
     build:
       commands:
-        - echo "Creating config.json with Cognito and API configuration"
-        - echo "{\"region\":\"us-east-1\",\"userPoolId\":\"us-east-1_lhc964tLD\",\"clientId\":\"5t6mane4fnvineksoqb4ta0iu1\",\"clientSecret\":\"7h6a92cinn7i5im0l0rpusuna0dpsqc4ha7f7nog0oocc318m46\",\"apiKey\":\"${API_KEY}\",\"apiEndpoint\":\"https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod\"}" > dashboard/config.json
-        - echo "Config file created successfully"
-        - echo "Deploying from dashboard directory"
+        - echo "🔧 Starting build process..."
+        - echo "Using build-time config injection"
+        
+        # Run the configuration injection script
+        - echo "Running build-time configuration injection..."
+        - node scripts/inject-config.js
+        
+        - echo "Building application..."
         - mkdir -p dist
-        - cp -R dashboard/* dist/
-        - cp version.js dist/
-        - cp styles.css dist/
-        - echo "Build completed successfully"
+        - mkdir -p dist/js
+        - mkdir -p dist/images
+        
+        # Copy all files to dist
+        - echo "Copying all HTML files..."
+        - cp *.html dist/
+        
+        # Copy all JS files
+        - echo "Copying JavaScript files..."
+        - cp *.js dist/ 2>/dev/null || true
+        
+        # Copy CSS files
+        - echo "Copying CSS files..."
+        - cp *.css dist/ 2>/dev/null || true
+        
+        # Copy js directory
+        - echo "Copying js directory..."
+        - cp -R js/* dist/js/ 2>/dev/null || echo "JS directory copied"
+        
+        # Copy images directory
+        - echo "Copying images directory..."
+        - cp -R images/* dist/images/ 2>/dev/null || echo "Images directory copied"
+        
+        # Verify build output
+        - echo "=== Build Complete ==="
+        - echo "Verifying critical files..."
+        - 'if [ ! -f dist/index.html ]; then echo "ERROR: No index.html!"; exit 1; fi'
+        - 'if [ ! -f dist/app.js ]; then echo "ERROR: No app.js!"; exit 1; fi'
+        - 'if [ ! -f dist/js/app-config.js ]; then echo "ERROR: No app-config.js!"; exit 1; fi'
+        
+        - echo "✅ Build completed successfully!"
+        - echo "🚀 Application deployed at root level"
+        
+        # List build output
+        - echo "Build contents:"
+        - ls -la dist/ || true
   artifacts:
     baseDirectory: dist
     files:
@@ -24,17 +62,28 @@ frontend:
     paths:
       - node_modules/**/*
   customHeaders:
+    # HTML files - no cache for content files
     - pattern: '**/*.html'
       headers:
         - key: 'Cache-Control'
           value: 'no-cache, no-store, must-revalidate'
         - key: 'Pragma'
           value: 'no-cache'
+    
+    # JavaScript files - long cache (they have injected config now)
     - pattern: '**/*.js'
       headers:
         - key: 'Cache-Control'
           value: 'public, max-age=31536000, immutable'
+    
+    # CSS files - long cache
     - pattern: '**/*.css'
+      headers:
+        - key: 'Cache-Control'
+          value: 'public, max-age=31536000, immutable'
+    
+    # Images - long cache
+    - pattern: '**/*.{png,jpg,jpeg,gif,svg,ico}'
       headers:
         - key: 'Cache-Control'
           value: 'public, max-age=31536000, immutable'

@@ -169,6 +169,41 @@
             background-color: #c53030;
         }
     </style>
+
+<!-- Build-Time Injected Configuration -->
+
+
+<!-- Build-Time Injected Configuration -->
+
+
+<!-- Build-Time Injected Configuration -->
+
+
+<!-- AppConfig Module Reference -->
+<script src="/js/app-config.js?v=1748481232267"></script>
+
+<!-- Build-Time Injected Configuration -->
+<script>
+/**
+ * Application Configuration - Injected at Build Time
+ * This eliminates the need for external config.json files and prevents
+ * race conditions, failed fetches, and timing issues.
+ */
+window.APP_CONFIG = {
+  "userPoolId": "us-east-1_lhc964tLD",
+  "clientId": "5t6mane4fnvineksoqb4ta0iu1",
+  "apiEndpoint": "https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod",
+  "apiUrl": "https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod",
+  "apiKey": "",
+  "buildTime": "2025-05-29T01:13:52.266Z",
+  "buildEnv": "production"
+};
+
+// Legacy compatibility - some code might still look for these
+window.preloadedConfig = window.APP_CONFIG;
+
+console.log('🔧 Configuration injected at build time - no external loading needed');
+</script>
 </head>
 <body>
     <div class="container">

@@ -1,3 +1,6 @@
+// Login page initialization
+console.log('Login page loading...');
+
 // Initialize Cognito Authentication
 // Import from the global object since we're loading the SDK via script tag
 const { CognitoUserPool, CognitoUser, AuthenticationDetails } = AmazonCognitoIdentity;
@@ -5,7 +8,7 @@ const { CognitoUserPool, CognitoUser, AuthenticationDetails } = AmazonCognitoIde
 // Cognito configuration object
 const poolData = {
   UserPoolId: 'us-east-1_lhc964tLD',  // Fixed case: lowercase 'l'
-  ClientId: '5t6mane4fnvineksoqb4ta0iu1'  // Using backend Client ID (no secret required)
+  ClientId: '5t6mane4fnvineksoqb4ta0iu1'  // Reverted to original working Client ID
 };
 
 // Initialize the Cognito User Pool
@@ -225,16 +228,36 @@ async function completePasswordReset() {
           localStorage.setItem('refreshToken', tokens.refreshToken);
           localStorage.setItem('auth_token', tokens.idToken); // For compatibility
           
-          // Create user object
-          const user = { username: email };
+          // Create user object with email first
+          const user = { email: email };
           
-          // Get user attributes
+          // Get user attributes after password reset
           cognitoUser.getUserAttributes((err, attributes) => {
             if (err) {
               console.error('Error getting user attributes:', err);
+              // Try to get user info from the ID token
+              try {
+                const idToken = result.getIdToken();
+                const payload = idToken.decodePayload();
+                console.log('ID Token payload:', payload);
+                
+                // Extract user info from token
+                if (payload.email) user.email = payload.email;
+                if (payload['custom:role']) user['custom:role'] = payload['custom:role'];
+                if (payload.name) user.name = payload.name;
+                
+                localStorage.setItem('user', JSON.stringify(user));
+              } catch (tokenError) {
+                console.error('Error parsing ID token:', tokenError);
+                // Save basic user info anyway
+                localStorage.setItem('user', JSON.stringify(user));
+              }
             } else if (attributes) {
               attributes.forEach(attr => {
-                user[attr.getName()] = attr.getValue();
+                const name = attr.getName();
+                const value = attr.getValue();
+                console.log(`User attribute: ${name} = ${value}`);
+                user[name] = value;
               });
               
               // Store user info
@@ -252,9 +275,16 @@ async function completePasswordReset() {
             messageElement.style.display = 'none';
             passwordResetLoader.style.display = 'none';
             
-            // Redirect to dashboard after a delay
+            // Redirect after a delay based on role
             setTimeout(() => {
-              window.location.href = 'dashboard/';
+              const userData = JSON.parse(localStorage.getItem('user') || '{}');
+              const userRole = userData['custom:role'] || userData.role || 'agent'; // Default to agent if no role
+              
+              if (userRole === 'admin') {
+                window.location.href = 'admin.html';
+              } else {
+                window.location.href = 'agent-aurora.html';
+              }
             }, 2000);
             
             resolve(result);
@@ -313,6 +343,29 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Check if already logged in
     const redirectIfLoggedIn = () => {
+      // First check if we have the required localStorage data
+      const authToken = localStorage.getItem('auth_token');
+      const userStr = localStorage.getItem('user');
+      
+      // If localStorage is missing required data, don't redirect
+      if (!authToken || !userStr) {
+        console.log('Missing required localStorage data, not redirecting');
+        return;
+      }
+      
+      // Verify user object has email
+      try {
+        const user = JSON.parse(userStr);
+        if (!user.email) {
+          console.log('User object missing email, not redirecting');
+          return;
+        }
+      } catch (e) {
+        console.log('Invalid user data in localStorage, not redirecting');
+        return;
+      }
+      
+      // Now check if Cognito session is also valid
       const cognitoUser = userPool.getCurrentUser();
       if (cognitoUser) {
         cognitoUser.getSession((err, session) => {
@@ -321,9 +374,17 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
           }
           
-          if (session.isValid()) {
-            console.log('User already logged in, redirecting...');
-            window.location.href = 'dashboard/';
+          if (session && session.isValid()) {
+            console.log('User already logged in with valid data, redirecting...');
+            // Check user role and redirect appropriately
+            const userData = JSON.parse(localStorage.getItem('user') || '{}');
+            const userRole = userData['custom:role'] || userData.role || 'agent'; // Default to agent if no role
+            
+            if (userRole === 'admin') {
+              window.location.href = 'admin.html';
+            } else {
+              window.location.href = 'agent-aurora.html';
+            }
           }
         });
       }
@@ -423,24 +484,56 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Get user attributes
             const cognitoUser = userPool.getCurrentUser();
-            cognitoUser.getUserAttributes((err, attributes) => {
-              if (err) {
-                console.error('Error getting user attributes:', err);
-              } else {
-                // Create user object
-                const user = { username: email };
-                if (attributes) {
-                  attributes.forEach(attr => {
-                    user[attr.getName()] = attr.getValue();
-                  });
+            await new Promise((resolve, reject) => {
+              cognitoUser.getUserAttributes((err, attributes) => {
+                if (err) {
+                  console.error('Error getting user attributes:', err);
+                  // Even if we can't get attributes, save basic user info with default role
+                  const user = { 
+                    email: email,
+                    role: 'agent' // Default role
+                  };
+                  localStorage.setItem('user', JSON.stringify(user));
+                  resolve();
+                } else {
+                  // Create user object with default role
+                  const user = { 
+                    email: email,
+                    role: 'agent' // Default role
+                  };
+                  
+                  // Add all Cognito attributes
+                  if (attributes) {
+                    attributes.forEach(attr => {
+                      const name = attr.getName();
+                      const value = attr.getValue();
+                      
+                      // Handle custom attributes
+                      if (name === 'custom:role') {
+                        user.role = value;
+                      } else {
+                        user[name] = value;
+                      }
+                    });
+                  }
+                  
+                  // Store complete user info
+                  console.log('Storing user data:', user);
+                  localStorage.setItem('user', JSON.stringify(user));
+                  resolve();
                 }
                 
-                // Store user info
-                localStorage.setItem('user', JSON.stringify(user));
-              }
-              
-              // Redirect to dashboard
-              window.location.href = 'dashboard/';
+                // Check user role and redirect appropriately
+                console.log('User data saved, redirecting based on role...');
+                const userData = JSON.parse(localStorage.getItem('user'));
+                const userRole = userData.role || 'agent';
+                
+                if (userRole === 'admin') {
+                  window.location.href = 'admin.html';
+                } else {
+                  window.location.href = 'agent-aurora.html';
+                }
+              });
             });
           }
         } catch (error) {
