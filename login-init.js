@@ -316,6 +316,29 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Check if already logged in
     const redirectIfLoggedIn = () => {
+      // First check if we have the required localStorage data
+      const authToken = localStorage.getItem('auth_token');
+      const userStr = localStorage.getItem('user');
+      
+      // If localStorage is missing required data, don't redirect
+      if (!authToken || !userStr) {
+        console.log('Missing required localStorage data, not redirecting');
+        return;
+      }
+      
+      // Verify user object has email
+      try {
+        const user = JSON.parse(userStr);
+        if (!user.email) {
+          console.log('User object missing email, not redirecting');
+          return;
+        }
+      } catch (e) {
+        console.log('Invalid user data in localStorage, not redirecting');
+        return;
+      }
+      
+      // Now check if Cognito session is also valid
       const cognitoUser = userPool.getCurrentUser();
       if (cognitoUser) {
         cognitoUser.getSession((err, session) => {
@@ -325,7 +348,7 @@ document.addEventListener('DOMContentLoaded', function() {
           }
           
           if (session && session.isValid()) {
-            console.log('User already logged in, redirecting...');
+            console.log('User already logged in with valid data, redirecting...');
             window.location.href = 'index.html';
           }
         });
@@ -429,6 +452,9 @@ document.addEventListener('DOMContentLoaded', function() {
             cognitoUser.getUserAttributes((err, attributes) => {
               if (err) {
                 console.error('Error getting user attributes:', err);
+                // Even if we can't get attributes, save basic user info
+                const user = { email: email };
+                localStorage.setItem('user', JSON.stringify(user));
               } else {
                 // Create user object
                 const user = { email: email };
@@ -442,7 +468,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 localStorage.setItem('user', JSON.stringify(user));
               }
               
-              // Redirect to dashboard
+              // Redirect to dashboard only after user data is saved
+              console.log('User data saved, redirecting to dashboard...');
               window.location.href = 'index.html';
             });
           }
