@@ -274,6 +274,56 @@ console.log('🔧 Configuration injected at build time - no external loading nee
                 </div>
             </div>
         </div>
+
+        <!-- Vendor Management Section -->
+        <section class="vendor-management glass-card">
+            <div class="section-header">
+                <h2 class="section-title">🏢 Vendor Management</h2>
+                <button class="btn btn-primary" id="add-vendor-btn">
+                    <span class="btn-icon">+</span>
+                    Add Vendor
+                </button>
+            </div>
+
+            <!-- Vendor Metrics -->
+            <div id="vendor-metrics" class="metrics-grid">
+                <!-- Metrics will be populated by JS -->
+            </div>
+
+            <!-- Add Vendor Form -->
+            <form id="add-vendor-form" class="glass-form" style="display: none;">
+                <div class="form-group">
+                    <label for="vendorName">Vendor Name</label>
+                    <input type="text" id="vendorName" name="vendorName" required class="form-input">
+                </div>
+                <div class="form-group">
+                    <label for="vendorEmail">Contact Email</label>
+                    <input type="email" id="vendorEmail" name="vendorEmail" required class="form-input">
+                </div>
+                <div class="form-group">
+                    <label for="vendorPhone">Contact Phone</label>
+                    <input type="tel" id="vendorPhone" name="vendorPhone" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label for="vendorWebsite">Website</label>
+                    <input type="url" id="vendorWebsite" name="vendorWebsite" class="form-input">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Create Vendor</button>
+                    <button type="button" class="btn" onclick="this.form.style.display='none'">Cancel</button>
+                </div>
+            </form>
+
+            <!-- Vendor Search -->
+            <div class="search-container">
+                <input type="text" id="vendor-search" placeholder="Search vendors..." class="search-input">
+            </div>
+
+            <!-- Vendor List -->
+            <div id="vendor-list" class="vendor-grid">
+                <!-- Vendors will be populated by JS -->
+            </div>
+        </section>
     </main>
 
     <!-- Floating Action Button -->
@@ -370,5 +420,19 @@ console.log('🔧 Configuration injected at build time - no external loading nee
 
     <!-- Scripts -->
     <script src="admin.js"></script>
+
+    <!-- Include Vendor Control Module -->
+    <script src="admin-vendor-controls.js"></script>
+    <script>
+        // Initialize vendor controls when document loads
+        document.addEventListener('DOMContentLoaded', () => {
+            window.vendorControl.initialize().catch(console.error);
+            
+            // Show/hide add vendor form
+            document.getElementById('add-vendor-btn').addEventListener('click', () => {
+                document.getElementById('add-vendor-form').style.display = 'block';
+            });
+        });
+    </script>
 </body>
 </html> 
