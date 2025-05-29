@@ -327,15 +327,10 @@ document.addEventListener('DOMContentLoaded', function() {
         // Check if Cognito thinks we're logged in
         const cognitoUser = userPool.getCurrentUser();
         if (cognitoUser) {
-          console.log('Cognito has session but localStorage is missing data - signing out of Cognito');
-          cognitoUser.signOut();
-          // Clear only auth-related data
-          localStorage.removeItem('user');
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('idToken');
-          localStorage.removeItem('refreshToken');
-          sessionStorage.clear();
+          console.log('Cognito has session but localStorage is missing data');
+          // REMOVED: Don't sign out here - this was causing login issues
+          // cognitoUser.signOut();
+          // Just return and let the user log in normally
         }
         return;
       }
