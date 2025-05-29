@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics Dashboard - Legal Lead Management</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Dashboard Styles -->
+    <link rel="stylesheet" href="agent-aurora.css">
+    <link rel="stylesheet" href="analytics-dashboard.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.3/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+</head>
+<body>
+    <!-- Professional Background -->
+    <div class="gradient-bg"></div>
+    
+    <!-- Dashboard Container -->
+    <div class="dashboard-container">
+        <!-- Glass Header -->
+        <header class="glass-header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1 class="dashboard-title">Real-Time Analytics</h1>
+                    <p style="color: var(--text-secondary); margin-top: 0.5rem;">
+                        Live performance metrics updated every <span id="update-interval" style="color: var(--accent);">5 seconds</span>
+                    </p>
+                </div>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <div class="live-indicator">
+                        <span class="live-dot"></span>
+                        <span>LIVE</span>
+                    </div>
+                    <button class="btn btn-secondary" onclick="window.location.href='agent-aurora.html'">
+                        Back to Dashboard
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Key Metrics Row -->
+        <div class="metrics-row">
+            <div class="metric-card glass-metric">
+                <div class="metric-icon">📊</div>
+                <div class="metric-content">
+                    <div class="metric-value" id="total-leads-today">0</div>
+                    <div class="metric-label">Leads Today</div>
+                    <div class="metric-change positive">+0%</div>
+                </div>
+            </div>
+            
+            <div class="metric-card glass-metric">
+                <div class="metric-icon">🎯</div>
+                <div class="metric-content">
+                    <div class="metric-value" id="conversion-rate-today">0%</div>
+                    <div class="metric-label">Conversion Rate</div>
+                    <div class="metric-change positive">+0%</div>
+                </div>
+            </div>
+            
+            <div class="metric-card glass-metric">
+                <div class="metric-icon">⚡</div>
+                <div class="metric-content">
+                    <div class="metric-value" id="avg-response-time">0h</div>
+                    <div class="metric-label">Avg Response Time</div>
+                    <div class="metric-change positive">-0%</div>
+                </div>
+            </div>
+            
+            <div class="metric-card glass-metric">
+                <div class="metric-icon">👥</div>
+                <div class="metric-content">
+                    <div class="metric-value" id="active-agents">0</div>
+                    <div class="metric-label">Active Agents</div>
+                    <div class="metric-change neutral">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="charts-grid">
+            <!-- Lead Volume Chart -->
+            <div class="chart-container glass-section">
+                <div class="chart-header">
+                    <h3 class="chart-title">Lead Volume - Last 30 Days</h3>
+                    <div class="chart-controls">
+                        <button class="period-btn active" data-period="30d">30D</button>
+                        <button class="period-btn" data-period="7d">7D</button>
+                        <button class="period-btn" data-period="24h">24H</button>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="leadVolumeChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Conversion Funnel -->
+            <div class="chart-container glass-section">
+                <div class="chart-header">
+                    <h3 class="chart-title">Conversion Funnel</h3>
+                    <span class="chart-subtitle">Current Month</span>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="conversionFunnelChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Hourly Activity Heatmap -->
+            <div class="chart-container glass-section full-width">
+                <div class="chart-header">
+                    <h3 class="chart-title">Activity Heatmap - This Week</h3>
+                    <span class="chart-subtitle">Leads by Hour</span>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="activityHeatmap"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Leaderboard Section -->
+        <div class="leaderboard-section">
+            <div class="glass-section">
+                <div class="section-header">
+                    <h2 class="section-title">Agent Leaderboard</h2>
+                    <select class="glass-input" id="leaderboard-filter" style="width: auto;">
+                        <option value="today">Today</option>
+                        <option value="week">This Week</option>
+                        <option value="month">This Month</option>
+                        <option value="all-time">All Time</option>
+                    </select>
+                </div>
+                
+                <div class="leaderboard-table">
+                    <div class="leaderboard-header">
+                        <div class="rank-col">Rank</div>
+                        <div class="agent-col">Agent</div>
+                        <div class="metric-col">Leads</div>
+                        <div class="metric-col">Converted</div>
+                        <div class="metric-col">Rate</div>
+                        <div class="metric-col">Avg Time</div>
+                        <div class="trend-col">Trend</div>
+                    </div>
+                    <div id="leaderboard-rows">
+                        <!-- Leaderboard rows will be inserted here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Real-time Activity Feed -->
+        <div class="activity-feed glass-section">
+            <div class="section-header">
+                <h3 class="section-title">Live Activity Feed</h3>
+                <div class="activity-status">
+                    <span class="activity-dot"></span>
+                    <span id="activity-count">0</span> events in last hour
+                </div>
+            </div>
+            <div class="activity-list" id="activity-list">
+                <!-- Activity items will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics JavaScript -->
+    <script src="analytics-dashboard.js"></script>
+</body>
+</html> 

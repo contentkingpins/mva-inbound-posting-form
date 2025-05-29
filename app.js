@@ -118,10 +118,11 @@ window.showUpdateNotification = function() {
 // Cognito token refresh - run every 45 minutes
 function setupTokenRefresh() {
     // Function to refresh token
-    function refreshCognitoToken() {
+    async function refreshCognitoToken() {
         try {
             if (typeof AmazonCognitoIdentity === 'undefined') {
-                console.warn('Cognito SDK not loaded');
+                console.error('Cognito SDK not loaded, redirecting to login');
+                window.location.href = 'login.html';
                 return;
             }
             
@@ -131,49 +132,100 @@ function setupTokenRefresh() {
                 { UserPoolId: 'us-east-1_lhc964tLD', ClientId: '5t6mane4fnvineksoqb4ta0iu1' };
             
             const userPool = new AmazonCognitoIdentity.CognitoUserPool(cognitoConfig);
-                    
-                    const currentUser = userPool.getCurrentUser();
-                    if (!currentUser) {
-                        console.warn('No user session found');
+            const currentUser = userPool.getCurrentUser();
+            
+            if (!currentUser) {
+                console.error('No user session found, redirecting to login');
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('user');
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            // Get session and validate
+            await new Promise((resolve, reject) => {
+                currentUser.getSession((err, session) => {
+                    if (err) {
+                        console.error('Error refreshing session:', err);
+                        
+                        // If session can't be refreshed, redirect to login
+                        if (err.name === 'NotAuthorizedException') {
+                            localStorage.removeItem('auth_token');
+                            localStorage.removeItem('user');
+                            window.location.href = 'login.html';
+                        }
+                        reject(err);
                         return;
                     }
                     
-                    // Get session
-                    currentUser.getSession((err, session) => {
-                        if (err) {
-                            console.error('Error refreshing session:', err);
-                            
-                            // If session can't be refreshed, redirect to login
-                            if (err.name === 'NotAuthorizedException') {
-                                localStorage.removeItem('auth_token');
-                                localStorage.removeItem('user');
-                        window.location.href = 'login.html';
-                            }
-                            return;
-                        }
+                    if (session && session.isValid()) {
+                        // Update tokens in localStorage
+                        const accessToken = session.getAccessToken().getJwtToken();
+                        const idToken = session.getIdToken().getJwtToken();
+                        const refreshToken = session.getRefreshToken().getToken();
                         
-                        if (session.isValid()) {
-                            // Update token in localStorage
-                            const token = session.getIdToken().getJwtToken();
-                            localStorage.setItem('auth_token', token);
-                            console.log('Token refreshed successfully');
-                        } else {
-                            console.warn('Session is not valid');
-                            localStorage.removeItem('auth_token');
-                            localStorage.removeItem('user');
-                    window.location.href = 'login.html';
-                        }
+                        localStorage.setItem('accessToken', accessToken);
+                        localStorage.setItem('idToken', idToken);
+                        localStorage.setItem('refreshToken', refreshToken);
+                        localStorage.setItem('auth_token', idToken); // For backward compatibility
+                        
+                        // Get user attributes to ensure user data is up to date
+                        currentUser.getUserAttributes((attrErr, attributes) => {
+                            if (attrErr) {
+                                console.error('Error getting user attributes:', attrErr);
+                                resolve();
+                                return;
+                            }
+                            
+                            // Update user data in localStorage
+                            const userData = JSON.parse(localStorage.getItem('user') || '{}');
+                            if (attributes) {
+                                attributes.forEach(attr => {
+                                    const name = attr.getName();
+                                    const value = attr.getValue();
+                                    
+                                    // Handle custom attributes
+                                    if (name === 'custom:role') {
+                                        userData.role = value;
+                                    } else {
+                                        userData[name] = value;
+                                    }
+                                });
+                            }
+                            
+                            localStorage.setItem('user', JSON.stringify(userData));
+                            console.log('Token and user data refreshed successfully');
+                            resolve();
+                        });
+                    } else {
+                        console.warn('Session is not valid, redirecting to login');
+                        localStorage.removeItem('auth_token');
+                        localStorage.removeItem('user');
+                        window.location.href = 'login.html';
+                        reject(new Error('Invalid session'));
+                    }
                 });
+            });
         } catch (error) {
             console.error('Token refresh error:', error);
+            // On any error, redirect to login
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user');
+            window.location.href = 'login.html';
         }
     }
     
     // Refresh immediately on load
-    refreshCognitoToken();
+    refreshCognitoToken().catch(error => {
+        console.error('Initial token refresh failed:', error);
+    });
     
     // Setup periodic refresh (45 minutes = 2,700,000 ms)
-    setInterval(refreshCognitoToken, 2700000);
+    setInterval(() => {
+        refreshCognitoToken().catch(error => {
+            console.error('Periodic token refresh failed:', error);
+        });
+    }, 2700000);
 }
 
 // Check authentication

@@ -41,15 +41,80 @@ async function checkAuth() {
     const userStr = localStorage.getItem('user');
     
     if (!token || !userStr) {
+        console.error('Missing auth token or user data');
         window.location.href = 'login.html';
         return;
     }
     
     try {
+        // Parse user data
         currentUser = JSON.parse(userStr);
-        document.getElementById('agent-name').textContent = currentUser.name || currentUser.email;
+        
+        // Verify required user data
+        if (!currentUser.email || !currentUser.role) {
+            console.error('Invalid user data:', currentUser);
+            window.location.href = 'login.html';
+            return;
+        }
+        
+        // Verify user is an agent
+        if (currentUser.role === 'admin') {
+            console.log('Admin user detected, redirecting to admin dashboard');
+            window.location.href = 'admin.html';
+            return;
+        }
+        
+        // Verify Cognito session is valid
+        const cognitoConfig = window.AppConfig ? 
+            window.AppConfig.getCognitoConfig() :
+            { UserPoolId: 'us-east-1_lhc964tLD', ClientId: '5t6mane4fnvineksoqb4ta0iu1' };
+        
+        const userPool = new AmazonCognitoIdentity.CognitoUserPool(cognitoConfig);
+        const cognitoUser = userPool.getCurrentUser();
+        
+        if (!cognitoUser) {
+            console.error('No Cognito session found');
+            window.location.href = 'login.html';
+            return;
+        }
+        
+        // Verify session is valid
+        await new Promise((resolve, reject) => {
+            cognitoUser.getSession((err, session) => {
+                if (err || !session || !session.isValid()) {
+                    console.error('Invalid or expired session:', err);
+                    localStorage.removeItem('auth_token');
+                    localStorage.removeItem('user');
+                    window.location.href = 'login.html';
+                    reject(err || new Error('Invalid session'));
+                    return;
+                }
+                
+                // Update tokens
+                const accessToken = session.getAccessToken().getJwtToken();
+                const idToken = session.getIdToken().getJwtToken();
+                const refreshToken = session.getRefreshToken().getToken();
+                
+                localStorage.setItem('accessToken', accessToken);
+                localStorage.setItem('idToken', idToken);
+                localStorage.setItem('refreshToken', refreshToken);
+                localStorage.setItem('auth_token', idToken); // For backward compatibility
+                
+                resolve();
+            });
+        });
+        
+        // Set agent name in UI
+        const agentNameElement = document.getElementById('agent-name');
+        if (agentNameElement) {
+            agentNameElement.textContent = currentUser.name || currentUser.email.split('@')[0];
+        }
+        
+        // Initialize real-time updates
+        initializeRealTimeUpdates();
+        
     } catch (error) {
-        console.error('Invalid user data:', error);
+        console.error('Error during authentication check:', error);
         window.location.href = 'login.html';
     }
 }

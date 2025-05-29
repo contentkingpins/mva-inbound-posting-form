@@ -484,35 +484,56 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Get user attributes
             const cognitoUser = userPool.getCurrentUser();
-            cognitoUser.getUserAttributes((err, attributes) => {
-              if (err) {
-                console.error('Error getting user attributes:', err);
-                // Even if we can't get attributes, save basic user info
-                const user = { email: email };
-                localStorage.setItem('user', JSON.stringify(user));
-              } else {
-                // Create user object
-                const user = { email: email };
-                if (attributes) {
-                  attributes.forEach(attr => {
-                    user[attr.getName()] = attr.getValue();
-                  });
+            await new Promise((resolve, reject) => {
+              cognitoUser.getUserAttributes((err, attributes) => {
+                if (err) {
+                  console.error('Error getting user attributes:', err);
+                  // Even if we can't get attributes, save basic user info with default role
+                  const user = { 
+                    email: email,
+                    role: 'agent' // Default role
+                  };
+                  localStorage.setItem('user', JSON.stringify(user));
+                  resolve();
+                } else {
+                  // Create user object with default role
+                  const user = { 
+                    email: email,
+                    role: 'agent' // Default role
+                  };
+                  
+                  // Add all Cognito attributes
+                  if (attributes) {
+                    attributes.forEach(attr => {
+                      const name = attr.getName();
+                      const value = attr.getValue();
+                      
+                      // Handle custom attributes
+                      if (name === 'custom:role') {
+                        user.role = value;
+                      } else {
+                        user[name] = value;
+                      }
+                    });
+                  }
+                  
+                  // Store complete user info
+                  console.log('Storing user data:', user);
+                  localStorage.setItem('user', JSON.stringify(user));
+                  resolve();
                 }
                 
-                // Store user info
-                localStorage.setItem('user', JSON.stringify(user));
-              }
-              
-              // Check user role and redirect appropriately
-              console.log('User data saved, redirecting based on role...');
-              const userData = JSON.parse(localStorage.getItem('user') || '{}');
-              const userRole = userData['custom:role'] || userData.role || 'agent'; // Default to agent if no role
-              
-              if (userRole === 'admin') {
-                window.location.href = 'admin.html';
-              } else {
-                window.location.href = 'agent-aurora.html';
-              }
+                // Check user role and redirect appropriately
+                console.log('User data saved, redirecting based on role...');
+                const userData = JSON.parse(localStorage.getItem('user'));
+                const userRole = userData.role || 'agent';
+                
+                if (userRole === 'admin') {
+                  window.location.href = 'admin.html';
+                } else {
+                  window.location.href = 'agent-aurora.html';
+                }
+              });
             });
           }
         } catch (error) {
