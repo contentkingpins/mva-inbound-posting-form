@@ -24,6 +24,9 @@ const LEADS_TABLE = process.env.LEADS_TABLE;
 const cognitoISP = new AWS.CognitoIdentityServiceProvider();
 const USER_POOL_ID = process.env.USER_POOL_ID;
 
+// Initialize AWS services
+const ses = new AWS.SES();
+
 // CORS headers for all responses
 const corsHeaders = {
   'Content-Type': 'application/json',
@@ -200,6 +203,30 @@ exports.handler = async (event) => {
     } else if (path === '/admin/reports/generate') {
       if (httpMethod === 'POST') {
         return await handleGenerateReport(event);
+      }
+    } else if (path === '/admin/vendors/create') {
+      if (httpMethod === 'POST') {
+        return await handleCreateVendor(event);
+      }
+    } else if (path === '/vendor/dashboard') {
+      if (httpMethod === 'GET') {
+        return await handleVendorDashboard(event);
+      }
+    } else if (path === '/vendor/leads') {
+      if (httpMethod === 'GET') {
+        return await handleVendorLeads(event);
+      }
+    } else if (path === '/vendor/analytics') {
+      if (httpMethod === 'GET') {
+        return await handleVendorAnalytics(event);
+      }
+    } else if (path === '/vendor/performance') {
+      if (httpMethod === 'GET') {
+        return await handleVendorPerformance(event);
+      }
+    } else if (path === '/vendor/profile') {
+      if (httpMethod === 'PUT') {
+        return await handleUpdateVendorProfile(event);
       }
     }
     
@@ -1597,6 +1624,7 @@ function isAdminRoute(path) {
          path.match(/^\/auth\/register\/?$/) || // Register new users
          path.match(/^\/admin\/analytics\//) || // Analytics endpoints
          path.match(/^\/admin\/reports\//) || // Reports endpoints
+         path.match(/^\/admin\/vendors\/create\/?$/) || // Vendor creation
          path.match(/^\/admin\/force-logout-all\/?$/); // Force logout endpoint
 }
 
@@ -2121,4 +2149,671 @@ function generateConversionAnalysisReport(leads) {
       best_performing_days: ['Tuesday', 'Wednesday', 'Thursday']
     }
   };
+}
+
+// Handler for POST /admin/vendors/create
+async function handleCreateVendor(event) {
+  try {
+    // Check if user is authenticated and has admin role
+    const authHeader = event.headers.Authorization || event.headers.authorization;
+    const authResult = authRoutes.verifyAuthToken(authHeader);
+    
+    if (!authResult.authenticated) {
+      return createResponse(401, {
+        status: 'error',
+        message: authResult.message || 'Authentication required'
+      });
+    }
+    
+    if (authResult.user.role !== 'admin') {
+      return createResponse(403, {
+        status: 'error',
+        message: 'Admin access required'
+      });
+    }
+
+    const body = JSON.parse(event.body || '{}');
+    const { company_name, contact_email, contact_name, phone, vendor_code } = body;
+    
+    if (!company_name || !contact_email || !contact_name || !vendor_code) {
+      return createResponse(400, {
+        status: 'error',
+        message: 'Required fields: company_name, contact_email, contact_name, vendor_code'
+      });
+    }
+
+    // Check if vendor code already exists
+    const existingVendor = await dynamoDB.send(new GetItemCommand({
+      TableName: VENDORS_TABLE,
+      Key: { vendor_code: vendor_code }
+    }));
+    
+    if (existingVendor.Item) {
+      return createResponse(409, {
+        status: 'error',
+        message: 'Vendor code already exists'
+      });
+    }
+
+    // Generate temporary password
+    const tempPassword = generateSecurePassword();
+    const username = `vendor_${vendor_code}`;
+    
+    // Create Cognito user for vendor
+    try {
+      const createUserParams = {
+        UserPoolId: USER_POOL_ID,
+        Username: username,
+        TemporaryPassword: tempPassword,
+        MessageAction: 'SUPPRESS',
+        UserAttributes: [
+          { Name: 'email', Value: contact_email },
+          { Name: 'email_verified', Value: 'true' },
+          { Name: 'custom:role', Value: 'vendor' },
+          { Name: 'custom:vendor_code', Value: vendor_code },
+          { Name: 'custom:company_name', Value: company_name }
+        ]
+      };
+      
+      await cognitoISP.adminCreateUser(createUserParams).promise();
+      
+      // Set permanent password
+      await cognitoISP.adminSetUserPassword({
+        UserPoolId: USER_POOL_ID,
+        Username: username,
+        Password: tempPassword,
+        Permanent: true
+      }).promise();
+      
+    } catch (cognitoError) {
+      console.error('Error creating Cognito user:', cognitoError);
+      return createResponse(500, {
+        status: 'error',
+        message: 'Failed to create vendor login account'
+      });
+    }
+
+    // Create vendor record in DynamoDB
+    const vendorData = {
+      vendor_code,
+      company_name,
+      contact_email,
+      contact_name,
+      phone: phone || '',
+      created_by: authResult.user.id,
+      created_at: new Date().toISOString(),
+      status: 'active',
+      login_credentials_sent: false,
+      cognito_username: username
+    };
+    
+    await dynamoDB.send(new PutItemCommand({
+      TableName: VENDORS_TABLE,
+      Item: vendorData
+    }));
+
+    // Send welcome email
+    try {
+      await sendVendorWelcomeEmail({
+        contact_name,
+        contact_email,
+        company_name,
+        vendor_code,
+        username,
+        password: tempPassword,
+        portal_url: 'https://main.d21xta9fg9b6w.amplifyapp.com/vendor-login.html'
+      });
+      
+      // Update vendor record to mark email as sent
+      await dynamoDB.send(new UpdateItemCommand({
+        TableName: VENDORS_TABLE,
+        Key: { vendor_code },
+        UpdateExpression: 'SET login_credentials_sent = :sent',
+        ExpressionAttributeValues: {
+          ':sent': true
+        }
+      }));
+      
+    } catch (emailError) {
+      console.error('Error sending welcome email:', emailError);
+      // Don't fail the request if email fails, but log it
+    }
+
+    return createResponse(201, {
+      status: 'success',
+      message: 'Vendor created successfully',
+      data: {
+        vendor_code,
+        company_name,
+        contact_email,
+        username,
+        login_credentials_sent: true
+      }
+    });
+
+  } catch (error) {
+    console.error('Error creating vendor:', error);
+    return createResponse(500, {
+      status: 'error',
+      message: 'Internal server error'
+    });
+  }
+}
+
+// Helper function to generate secure password
+function generateSecurePassword() {
+  const length = 12;
+  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+  let password = '';
+  for (let i = 0; i < length; i++) {
+    password += charset.charAt(Math.floor(Math.random() * charset.length));
+  }
+  return password;
+}
+
+// Helper function to send vendor welcome email
+async function sendVendorWelcomeEmail(vendorData) {
+  const { contact_name, contact_email, company_name, vendor_code, username, password, portal_url } = vendorData;
+  
+  const emailTemplate = `
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #2c5aa0; color: white; padding: 20px; text-align: center; }
+        .content { padding: 20px; background: #f9f9f9; }
+        .credentials { background: white; padding: 15px; border-left: 4px solid #2c5aa0; margin: 20px 0; }
+        .features { background: white; padding: 15px; margin: 20px 0; }
+        .footer { text-align: center; padding: 20px; color: #666; }
+        .btn { background: #2c5aa0; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎉 Welcome to MVA Lead Management</h1>
+            <p>Your Vendor Portal is Ready!</p>
+        </div>
+        
+        <div class="content">
+            <p>Hi <strong>${contact_name}</strong>,</p>
+            
+            <p>Welcome to the <strong>MVA Lead Management System</strong>! Your vendor account has been successfully created by our admin team.</p>
+            
+            <div class="credentials">
+                <h3>🔑 YOUR LOGIN CREDENTIALS</h3>
+                <p><strong>Portal URL:</strong> <a href="${portal_url}">${portal_url}</a></p>
+                <p><strong>Username:</strong> ${username}</p>
+                <p><strong>Password:</strong> ${password}</p>
+                <p><em>⚠️ Important: Please save these credentials securely.</em></p>
+            </div>
+            
+            <div class="features">
+                <h3>🎯 WHAT YOU CAN DO</h3>
+                <ul>
+                    <li>✅ <strong>Track Your Leads</strong> - See all leads assigned to your company</li>
+                    <li>✅ <strong>Monitor Performance</strong> - View conversion rates and metrics</li>
+                    <li>✅ <strong>Real-time Updates</strong> - Get notified of new leads instantly</li>
+                    <li>✅ <strong>Export Reports</strong> - Download your lead data anytime</li>
+                    <li>✅ <strong>Update Profile</strong> - Manage your company information</li>
+                </ul>
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="${portal_url}" class="btn">🚀 LOGIN TO YOUR PORTAL</a>
+            </div>
+            
+            <div class="credentials">
+                <h3>📊 YOUR VENDOR DETAILS</h3>
+                <p><strong>Company:</strong> ${company_name}</p>
+                <p><strong>Vendor Code:</strong> ${vendor_code}</p>
+                <p><strong>Contact Email:</strong> ${contact_email}</p>
+                <p><strong>Account Created:</strong> ${new Date().toLocaleDateString()}</p>
+            </div>
+            
+            <div class="features">
+                <h3>💡 NEED HELP?</h3>
+                <ul>
+                    <li><strong>Portal Issues:</strong> Contact your admin team</li>
+                    <li><strong>Technical Support:</strong> support@mva-leads.com</li>
+                    <li><strong>Account Questions:</strong> admin@mva-leads.com</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p><strong>Welcome aboard!</strong> We're excited to have you tracking leads with MVA.</p>
+            <p>Best regards,<br>MVA Lead Management Team</p>
+            <hr>
+            <p><em>This email was automatically generated when your admin created your vendor account.</em></p>
+        </div>
+    </div>
+</body>
+</html>
+  `;
+  
+  const params = {
+    Source: process.env.FROM_EMAIL || 'noreply@mva-leads.com',
+    Destination: {
+      ToAddresses: [contact_email]
+    },
+    Message: {
+      Subject: {
+        Data: '🎉 Welcome to MVA Lead Management - Your Vendor Portal is Ready!'
+      },
+      Body: {
+        Html: {
+          Data: emailTemplate
+        }
+      }
+    }
+  };
+  
+  return await ses.sendEmail(params).promise();
+}
+
+// Handler for GET /vendor/dashboard
+async function handleVendorDashboard(event) {
+  try {
+    const authHeader = event.headers.Authorization || event.headers.authorization;
+    const authResult = authRoutes.verifyAuthToken(authHeader);
+    
+    if (!authResult.authenticated) {
+      return createResponse(401, {
+        status: 'error',
+        message: 'Authentication required'
+      });
+    }
+    
+    if (authResult.user.role !== 'vendor') {
+      return createResponse(403, {
+        status: 'error',
+        message: 'Vendor access required'
+      });
+    }
+    
+    const vendorCode = authResult.user.vendor_code;
+    
+    // Get vendor's leads from the last 30 days
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    
+    const leadsResult = await dynamoDB.send(new QueryCommand({
+      TableName: LEADS_TABLE,
+      IndexName: 'VendorTimestampIndex',
+      KeyConditionExpression: 'vendor_code = :vendorCode AND #timestamp >= :thirtyDaysAgo',
+      ExpressionAttributeNames: {
+        '#timestamp': 'timestamp'
+      },
+      ExpressionAttributeValues: {
+        ':vendorCode': vendorCode,
+        ':thirtyDaysAgo': thirtyDaysAgo
+      }
+    }));
+    
+    const leads = leadsResult.Items || [];
+    
+    // Calculate dashboard metrics
+    const totalLeads = leads.length;
+    const newLeads = leads.filter(lead => !lead.status || lead.status === 'new').length;
+    const inProgressLeads = leads.filter(lead => lead.status === 'in_progress' || lead.status === 'contacted').length;
+    const convertedLeads = leads.filter(lead => lead.status === 'converted' || lead.status === 'closed').length;
+    
+    // Calculate conversion rate
+    const conversionRate = totalLeads > 0 ? ((convertedLeads / totalLeads) * 100).toFixed(2) : 0;
+    
+    // Get recent activity (last 5 leads)
+    const recentActivity = leads
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+      .slice(0, 5)
+      .map(lead => ({
+        id: lead.lead_id,
+        name: `${lead.first_name} ${lead.last_name}`,
+        email: lead.email,
+        timestamp: lead.timestamp,
+        status: lead.status || 'new'
+      }));
+    
+    return createResponse(200, {
+      status: 'success',
+      data: {
+        summary: {
+          totalLeads,
+          newLeads,
+          inProgressLeads,
+          convertedLeads,
+          conversionRate: parseFloat(conversionRate)
+        },
+        recentActivity,
+        vendorCode
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error fetching vendor dashboard:', error);
+    return createResponse(500, {
+      status: 'error',
+      message: 'Internal server error'
+    });
+  }
+}
+
+// Handler for GET /vendor/leads
+async function handleVendorLeads(event) {
+  try {
+    const authHeader = event.headers.Authorization || event.headers.authorization;
+    const authResult = authRoutes.verifyAuthToken(authHeader);
+    
+    if (!authResult.authenticated) {
+      return createResponse(401, {
+        status: 'error',
+        message: 'Authentication required'
+      });
+    }
+    
+    if (authResult.user.role !== 'vendor') {
+      return createResponse(403, {
+        status: 'error',
+        message: 'Vendor access required'
+      });
+    }
+    
+    const vendorCode = authResult.user.vendor_code;
+    const queryParams = event.queryStringParameters || {};
+    const { status, startDate, endDate, limit = '50', lastKey } = queryParams;
+    
+    let keyConditionExpression = 'vendor_code = :vendorCode';
+    let expressionAttributeValues = {
+      ':vendorCode': vendorCode
+    };
+    
+    // Add date range if provided
+    if (startDate && endDate) {
+      keyConditionExpression += ' AND #timestamp BETWEEN :startDate AND :endDate';
+      expressionAttributeValues[':startDate'] = startDate;
+      expressionAttributeValues[':endDate'] = endDate;
+    }
+    
+    const queryParams_dynamodb = {
+      TableName: LEADS_TABLE,
+      IndexName: 'VendorTimestampIndex',
+      KeyConditionExpression: keyConditionExpression,
+      ExpressionAttributeNames: {
+        '#timestamp': 'timestamp'
+      },
+      ExpressionAttributeValues: expressionAttributeValues,
+      Limit: parseInt(limit),
+      ScanIndexForward: false // Sort by timestamp descending
+    };
+    
+    if (lastKey) {
+      queryParams_dynamodb.ExclusiveStartKey = JSON.parse(decodeURIComponent(lastKey));
+    }
+    
+    const result = await dynamoDB.send(new QueryCommand(queryParams_dynamodb));
+    let leads = result.Items || [];
+    
+    // Filter by status if provided
+    if (status) {
+      leads = leads.filter(lead => (lead.status || 'new') === status);
+    }
+    
+    return createResponse(200, {
+      status: 'success',
+      data: {
+        leads,
+        lastKey: result.LastEvaluatedKey ? encodeURIComponent(JSON.stringify(result.LastEvaluatedKey)) : null,
+        count: leads.length
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error fetching vendor leads:', error);
+    return createResponse(500, {
+      status: 'error',
+      message: 'Internal server error'
+    });
+  }
+}
+
+// Handler for GET /vendor/analytics
+async function handleVendorAnalytics(event) {
+  try {
+    const authHeader = event.headers.Authorization || event.headers.authorization;
+    const authResult = authRoutes.verifyAuthToken(authHeader);
+    
+    if (!authResult.authenticated) {
+      return createResponse(401, {
+        status: 'error',
+        message: 'Authentication required'
+      });
+    }
+    
+    if (authResult.user.role !== 'vendor') {
+      return createResponse(403, {
+        status: 'error',
+        message: 'Vendor access required'
+      });
+    }
+    
+    const vendorCode = authResult.user.vendor_code;
+    const queryParams = event.queryStringParameters || {};
+    const { period = '30' } = queryParams; // Default to 30 days
+    
+    const daysAgo = new Date(Date.now() - parseInt(period) * 24 * 60 * 60 * 1000).toISOString();
+    
+    const leadsResult = await dynamoDB.send(new QueryCommand({
+      TableName: LEADS_TABLE,
+      IndexName: 'VendorTimestampIndex',
+      KeyConditionExpression: 'vendor_code = :vendorCode AND #timestamp >= :daysAgo',
+      ExpressionAttributeNames: {
+        '#timestamp': 'timestamp'
+      },
+      ExpressionAttributeValues: {
+        ':vendorCode': vendorCode,
+        ':daysAgo': daysAgo
+      }
+    }));
+    
+    const leads = leadsResult.Items || [];
+    
+    // Calculate analytics
+    const totalLeads = leads.length;
+    const convertedLeads = leads.filter(lead => lead.status === 'converted' || lead.status === 'closed').length;
+    const conversionRate = totalLeads > 0 ? ((convertedLeads / totalLeads) * 100) : 0;
+    
+    // Group by day for trend analysis
+    const dailyStats = {};
+    leads.forEach(lead => {
+      const date = new Date(lead.timestamp).toISOString().split('T')[0];
+      if (!dailyStats[date]) {
+        dailyStats[date] = { total: 0, converted: 0 };
+      }
+      dailyStats[date].total++;
+      if (lead.status === 'converted' || lead.status === 'closed') {
+        dailyStats[date].converted++;
+      }
+    });
+    
+    // Calculate lead sources
+    const leadSources = {};
+    leads.forEach(lead => {
+      const source = lead.source || 'unknown';
+      leadSources[source] = (leadSources[source] || 0) + 1;
+    });
+    
+    return createResponse(200, {
+      status: 'success',
+      data: {
+        summary: {
+          totalLeads,
+          convertedLeads,
+          conversionRate: parseFloat(conversionRate.toFixed(2)),
+          period: parseInt(period)
+        },
+        dailyStats,
+        leadSources,
+        vendorCode
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error fetching vendor analytics:', error);
+    return createResponse(500, {
+      status: 'error',
+      message: 'Internal server error'
+    });
+  }
+}
+
+// Handler for GET /vendor/performance
+async function handleVendorPerformance(event) {
+  try {
+    const authHeader = event.headers.Authorization || event.headers.authorization;
+    const authResult = authRoutes.verifyAuthToken(authHeader);
+    
+    if (!authResult.authenticated) {
+      return createResponse(401, {
+        status: 'error',
+        message: 'Authentication required'
+      });
+    }
+    
+    if (authResult.user.role !== 'vendor') {
+      return createResponse(403, {
+        status: 'error',
+        message: 'Vendor access required'
+      });
+    }
+    
+    const vendorCode = authResult.user.vendor_code;
+    
+    // Get performance data for different time periods
+    const periods = {
+      last7Days: 7,
+      last30Days: 30,
+      last90Days: 90
+    };
+    
+    const performanceData = {};
+    
+    for (const [periodName, days] of Object.entries(periods)) {
+      const daysAgo = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+      
+      const leadsResult = await dynamoDB.send(new QueryCommand({
+        TableName: LEADS_TABLE,
+        IndexName: 'VendorTimestampIndex',
+        KeyConditionExpression: 'vendor_code = :vendorCode AND #timestamp >= :daysAgo',
+        ExpressionAttributeNames: {
+          '#timestamp': 'timestamp'
+        },
+        ExpressionAttributeValues: {
+          ':vendorCode': vendorCode,
+          ':daysAgo': daysAgo
+        }
+      }));
+      
+      const leads = leadsResult.Items || [];
+      const totalLeads = leads.length;
+      const convertedLeads = leads.filter(lead => lead.status === 'converted' || lead.status === 'closed').length;
+      const conversionRate = totalLeads > 0 ? ((convertedLeads / totalLeads) * 100) : 0;
+      
+      performanceData[periodName] = {
+        totalLeads,
+        convertedLeads,
+        conversionRate: parseFloat(conversionRate.toFixed(2)),
+        avgLeadsPerDay: parseFloat((totalLeads / days).toFixed(2))
+      };
+    }
+    
+    return createResponse(200, {
+      status: 'success',
+      data: {
+        performance: performanceData,
+        vendorCode
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error fetching vendor performance:', error);
+    return createResponse(500, {
+      status: 'error',
+      message: 'Internal server error'
+    });
+  }
+}
+
+// Handler for PUT /vendor/profile
+async function handleUpdateVendorProfile(event) {
+  try {
+    const authHeader = event.headers.Authorization || event.headers.authorization;
+    const authResult = authRoutes.verifyAuthToken(authHeader);
+    
+    if (!authResult.authenticated) {
+      return createResponse(401, {
+        status: 'error',
+        message: 'Authentication required'
+      });
+    }
+    
+    if (authResult.user.role !== 'vendor') {
+      return createResponse(403, {
+        status: 'error',
+        message: 'Vendor access required'
+      });
+    }
+    
+    const vendorCode = authResult.user.vendor_code;
+    const body = JSON.parse(event.body || '{}');
+    const { contact_name, phone, company_name } = body;
+    
+    if (!contact_name && !phone && !company_name) {
+      return createResponse(400, {
+        status: 'error',
+        message: 'At least one field must be provided for update'
+      });
+    }
+    
+    // Build update expression
+    let updateExpression = 'SET updated_at = :updated_at';
+    const expressionAttributeValues = {
+      ':updated_at': new Date().toISOString()
+    };
+    
+    if (contact_name) {
+      updateExpression += ', contact_name = :contact_name';
+      expressionAttributeValues[':contact_name'] = contact_name;
+    }
+    
+    if (phone) {
+      updateExpression += ', phone = :phone';
+      expressionAttributeValues[':phone'] = phone;
+    }
+    
+    if (company_name) {
+      updateExpression += ', company_name = :company_name';
+      expressionAttributeValues[':company_name'] = company_name;
+    }
+    
+    await dynamoDB.send(new UpdateItemCommand({
+      TableName: VENDORS_TABLE,
+      Key: { vendor_code: vendorCode },
+      UpdateExpression: updateExpression,
+      ExpressionAttributeValues: expressionAttributeValues,
+      ReturnValues: 'ALL_NEW'
+    }));
+    
+    return createResponse(200, {
+      status: 'success',
+      message: 'Profile updated successfully'
+    });
+    
+  } catch (error) {
+    console.error('Error updating vendor profile:', error);
+    return createResponse(500, {
+      status: 'error',
+      message: 'Internal server error'
+    });
+  }
 } 

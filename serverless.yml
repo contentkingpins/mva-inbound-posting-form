@@ -15,6 +15,10 @@ provider:
     DS_USER_ID: ${ssm:/docusign/user_id~true}
     DS_RETAINER_TEMPLATE_ID: ${ssm:/docusign/retainer_template_id~true}
     DS_PRIVATE_KEY: ${ssm:/docusign/private_key~true}
+    JWT_SECRET: mva-jwt-2025-xK9pL3nM8qR5tY7w
+    USERS_TABLE: Users
+    COGNITO_CLIENT_ID: 5t6mane4fnvineksoqb4ta0iu1
+    FROM_EMAIL: noreply@mva-leads.com
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -48,6 +52,20 @@ provider:
         - cognito-idp:ForgotPassword
         - cognito-idp:ConfirmForgotPassword
       Resource: "arn:aws:cognito-idp:${self:provider.region}:*:userpool/${self:provider.environment.USER_POOL_ID}"
+    # Add AWS SES permissions for sending vendor welcome emails
+    - Effect: Allow
+      Action:
+        - cognito-idp:AdminCreateUser
+        - cognito-idp:AdminSetUserPassword
+        - cognito-idp:AdminUserGlobalSignOut
+        - cognito-idp:ListUsers
+        - cognito-idp:AdminListGroupsForUser
+      Resource: "arn:aws:cognito-idp:us-east-1:*:userpool/us-east-1_lhc964tLD"
+    - Effect: Allow
+      Action:
+        - ses:SendEmail
+        - ses:SendRawEmail
+      Resource: "*"
   # Configure API Gateway access logs
   apiGateway:
     restApiId: !Ref ApiGateway
@@ -121,6 +139,56 @@ functions:
           cors: true
       - http:
           path: /admin/force-logout-all
+          method: options
+          cors: true
+      # Vendor creation endpoint (admin only)
+      - http:
+          path: /admin/vendors/create
+          method: post
+          cors: true
+      - http:
+          path: /admin/vendors/create
+          method: options
+          cors: true
+      # Vendor portal endpoints
+      - http:
+          path: /vendor/dashboard
+          method: get
+          cors: true
+      - http:
+          path: /vendor/dashboard
+          method: options
+          cors: true
+      - http:
+          path: /vendor/leads
+          method: get
+          cors: true
+      - http:
+          path: /vendor/leads
+          method: options
+          cors: true
+      - http:
+          path: /vendor/analytics
+          method: get
+          cors: true
+      - http:
+          path: /vendor/analytics
+          method: options
+          cors: true
+      - http:
+          path: /vendor/performance
+          method: get
+          cors: true
+      - http:
+          path: /vendor/performance
+          method: options
+          cors: true
+      - http:
+          path: /vendor/profile
+          method: put
+          cors: true
+      - http:
+          path: /vendor/profile
           method: options
           cors: true
   
