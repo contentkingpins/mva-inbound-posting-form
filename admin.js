@@ -508,16 +508,10 @@ function renderAgencies() {
 
 // Initialize agents table
 function initializeAgents() {
-    // Sample data - replace with API call
-    agents = [
-        { name: 'John Smith', email: 'john@agency.com', status: 'online', leads: 145, conversion: 72 },
-        { name: 'Sarah Johnson', email: 'sarah@agency.com', status: 'online', leads: 223, conversion: 68 },
-        { name: 'Mike Davis', email: 'mike@agency.com', status: 'offline', leads: 98, conversion: 71 }
-    ];
+    // Load agents from API first, fallback to mock data if needed
+    loadAgentsFromAPI();
     
-    renderAgents();
-    
-    // Search functionality
+    // Agent search functionality
     document.getElementById('agent-search').addEventListener('input', (e) => {
         const searchTerm = e.target.value.toLowerCase();
         const filteredAgents = agents.filter(agent => 
@@ -683,7 +677,7 @@ function initializeModals() {
     });
     
     // Add agent modal
-    document.getElementById('send-agent-invite').addEventListener('click', () => {
+    document.getElementById('send-agent-invite').addEventListener('click', async () => {
         const email = document.getElementById('new-agent-email').value;
         const role = document.querySelector('input[name="agent-role"]:checked').value;
         
@@ -692,21 +686,63 @@ function initializeModals() {
             return;
         }
         
-        // Add agent logic here
-        agents.push({
-            name: email.split('@')[0],
-            email: email,
-            status: 'offline',
-            leads: 0,
-            conversion: 0
-        });
-        
-        renderAgents();
-        document.getElementById('add-agent-modal').style.display = 'none';
-        showToast(`Invitation sent to ${email}`, 'success');
-        
-        // Reset form
-        document.getElementById('new-agent-email').value = '';
+        try {
+            // Show loading state
+            const button = document.getElementById('send-agent-invite');
+            const originalText = button.textContent;
+            button.textContent = 'Sending...';
+            button.disabled = true;
+            
+            // Create user via API
+            const userData = {
+                email: email,
+                role: role,
+                temporary_password: generateTemporaryPassword(),
+                force_change_password: true
+            };
+            
+            const response = await fetch('https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod/auth/users', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(userData)
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Failed to create user: ${response.status}`);
+            }
+            
+            const newUser = await response.json();
+            
+            // Add agent to local list
+            agents.push({
+                name: email.split('@')[0],
+                email: email,
+                status: 'invited',
+                leads: 0,
+                conversion: 0,
+                role: role,
+                id: newUser.Username || email
+            });
+            
+            renderAgents();
+            document.getElementById('add-agent-modal').style.display = 'none';
+            showToast(`Agent invitation sent to ${email}`, 'success');
+            
+            // Reset form
+            document.getElementById('new-agent-email').value = '';
+            
+        } catch (error) {
+            console.error('Error creating agent:', error);
+            showToast(`Failed to create agent: ${error.message}`, 'error');
+        } finally {
+            // Reset button state
+            const button = document.getElementById('send-agent-invite');
+            button.textContent = originalText;
+            button.disabled = false;
+        }
     });
     
     // Custom pricing modal
@@ -753,6 +789,51 @@ function updateAllCustomPrices() {
 }
 
 // Helper functions
+function generateTemporaryPassword() {
+    // Generate a secure temporary password
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+    let password = '';
+    for (let i = 0; i < 12; i++) {
+        password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return password;
+}
+
+// Load agents from API
+async function loadAgentsFromAPI() {
+    try {
+        const response = await fetch('https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod/auth/users', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (response.ok) {
+            const users = await response.json();
+            
+            // Convert API users to agents format
+            agents = users.map(user => ({
+                name: user.name || user.email?.split('@')[0] || 'Unknown',
+                email: user.email,
+                status: user.enabled ? 'active' : 'inactive',
+                leads: user.lead_count || 0,
+                conversion: user.conversion_rate || 0,
+                role: user.role || 'agent',
+                id: user.username
+            }));
+            
+            renderAgents();
+        } else {
+            console.warn('Failed to load agents from API, using mock data');
+        }
+    } catch (error) {
+        console.error('Error loading agents:', error);
+        console.warn('Using mock data for agents');
+    }
+}
+
 function viewAgencyDetails(code) {
     // Navigate to agency details or show modal
     console.log('View details for', code);
