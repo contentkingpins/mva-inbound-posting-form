@@ -368,6 +368,23 @@ async function initializeApp() {
             addLeadBtn.addEventListener('click', openAddLeadModal);
         }
         
+        // Pagination Listeners
+        if (firstPageBtn) {
+            firstPageBtn.addEventListener('click', goToFirstPage);
+        }
+        if (prevPageBtn) {
+            prevPageBtn.addEventListener('click', goToPrevPage);
+        }
+        if (nextPageBtn) {
+            nextPageBtn.addEventListener('click', goToNextPage);
+        }
+        if (lastPageBtn) {
+            lastPageBtn.addEventListener('click', goToLastPage);
+        }
+        if (pageSizeSelect) {
+            pageSizeSelect.addEventListener('change', changePageSize);
+        }
+        
         // Set default date values for export
         const today = new Date();
         const thirtyDaysAgo = new Date();
@@ -443,6 +460,20 @@ let allLeads = []; // For export functionality - store all leads
 let searchTerm = ''; // Store the current search term
 let searchDebounceTimer = null; // For debouncing search input
 
+// Pagination variables
+let currentPage = 1;
+let leadsPerPage = 25;
+let totalPages = 1;
+
+// Pagination elements
+const paginationContainer = document.getElementById('pagination-container');
+const paginationInfoText = document.getElementById('pagination-info-text');
+const firstPageBtn = document.getElementById('first-page-btn');
+const prevPageBtn = document.getElementById('prev-page-btn');
+const nextPageBtn = document.getElementById('next-page-btn');
+const lastPageBtn = document.getElementById('last-page-btn');
+const pageNumbers = document.getElementById('page-numbers');
+const pageSizeSelect = document.getElementById('page-size-select');
 
 // Function to clear mock data from localStorage
 function clearMockData() {
@@ -958,6 +989,9 @@ function filterAndRenderLeads() {
         filteredLeads = resultsToFilter;
     }
     
+    // Reset pagination when filtering
+    currentPage = 1;
+    
     // Important: Store expandedLeadId before re-rendering to maintain expanded state
     const wasExpanded = expandedLeadId;
     
@@ -965,20 +999,6 @@ function filterAndRenderLeads() {
     expandedLeadId = null;
     
     renderLeads();
-    
-    // If a lead was expanded before filtering and we want to maintain that state,
-    // uncomment the following code. For now, we'll keep all leads collapsed as requested.
-    /*
-    if (wasExpanded && filteredLeads.some(lead => lead.lead_id === wasExpanded)) {
-        expandedLeadId = wasExpanded;
-        const leadToExpand = filteredLeads.find(lead => lead.lead_id === wasExpanded);
-        setTimeout(() => {
-            if (leadToExpand) {
-                addDetailRow(leadToExpand);
-            }
-        }, 100);
-    }
-    */
 }
 
 // Simple cache system for API responses
@@ -1020,7 +1040,7 @@ async function fetchLeads() {
         return;
     }
     
-    showLoading(true);
+    showLoading(true, 'Fetching leads...');
     hideError();
     
     try {
@@ -1395,13 +1415,31 @@ function updateVendorOptions() {
 
 // Render leads table
 function renderLeads() {
+    // Calculate pagination
+    totalPages = Math.ceil(filteredLeads.length / leadsPerPage);
+    
+    // Ensure current page is valid
+    if (currentPage > totalPages) {
+        currentPage = Math.max(1, totalPages);
+    }
+    
+    // Calculate start and end indices for current page
+    const startIndex = (currentPage - 1) * leadsPerPage;
+    const endIndex = Math.min(startIndex + leadsPerPage, filteredLeads.length);
+    
+    // Get leads for current page
+    const leadsToShow = filteredLeads
+        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+        .slice(startIndex, endIndex);
+    
     // Clear existing rows
     leadsBody.innerHTML = '';
     
-    // Show "no data" message if no leads
+    // Show/hide pagination and table based on data
     if (filteredLeads.length === 0) {
         noDataEl.style.display = 'block';
         leadsTable.style.display = 'none';
+        paginationContainer.style.display = 'none';
         return;
     }
     
@@ -1409,123 +1447,113 @@ function renderLeads() {
     noDataEl.style.display = 'none';
     leadsTable.style.display = 'table';
     
-    // Sort leads by timestamp (newest first) and render
-    filteredLeads
-        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-        .forEach(lead => {
-            const row = document.createElement('tr');
-            row.dataset.leadId = lead.lead_id;
-            row.classList.add('lead-row');
-            
-            // Ensure no row is pre-expanded
-            if (lead.lead_id !== expandedLeadId) {
-                row.classList.remove('expanded');
-            }
-            
-            row.innerHTML = `
-                <td class="lead-name">
-                    <div class="name-cell">
-                        <span>${escapeHtml(lead.first_name)} ${escapeHtml(lead.last_name)}</span>
-                        <button class="details-btn" title="Show Details">
-                            <span class="details-icon">▼</span>
-                        </button>
-                    </div>
-                </td>
-                <td>
-                    <div class="contact-info">
-                        <div class="phone">${escapeHtml(lead.phone_home || '')}</div>
-                        <div class="email">${escapeHtml(lead.email || '')}</div>
-                    </div>
-                </td>
-                <td>${escapeHtml(lead.incident_type || '')}</td>
-                <td>
-                    <select class="disposition-select" data-lead-id="${lead.lead_id}">
-                        <option value="New" ${(lead.disposition || 'New') === 'New' ? 'selected' : ''}>New</option>
-                        <option value="Retained for Firm" ${lead.disposition === 'Retained for Firm' ? 'selected' : ''}>Retained for Firm</option>
-                        <option value="Docs Sent" ${lead.disposition === 'Docs Sent' ? 'selected' : ''}>Docs Sent</option>
-                        <option value="Awaiting Proof of Claim" ${lead.disposition === 'Awaiting Proof of Claim' ? 'selected' : ''}>Awaiting Proof of Claim</option>
-                        <option value="Not Interested" ${lead.disposition === 'Not Interested' ? 'selected' : ''}>Not Interested</option>
-                        <option value="Not Qualified Lead" ${lead.disposition === 'Not Qualified Lead' ? 'selected' : ''}>Not Qualified Lead</option>
-                    </select>
-                </td>
-                <td>${getLocationDisplay(lead)}</td>
-                <td>${escapeHtml(lead.vendor_code || '')}</td>
-                <td>${formatDate(lead.timestamp, true)}</td>
-            `;
-            
-            // Add row to table
-            leadsBody.appendChild(row);
-            
-            // Add event listener for show details button
-            const detailsBtn = row.querySelector('.details-btn');
-            detailsBtn.addEventListener('click', (e) => {
-                e.stopPropagation(); // Prevent row click from firing
-                toggleLeadDetails(lead);
-            });
-            
-            // Add event listener for select dropdown
-            const dispositionSelect = row.querySelector('.disposition-select');
-            dispositionSelect.addEventListener('change', async function(e) {
-                e.stopPropagation(); // Prevent row click
-                
-                const newValue = this.value;
-                const leadId = this.dataset.leadId;
-                
-                // Find the lead in the array
-                const leadToUpdate = filteredLeads.find(l => l.lead_id === leadId);
-                
-                try {
-                    // Update without notes
-                    await updateLeadDisposition(leadId, newValue, leadToUpdate.notes || '');
-                    
-                    // Update local data
-                    leadToUpdate.disposition = newValue;
-                    
-                    // Update localStorage
-                    updateLocalStorage();
-                    
-                    // Show success toast
-                    showSuccessToast(`Disposition updated to "${newValue}"`);
-                    
-                    // Show disposition modal if needed
-                    if (newValue === 'Not Qualified Lead' || newValue === 'Not Interested') {
-                        showDispositionModal(leadToUpdate);
-                    }
-                } catch (error) {
-                    console.error('Error updating disposition:', error);
-                    // Revert UI to previous value
-                    this.value = leadToUpdate.disposition || 'New';
-                    showError('Failed to update disposition. Please try again.');
-                }
-            });
-            
-            // Make the entire row clickable
-            row.addEventListener('click', function(e) {
-                // Don't trigger if clicked on select or button
-                if (e.target.closest('select') || e.target.closest('button')) {
-                    return;
-                }
-                toggleLeadDetails(lead);
-            });
-        });
-}
-
-// Helper function to format date as YYYY-MM-DD
-function formatDateYMD(dateString) {
-    if (!dateString) return '';
+    // Show pagination if more than one page
+    if (totalPages > 1) {
+        paginationContainer.style.display = 'flex';
+        updatePaginationControls();
+    } else {
+        paginationContainer.style.display = 'none';
+    }
     
-    try {
-        const date = new Date(dateString);
+    // Render leads for current page
+    leadsToShow.forEach(lead => {
+        const row = document.createElement('tr');
+        row.dataset.leadId = lead.lead_id;
+        row.classList.add('lead-row');
         
-        if (isNaN(date)) {
-            return dateString;
+        // Ensure no row is pre-expanded
+        if (lead.lead_id !== expandedLeadId) {
+            row.classList.remove('expanded');
         }
         
-        return date.toISOString().split('T')[0]; // Returns YYYY-MM-DD
-    } catch (e) {
-        return dateString;
-    }
+        row.innerHTML = `
+            <td class="lead-name">
+                <div class="name-cell">
+                    <span>${escapeHtml(lead.first_name)} ${escapeHtml(lead.last_name)}</span>
+                    <button class="details-btn" title="Show Details">
+                        <span class="details-icon">▼</span>
+                    </button>
+                </div>
+            </td>
+            <td>
+                <div class="contact-info">
+                    <div class="phone">${escapeHtml(lead.phone_home || '')}</div>
+                    <div class="email">${escapeHtml(lead.email || '')}</div>
+                </div>
+            </td>
+            <td>${escapeHtml(lead.incident_type || '')}</td>
+            <td>
+                <select class="disposition-select" data-lead-id="${lead.lead_id}">
+                    <option value="New" ${(lead.disposition || 'New') === 'New' ? 'selected' : ''}>New</option>
+                    <option value="Retained for Firm" ${lead.disposition === 'Retained for Firm' ? 'selected' : ''}>Retained for Firm</option>
+                    <option value="Docs Sent" ${lead.disposition === 'Docs Sent' ? 'selected' : ''}>Docs Sent</option>
+                    <option value="Awaiting Proof of Claim" ${lead.disposition === 'Awaiting Proof of Claim' ? 'selected' : ''}>Awaiting Proof of Claim</option>
+                    <option value="Not Interested" ${lead.disposition === 'Not Interested' ? 'selected' : ''}>Not Interested</option>
+                    <option value="Not Qualified Lead" ${lead.disposition === 'Not Qualified Lead' ? 'selected' : ''}>Not Qualified Lead</option>
+                </select>
+            </td>
+            <td>${getLocationDisplay(lead)}</td>
+            <td>${escapeHtml(lead.vendor_code || '')}</td>
+            <td>${formatDate(lead.timestamp, true)}</td>
+        `;
+        
+        // Add row to table
+        leadsBody.appendChild(row);
+        
+        // Add event listener for show details button
+        const detailsBtn = row.querySelector('.details-btn');
+        detailsBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent row click from firing
+            toggleLeadDetails(lead);
+        });
+        
+        // Add event listener for select dropdown
+        const dispositionSelect = row.querySelector('.disposition-select');
+        dispositionSelect.addEventListener('change', async function(e) {
+            e.stopPropagation(); // Prevent row click
+            
+            const newValue = this.value;
+            const leadId = this.dataset.leadId;
+            
+            // Find the lead in the array
+            const leadToUpdate = filteredLeads.find(l => l.lead_id === leadId);
+            
+            try {
+                // Update without notes
+                await updateLeadDisposition(leadId, newValue, leadToUpdate.notes || '');
+                
+                // Update local data
+                leadToUpdate.disposition = newValue;
+                
+                // Update localStorage
+                updateLocalStorage();
+                
+                // Show success toast
+                showSuccessToast(`Disposition updated to "${newValue}"`);
+                
+                // Show disposition modal if needed
+                if (newValue === 'Not Qualified Lead' || newValue === 'Not Interested') {
+                    showDispositionModal(leadToUpdate);
+                }
+            } catch (error) {
+                console.error('Error updating disposition:', error);
+                // Revert UI to previous value
+                this.value = leadToUpdate.disposition || 'New';
+                showError('Failed to update disposition. Please try again.');
+            }
+        });
+        
+        // Make the entire row clickable
+        row.addEventListener('click', function(e) {
+            // Don't trigger if clicked on select or button
+            if (e.target.closest('select') || e.target.closest('button')) {
+                return;
+            }
+            toggleLeadDetails(lead);
+        });
+    });
 }
+
 
 // Update local storage
 function updateLocalStorage() {
@@ -1638,8 +1666,33 @@ async function submitLead(leadData) {
 }
 
 // Helper functions
-function showLoading(show) {
-    loadingEl.style.display = show ? 'block' : 'none';
+function showLoading(show, message = 'Loading...') {
+    if (show) {
+        loadingEl.textContent = message;
+        loadingEl.style.display = 'block';
+        
+        // Disable interactive elements during loading
+        if (refreshBtn) refreshBtn.disabled = true;
+        if (vendorFilter) vendorFilter.disabled = true;
+        if (searchInput) searchInput.disabled = true;
+        if (addLeadBtn) addLeadBtn.disabled = true;
+        if (exportBtn) exportBtn.disabled = true;
+        
+        // Add loading class to body for additional styling
+        document.body.classList.add('loading-state');
+    } else {
+        loadingEl.style.display = 'none';
+        
+        // Re-enable interactive elements
+        if (refreshBtn) refreshBtn.disabled = false;
+        if (vendorFilter) vendorFilter.disabled = false;
+        if (searchInput) searchInput.disabled = false;
+        if (addLeadBtn) addLeadBtn.disabled = false;
+        if (exportBtn) exportBtn.disabled = false;
+        
+        // Remove loading class from body
+        document.body.classList.remove('loading-state');
+    }
 }
 
 function getLocationDisplay(lead) {
@@ -2930,4 +2983,74 @@ function initializeCharts() {
             }
         });
     }
-} 
+}
+
+// Pagination Functions
+function updatePaginationControls() {
+    // Update info text
+    const startItem = (currentPage - 1) * leadsPerPage + 1;
+    const endItem = Math.min(currentPage * leadsPerPage, filteredLeads.length);
+    paginationInfoText.textContent = `Showing ${startItem}-${endItem} of ${filteredLeads.length} leads`;
+    
+    // Update button states
+    firstPageBtn.disabled = currentPage === 1;
+    prevPageBtn.disabled = currentPage === 1;
+    nextPageBtn.disabled = currentPage === totalPages;
+    lastPageBtn.disabled = currentPage === totalPages;
+    
+    // Update page numbers
+    updatePageNumbers();
+}
+
+function updatePageNumbers() {
+    pageNumbers.innerHTML = '';
+    
+    // Calculate which page numbers to show
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+    
+    // Adjust start page if we're near the end
+    if (endPage - startPage + 1 < maxVisiblePages) {
+        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+    
+    // Add page numbers
+    for (let i = startPage; i <= endPage; i++) {
+        const pageBtn = document.createElement('button');
+        pageBtn.className = `page-number ${i === currentPage ? 'active' : ''}`;
+        pageBtn.textContent = i;
+        pageBtn.addEventListener('click', () => goToPage(i));
+        pageNumbers.appendChild(pageBtn);
+    }
+}
+
+function goToPage(page) {
+    if (page >= 1 && page <= totalPages && page !== currentPage) {
+        currentPage = page;
+        renderLeads();
+    }
+}
+
+function goToFirstPage() {
+    goToPage(1);
+}
+
+function goToPrevPage() {
+    goToPage(currentPage - 1);
+}
+
+function goToNextPage() {
+    goToPage(currentPage + 1);
+}
+
+function goToLastPage() {
+    goToPage(totalPages);
+}
+
+function changePageSize() {
+    leadsPerPage = parseInt(pageSizeSelect.value);
+    currentPage = 1; // Reset to first page when changing page size
+    renderLeads();
+}
+

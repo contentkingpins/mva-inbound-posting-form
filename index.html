@@ -186,6 +186,29 @@ console.log('🔧 Configuration injected at build time - no external loading nee
                     <!-- Table rows will be populated by JavaScript -->
                 </tbody>
             </table>
+            
+            <!-- Pagination Controls -->
+            <div id="pagination-container" class="pagination-container" style="display: none;">
+                <div class="pagination-info">
+                    <span id="pagination-info-text">Showing 1-25 of 100 leads</span>
+                </div>
+                <div class="pagination-controls">
+                    <button id="first-page-btn" class="pagination-btn" title="First Page">⏮</button>
+                    <button id="prev-page-btn" class="pagination-btn" title="Previous Page">◀</button>
+                    <span id="page-numbers" class="page-numbers"></span>
+                    <button id="next-page-btn" class="pagination-btn" title="Next Page">▶</button>
+                    <button id="last-page-btn" class="pagination-btn" title="Last Page">⏭</button>
+                </div>
+                <div class="pagination-size">
+                    <label for="page-size-select">Per page:</label>
+                    <select id="page-size-select">
+                        <option value="25" selected>25</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+            </div>
+            
             <div id="no-data" class="no-data">No leads found</div>
         </main>
     </div>
