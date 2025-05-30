@@ -5,6 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Claim Connectors CRM</title>
     
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="./manifest.json">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#4299e1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="ClaimCRM">
+    <meta name="msapplication-TileColor" content="#4299e1">
+    <meta name="msapplication-tap-highlight" content="no">
+    
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" href="./images/claim_connectors_blue_transparent_150.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="./images/claim_connectors_blue_transparent_150.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="./images/claim_connectors_blue_transparent_300.png">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="./images/claim_connectors_blue_transparent_150.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="./images/claim_connectors_blue_transparent_150.png")
+    
     <!-- Preconnect to speed up external resources -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://cognito-idp.us-east-1.amazonaws.com">
@@ -251,6 +271,7 @@ console.log('🔧 Configuration injected at build time - no external loading nee
 
     <!-- Modular JavaScript -->
     <script src="js/modules/utils.js"></script>
+    <script src="js/modules/service-worker-manager.js"></script>
     <script src="js/modules/search.js"></script>
     <script src="js/modules/pagination.js"></script>
     <script src="js/modules/charts.js"></script>
