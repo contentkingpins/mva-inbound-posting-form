@@ -278,7 +278,7 @@ async function completePasswordReset() {
             // Redirect after a delay based on role
             setTimeout(() => {
               const userData = JSON.parse(localStorage.getItem('user') || '{}');
-              const userRole = userData['custom:role'] || userData.role || 'agent'; // Default to agent if no role
+              const userRole = userData['custom:role'] || userData.role || 'agent';
               
               // Route users based on their actual role
               if (userRole === 'admin') {
@@ -381,7 +381,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('User already logged in with valid data, redirecting...');
             // Check user role and redirect appropriately
             const userData = JSON.parse(localStorage.getItem('user') || '{}');
-            const userRole = userData['custom:role'] || userData.role || 'agent'; // Default to agent if no role
+            const userRole = userData['custom:role'] || userData.role || 'agent';
             
             if (userRole === 'admin') {
               window.location.href = 'admin.html';
@@ -511,12 +511,8 @@ document.addEventListener('DOMContentLoaded', function() {
                       const name = attr.getName();
                       const value = attr.getValue();
                       
-                      // Handle custom attributes
-                      if (name === 'custom:role') {
-                        user.role = value;
-                      } else {
-                        user[name] = value;
-                      }
+                      // Store all attributes with their original names
+                      user[name] = value;
                     });
                   }
                   
@@ -529,7 +525,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Check user role and redirect appropriately
                 console.log('User data saved, redirecting based on role...');
                 const userData = JSON.parse(localStorage.getItem('user'));
-                const userRole = userData.role || 'agent';
+                const userRole = userData['custom:role'] || userData.role || 'agent';
                 
                 if (userRole === 'admin') {
                   window.location.href = 'admin.html';
