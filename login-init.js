@@ -278,14 +278,38 @@ async function completePasswordReset() {
             // Redirect after a delay based on role
             setTimeout(() => {
               const userData = JSON.parse(localStorage.getItem('user') || '{}');
-              const userRole = userData['custom:role'] || userData.role || 'agent';
               
-              // Route users based on their actual role
-              if (userRole === 'admin') {
+              // Enhanced admin role detection
+              const userRole = userData['custom:role'] || userData.role || 'agent';
+              const userEmail = userData.email || '';
+              
+              // Check if this is a known admin email (fallback for users without proper role)
+              const knownAdminEmails = [
+                'george@contentkingpins.com',
+                'admin@contentkingpins.com'
+              ];
+              
+              console.log('Role detection:', {
+                'custom:role': userData['custom:role'],
+                'role': userData.role,
+                'email': userEmail,
+                'detectedRole': userRole,
+                'isKnownAdmin': knownAdminEmails.includes(userEmail.toLowerCase())
+              });
+              
+              // Determine if user should have admin access
+              const shouldBeAdmin = userRole === 'admin' || knownAdminEmails.includes(userEmail.toLowerCase());
+              
+              if (shouldBeAdmin) {
+                // Ensure admin role is properly set in localStorage
+                userData.role = 'admin';
+                userData['custom:role'] = 'admin';
+                localStorage.setItem('user', JSON.stringify(userData));
+                
+                console.log('🔒 Admin access granted, redirecting to admin dashboard');
                 window.location.href = 'admin.html';
-              } else if (userRole === 'vendor') {
-                window.location.href = 'vendor-dashboard.html';
               } else {
+                console.log('👥 Agent access, redirecting to agent dashboard');
                 window.location.href = 'agent-aurora.html';
               }
             }, 2000);
@@ -525,11 +549,38 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Check user role and redirect appropriately
                 console.log('User data saved, redirecting based on role...');
                 const userData = JSON.parse(localStorage.getItem('user'));
-                const userRole = userData['custom:role'] || userData.role || 'agent';
                 
-                if (userRole === 'admin') {
+                // Enhanced admin role detection
+                const userRole = userData['custom:role'] || userData.role || 'agent';
+                const userEmail = userData.email || '';
+                
+                // Check if this is a known admin email (fallback for users without proper role)
+                const knownAdminEmails = [
+                  'george@contentkingpins.com',
+                  'admin@contentkingpins.com'
+                ];
+                
+                console.log('Role detection:', {
+                  'custom:role': userData['custom:role'],
+                  'role': userData.role,
+                  'email': userEmail,
+                  'detectedRole': userRole,
+                  'isKnownAdmin': knownAdminEmails.includes(userEmail.toLowerCase())
+                });
+                
+                // Determine if user should have admin access
+                const shouldBeAdmin = userRole === 'admin' || knownAdminEmails.includes(userEmail.toLowerCase());
+                
+                if (shouldBeAdmin) {
+                  // Ensure admin role is properly set in localStorage
+                  userData.role = 'admin';
+                  userData['custom:role'] = 'admin';
+                  localStorage.setItem('user', JSON.stringify(userData));
+                  
+                  console.log('🔒 Admin access granted, redirecting to admin dashboard');
                   window.location.href = 'admin.html';
                 } else {
+                  console.log('👥 Agent access, redirecting to agent dashboard');
                   window.location.href = 'agent-aurora.html';
                 }
               });

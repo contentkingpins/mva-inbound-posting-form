@@ -32,14 +32,47 @@ function checkAuth() {
     const token = localStorage.getItem('auth_token');
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     
-    if (!token || !user.email || user.role !== 'admin') {
+    // Enhanced admin role detection
+    const userRole = user['custom:role'] || user.role || 'agent';
+    const userEmail = user.email || '';
+    
+    // Known admin emails (fallback for users without proper role attribute)
+    const knownAdminEmails = [
+        'george@contentkingpins.com',
+        'admin@contentkingpins.com'
+    ];
+    
+    console.log('Admin auth check:', {
+        'hasToken': !!token,
+        'hasEmail': !!userEmail,
+        'role': userRole,
+        'custom:role': user['custom:role'],
+        'email': userEmail,
+        'isKnownAdmin': knownAdminEmails.includes(userEmail.toLowerCase())
+    });
+    
+    // Check if user should have admin access
+    const shouldBeAdmin = userRole === 'admin' || knownAdminEmails.includes(userEmail.toLowerCase());
+    
+    if (!token || !userEmail || !shouldBeAdmin) {
+        console.log('❌ Admin access denied, redirecting to login');
         // Not logged in or not admin, redirect to login page
         window.location.href = 'login.html';
         return;
     }
     
+    // If admin email but role not set, fix it
+    if (knownAdminEmails.includes(userEmail.toLowerCase()) && userRole !== 'admin') {
+        console.log('🔧 Fixing admin role for known admin email');
+        user.role = 'admin';
+        user['custom:role'] = 'admin';
+        localStorage.setItem('user', JSON.stringify(user));
+    }
+    
+    console.log('✅ Admin access granted');
+    
     // Set admin name
-    document.getElementById('admin-name').textContent = user.name || user.email;
+    document.getElementById('admin-name').textContent = user.name || user.given_name || user.email.split('@')[0];
 }
 
 // Initialize date/time
