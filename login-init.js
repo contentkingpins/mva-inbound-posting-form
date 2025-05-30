@@ -280,8 +280,14 @@ async function completePasswordReset() {
               const userData = JSON.parse(localStorage.getItem('user') || '{}');
               const userRole = userData['custom:role'] || userData.role || 'agent'; // Default to agent if no role
               
-              // Redirect all users to admin.html for now since we cleaned up agent files
-              window.location.href = 'admin.html';
+              // Route users based on their actual role
+              if (userRole === 'admin') {
+                window.location.href = 'admin.html';
+              } else if (userRole === 'vendor') {
+                window.location.href = 'vendor-dashboard.html';
+              } else {
+                window.location.href = 'agent-aurora.html';
+              }
             }, 2000);
             
             resolve(result);
