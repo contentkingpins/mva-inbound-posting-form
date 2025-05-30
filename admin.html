@@ -87,129 +87,163 @@ console.log('🔧 Configuration injected at build time - no external loading nee
 
     <!-- Main Content -->
     <main class="admin-main">
-        <!-- Stats Cards -->
-        <div class="stats-grid">
-            <div class="stat-card glass-card">
-                <div class="stat-icon">💰</div>
-                <div class="stat-content">
-                    <div class="stat-label">Revenue</div>
-                    <div class="stat-value">$<span id="revenue-stat">0</span></div>
-                    <div class="stat-change positive">↑ <span id="revenue-change">0</span>% vs last month</div>
-                </div>
-            </div>
-            
-            <div class="stat-card glass-card">
-                <div class="stat-icon">📈</div>
-                <div class="stat-content">
-                    <div class="stat-label">Avg CPA</div>
-                    <div class="stat-value">$<span id="cpa-stat">0</span></div>
-                    <div class="stat-change positive">↓ <span id="cpa-change">0</span>% improvement</div>
-                </div>
-            </div>
-            
-            <div class="stat-card glass-card">
-                <div class="stat-icon">⚡</div>
-                <div class="stat-content">
-                    <div class="stat-label">Active Agents</div>
-                    <div class="stat-value"><span id="agents-stat">0</span></div>
-                    <div class="stat-subtext"><span id="agents-online">0</span> online now</div>
-                </div>
-            </div>
-            
-            <div class="stat-card glass-card">
-                <div class="stat-icon">🎯</div>
-                <div class="stat-content">
-                    <div class="stat-label">Conversion Rate</div>
-                    <div class="stat-value"><span id="conversion-stat">0</span>%</div>
-                    <div class="stat-change positive">↑ <span id="conversion-change">0</span>% vs last month</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Live Performance Chart -->
-        <div class="chart-section glass-card">
+        <!-- System Overview Stats -->
+        <section class="stats-section">
             <div class="section-header">
-                <h2 class="section-title">📊 Live Performance</h2>
-                <div class="chart-controls">
-                    <button class="period-btn active" data-period="today">Today</button>
-                    <button class="period-btn" data-period="week">Week</button>
-                    <button class="period-btn" data-period="month">Month</button>
+                <h2 class="section-title">📊 System Overview</h2>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" id="refresh-dashboard">🔄 Refresh</button>
+                    <span class="last-updated" id="last-updated">Last updated: --:--</span>
                 </div>
             </div>
-            <div class="chart-container">
-                <canvas id="performance-chart"></canvas>
-            </div>
-        </div>
-
-        <!-- Pricing Control -->
-        <div class="pricing-section glass-card">
-            <div class="section-header">
-                <h2 class="section-title">💵 Lead Pricing Control</h2>
-            </div>
-            <div class="pricing-content">
-                <div class="default-pricing">
-                    <label for="default-price">Default Price per Lead</label>
-                    <div class="price-input-group">
-                        <span class="currency">$</span>
-                        <input type="number" id="default-price" value="35" min="10" max="100">
-                        <button class="btn btn-primary" id="update-default-price">Update</button>
-                    </div>
-                    <input type="range" id="price-slider" min="10" max="100" value="35" class="price-slider">
-                    <div class="price-range">
-                        <span>$10</span>
-                        <span>$100</span>
+            
+            <div class="stats-grid">
+                <div class="stat-card glass-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="total-agents-stat">--</div>
+                        <div class="stat-label">Total Agents</div>
+                        <div class="stat-change positive" id="agents-change">+3 this month</div>
                     </div>
                 </div>
                 
-                <div class="smart-pricing">
-                    <div class="feature-badge">Beta</div>
-                    <h3>🎯 Smart Pricing</h3>
-                    <p>Let AI optimize prices based on demand and performance</p>
-                    <div class="smart-pricing-controls">
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="smart-pricing-toggle">
-                            <span class="toggle-slider"></span>
-                        </label>
-                        <button class="btn btn-link">Learn More</button>
+                <div class="stat-card glass-card">
+                    <div class="stat-icon">🏢</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="total-vendors-stat">--</div>
+                        <div class="stat-label">Active Vendors</div>
+                        <div class="stat-change positive" id="vendors-change">+2 this week</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card glass-card">
+                    <div class="stat-icon">📋</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="total-leads-stat">--</div>
+                        <div class="stat-label">Total Leads</div>
+                        <div class="stat-change positive" id="leads-change">+12% vs last month</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card glass-card">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="total-revenue-stat">$--</div>
+                        <div class="stat-label">Total Revenue</div>
+                        <div class="stat-change positive" id="revenue-change">+8% vs last month</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card glass-card">
+                    <div class="stat-icon">⚡</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="system-health-stat">98%</div>
+                        <div class="stat-label">System Health</div>
+                        <div class="stat-change positive">All systems operational</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card glass-card">
+                    <div class="stat-icon">📈</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="conversion-rate-stat">--</div>
+                        <div class="stat-label">Avg Conversion Rate</div>
+                        <div class="stat-change positive" id="conversion-change">+2.3% vs last month</div>
                     </div>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <!-- Agency Performance -->
-        <div class="agencies-section">
+        <!-- Live Activity Feed -->
+        <section class="activity-section glass-card">
             <div class="section-header">
-                <h2 class="section-title">🏢 Agency Performance</h2>
-                <button class="btn btn-primary" id="custom-pricing-btn">Set Custom Pricing</button>
+                <h2 class="section-title">🔴 Live Activity Feed</h2>
+                <div class="activity-controls">
+                    <button class="btn btn-sm btn-secondary" id="pause-activity">⏸️ Pause</button>
+                    <button class="btn btn-sm btn-secondary" id="clear-activity">🗑️ Clear</button>
+                </div>
             </div>
             
-            <div class="agencies-grid" id="agencies-grid">
-                <!-- Agency cards will be inserted here -->
+            <div class="activity-feed" id="activity-feed">
+                <!-- Live activities will be populated here -->
             </div>
-        </div>
+        </section>
 
-        <!-- Agents Management -->
-        <div class="agents-section glass-card">
+        <!-- Enhanced Agent Management -->
+        <section class="agents-management glass-card">
             <div class="section-header">
-                <h2 class="section-title">👥 Team Management</h2>
-                <button class="btn btn-primary" id="add-agent-btn">
-                    <span class="btn-icon">+</span>
-                    Add Agent
-                </button>
+                <h2 class="section-title">👥 Agent Command Center</h2>
+                <div class="management-controls">
+                    <div class="search-filters">
+                        <input type="text" id="agent-search" placeholder="🔍 Search agents..." class="search-input">
+                        <select id="agent-status-filter" class="select-input">
+                            <option value="all">All Status</option>
+                            <option value="online">Online</option>
+                            <option value="offline">Offline</option>
+                            <option value="invited">Invited</option>
+                        </select>
+                        <select id="agent-role-filter" class="select-input">
+                            <option value="all">All Roles</option>
+                            <option value="admin">Admin</option>
+                            <option value="agent">Agent</option>
+                            <option value="viewer">Viewer</option>
+                        </select>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="btn btn-secondary" id="bulk-actions-btn">📋 Bulk Actions</button>
+                        <button class="btn btn-primary" id="add-agent-btn">
+                            <span class="btn-icon">+</span>
+                            Add Agent
+                        </button>
+                    </div>
+                </div>
             </div>
             
+            <!-- Agent Performance Leaderboard -->
+            <div class="leaderboard-section">
+                <h3>🏆 Top Performers This Month</h3>
+                <div class="leaderboard-grid" id="agent-leaderboard">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+            </div>
+            
+            <!-- Advanced Agent Table -->
             <div class="agents-table-container">
-                <div class="table-search">
-                    <input type="text" id="agent-search" placeholder="🔍 Search agents..." class="search-input">
+                <div class="bulk-actions-bar" id="bulk-actions-bar" style="display: none;">
+                    <div class="selected-count">
+                        <span id="selected-agent-count">0</span> agents selected
+                    </div>
+                    <div class="bulk-buttons">
+                        <button class="btn btn-sm btn-secondary" id="bulk-enable">✅ Enable</button>
+                        <button class="btn btn-sm btn-secondary" id="bulk-disable">❌ Disable</button>
+                        <button class="btn btn-sm btn-danger" id="bulk-delete">🗑️ Delete</button>
+                    </div>
                 </div>
                 
-                <table class="data-table" id="agents-table">
+                <table class="data-table enhanced-table" id="agents-table">
                     <thead>
                         <tr>
-                            <th>Agent</th>
-                            <th>Status</th>
-                            <th>Leads</th>
-                            <th>Conv %</th>
+                            <th>
+                                <input type="checkbox" id="select-all-agents" class="bulk-checkbox">
+                            </th>
+                            <th class="sortable" data-sort="name">
+                                Agent <span class="sort-indicator">↕️</span>
+                            </th>
+                            <th class="sortable" data-sort="status">
+                                Status <span class="sort-indicator">↕️</span>
+                            </th>
+                            <th class="sortable" data-sort="role">
+                                Role <span class="sort-indicator">↕️</span>
+                            </th>
+                            <th class="sortable" data-sort="leads">
+                                Leads <span class="sort-indicator">↕️</span>
+                            </th>
+                            <th class="sortable" data-sort="conversion">
+                                Conversion <span class="sort-indicator">↕️</span>
+                            </th>
+                            <th class="sortable" data-sort="lastActive">
+                                Last Active <span class="sort-indicator">↕️</span>
+                            </th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -218,110 +252,35 @@ console.log('🔧 Configuration injected at build time - no external loading nee
                     </tbody>
                 </table>
             </div>
-        </div>
+        </section>
 
-        <!-- Reports Section -->
-        <div class="reports-section glass-card">
+        <!-- Vendor Performance Analytics -->
+        <section class="vendor-analytics glass-card">
             <div class="section-header">
-                <h2 class="section-title">📊 Reports Center</h2>
-                <div class="report-controls">
-                    <select id="report-agency" class="select-input">
-                        <option value="all">All Agencies</option>
-                    </select>
-                    <select id="report-period" class="select-input">
+                <h2 class="section-title">🏢 Vendor Performance Analytics</h2>
+                <div class="vendor-controls">
+                    <select id="vendor-period" class="select-input">
                         <option value="today">Today</option>
                         <option value="week">This Week</option>
                         <option value="month" selected>This Month</option>
-                        <option value="custom">Custom Range</option>
+                        <option value="quarter">This Quarter</option>
                     </select>
-                    <button class="btn btn-secondary" id="export-report">
-                        <span class="btn-icon">📥</span>
-                        Export
+                    <button class="btn btn-secondary" id="vendor-comparison">📊 Compare Vendors</button>
+                    <button class="btn btn-primary" id="add-vendor-btn">
+                        <span class="btn-icon">+</span>
+                        Add Vendor
                     </button>
                 </div>
             </div>
             
-            <div class="report-summary" id="report-summary">
-                <!-- Report data will be inserted here -->
+            <!-- Vendor Metrics Grid -->
+            <div class="vendor-metrics-grid" id="vendor-metrics">
+                <!-- Vendor performance cards will be populated here -->
             </div>
-        </div>
-
-        <!-- DocuSign Templates -->
-        <div class="docusign-section glass-card">
-            <div class="section-header">
-                <h2 class="section-title">📄 DocuSign Templates</h2>
-            </div>
-            <div class="docusign-content">
-                <div class="current-template">
-                    <h3>Current Template</h3>
-                    <div class="template-info">
-                        <span class="template-name">Standard Retainer Agreement v2</span>
-                        <span class="template-date">Last updated: <span id="template-date">May 15, 2024</span></span>
-                    </div>
-                    <div class="template-actions">
-                        <button class="btn btn-secondary">Upload New</button>
-                        <button class="btn btn-secondary">Preview</button>
-                        <button class="btn btn-secondary">Test Send</button>
-                    </div>
-                </div>
-                
-                <div class="docusign-automation">
-                    <h3>Automation</h3>
-                    <div class="automation-options">
-                        <button class="btn btn-primary">Bulk Send Retainers</button>
-                        <button class="btn btn-secondary">Auto-Send Settings</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Vendor Management Section -->
-        <section class="vendor-management glass-card">
-            <div class="section-header">
-                <h2 class="section-title">🏢 Vendor Management</h2>
-                <button class="btn btn-primary" id="add-vendor-btn">
-                    <span class="btn-icon">+</span>
-                    Add Vendor
-                </button>
-            </div>
-
-            <!-- Vendor Metrics -->
-            <div id="vendor-metrics" class="metrics-grid">
-                <!-- Metrics will be populated by JS -->
-            </div>
-
-            <!-- Add Vendor Form -->
-            <form id="add-vendor-form" class="glass-form" style="display: none;">
-                <div class="form-group">
-                    <label for="vendorName">Vendor Name</label>
-                    <input type="text" id="vendorName" name="vendorName" required class="form-input">
-                </div>
-                <div class="form-group">
-                    <label for="vendorEmail">Contact Email</label>
-                    <input type="email" id="vendorEmail" name="vendorEmail" required class="form-input">
-                </div>
-                <div class="form-group">
-                    <label for="vendorPhone">Contact Phone</label>
-                    <input type="tel" id="vendorPhone" name="vendorPhone" class="form-input">
-                </div>
-                <div class="form-group">
-                    <label for="vendorWebsite">Website</label>
-                    <input type="url" id="vendorWebsite" name="vendorWebsite" class="form-input">
-                </div>
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">Create Vendor</button>
-                    <button type="button" class="btn" onclick="this.form.style.display='none'">Cancel</button>
-                </div>
-            </form>
-
-            <!-- Vendor Search -->
-            <div class="search-container">
-                <input type="text" id="vendor-search" placeholder="Search vendors..." class="search-input">
-            </div>
-
-            <!-- Vendor List -->
-            <div id="vendor-list" class="vendor-grid">
-                <!-- Vendors will be populated by JS -->
+            
+            <!-- Vendor Comparison Chart -->
+            <div class="vendor-chart-container">
+                <canvas id="vendor-performance-chart"></canvas>
             </div>
         </section>
     </main>
@@ -435,4 +394,5 @@ console.log('🔧 Configuration injected at build time - no external loading nee
         });
     </script>
 </body>
+</html> 
 </html> 
