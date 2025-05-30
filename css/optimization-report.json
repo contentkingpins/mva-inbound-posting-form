@@ -1,0 +1,56 @@
+{
+  "timestamp": "2025-05-30T15:36:24.536Z",
+  "results": [
+    {
+      "input": "styles.css",
+      "output": "css/styles.min.css",
+      "critical": false,
+      "originalSize": 24693,
+      "optimizedSize": 17929,
+      "savings": 6764,
+      "percentSaved": "27.4"
+    },
+    {
+      "input": "admin.css",
+      "output": "css/admin.min.css",
+      "critical": false,
+      "originalSize": 26608,
+      "optimizedSize": 19719,
+      "savings": 6889,
+      "percentSaved": "25.9"
+    },
+    {
+      "input": "agent-aurora.css",
+      "output": "css/agent-aurora.min.css",
+      "critical": false,
+      "originalSize": 17976,
+      "optimizedSize": 13339,
+      "savings": 4637,
+      "percentSaved": "25.8"
+    },
+    {
+      "input": "analytics-dashboard.css",
+      "output": "css/analytics-dashboard.min.css",
+      "critical": false,
+      "originalSize": 8819,
+      "optimizedSize": 6510,
+      "savings": 2309,
+      "percentSaved": "26.2"
+    },
+    {
+      "input": "css/critical.css",
+      "output": "css/critical.min.css",
+      "critical": true,
+      "originalSize": 6706,
+      "optimizedSize": 4411,
+      "savings": 2295,
+      "percentSaved": "34.2"
+    }
+  ],
+  "totals": {
+    "originalSize": 84802,
+    "optimizedSize": 61908,
+    "savings": 22894,
+    "percentSaved": "27.0"
+  }
+}
