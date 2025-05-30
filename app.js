@@ -595,8 +595,21 @@ class LeadManagerApp {
     openExportModal() { /* Implementation */ }
     closeExportModal() { /* Implementation */ }
     exportLeadsToCsv() { /* Implementation */ }
-    openAddLeadModal() { /* Implementation */ }
-    createAddLeadModal() { /* Implementation */ }
+    
+    // Add Lead Integration - Uses AddLeadManager module
+    openAddLeadModal() {
+        if (window.addLeadManager) {
+            window.addLeadManager.open();
+        } else {
+            console.warn('AddLeadManager not available');
+        }
+    }
+    
+    createAddLeadModal() {
+        // This is handled by the AddLeadManager module
+        // No implementation needed here
+    }
+    
     updateVendorOptions() { /* Implementation */ }
     toggleLeadDetails(lead) { /* Implementation */ }
     updateLeadDisposition(leadId, disposition, notes) { /* Implementation */ }
@@ -605,7 +618,19 @@ class LeadManagerApp {
 
 // Initialize app when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-    new LeadManagerApp();
+    window.leadManagerApp = new LeadManagerApp();
+    
+    // Listen for lead added events to refresh the list
+    document.addEventListener('leadAdded', (event) => {
+        console.log('🎉 New lead added:', event.detail.lead);
+        
+        // Refresh leads list after a short delay
+        setTimeout(() => {
+            if (window.leadManagerApp && typeof window.leadManagerApp.fetchLeads === 'function') {
+                window.leadManagerApp.fetchLeads();
+            }
+        }, 500);
+    });
 });
 
 console.log('🚀 Core application loaded - modules ready'); 
