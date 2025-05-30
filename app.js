@@ -21,11 +21,13 @@ const AppState = {
     // Module instances
     paginationManager: null,
     chartsManager: null,
+    searchManager: null,
     
     // Initialize modules
     initModules() {
         this.paginationManager = new PaginationManager();
         this.chartsManager = new ChartsManager();
+        this.searchManager = new SearchManager();
         
         // Listen for pagination changes
         document.addEventListener('paginationChanged', () => {
@@ -282,6 +284,12 @@ class LeadManagerApp {
             }
         }
         
+        // Clear previous highlights
+        AppState.searchManager.clearHighlights();
+        
+        // Update search term in manager
+        AppState.searchManager.setSearchTerm(AppState.searchTerm);
+        
         this.filterAndRenderLeads();
         
         // Show appropriate messages
@@ -304,26 +312,20 @@ class LeadManagerApp {
             resultsToFilter = AppState.leads.filter(lead => lead.vendor_code === vendorCode);
         }
         
-        // Filter by search term
+        // Enhanced search using SearchManager
         if (AppState.searchTerm) {
-            AppState.filteredLeads = resultsToFilter.filter(lead => {
-                const searchableContent = [
-                    `${lead.first_name} ${lead.last_name}`,
-                    lead.email,
-                    lead.phone_home,
-                    lead.lead_id,
-                    lead.zip_code,
-                    lead.city,
-                    lead.state,
-                    lead.notes,
-                    lead.disposition,
-                    lead.accident_date,
-                    lead.accident_location,
-                    `${lead.city} ${lead.state} ${lead.zip_code}`
-                ].filter(Boolean).join(' ').toLowerCase();
-                
-                return searchableContent.includes(AppState.searchTerm);
-            });
+            // Build search index if needed
+            AppState.searchManager.buildSearchIndex(resultsToFilter);
+            
+            // Perform enhanced search
+            const searchResult = AppState.searchManager.performSearch(AppState.searchTerm, resultsToFilter);
+            AppState.filteredLeads = searchResult.results;
+            
+            // Update search stats if available
+            const searchStatsElement = document.querySelector('.search-stats');
+            if (searchStatsElement && searchResult.stats) {
+                AppState.searchManager.updateSearchStats(searchStatsElement, searchResult.stats);
+            }
         } else {
             AppState.filteredLeads = resultsToFilter;
         }
@@ -457,10 +459,13 @@ class LeadManagerApp {
         row.dataset.leadId = lead.lead_id;
         row.classList.add('lead-row');
         
+        // Get search terms for highlighting
+        const searchTerms = AppState.searchTerm ? AppState.searchTerm.split(/\s+/) : [];
+        
         row.innerHTML = `
             <td class="lead-name">
                 <div class="name-cell">
-                    <span>${Utils.escapeHtml(lead.first_name)} ${Utils.escapeHtml(lead.last_name)}</span>
+                    <span>${AppState.searchManager.highlightText(`${lead.first_name} ${lead.last_name}`, searchTerms)}</span>
                     <button class="details-btn" title="Show Details">
                         <span class="details-icon">▼</span>
                     </button>
@@ -468,11 +473,11 @@ class LeadManagerApp {
             </td>
             <td>
                 <div class="contact-info">
-                    <div class="phone">${Utils.escapeHtml(lead.phone_home || '')}</div>
-                    <div class="email">${Utils.escapeHtml(lead.email || '')}</div>
+                    <div class="phone">${AppState.searchManager.highlightText(lead.phone_home || '', searchTerms)}</div>
+                    <div class="email">${AppState.searchManager.highlightText(lead.email || '', searchTerms)}</div>
                 </div>
             </td>
-            <td>${Utils.escapeHtml(lead.incident_type || '')}</td>
+            <td>${AppState.searchManager.highlightText(lead.incident_type || '', searchTerms)}</td>
             <td>
                 <select class="disposition-select" data-lead-id="${lead.lead_id}">
                     <option value="New" ${(lead.disposition || 'New') === 'New' ? 'selected' : ''}>New</option>
@@ -483,8 +488,8 @@ class LeadManagerApp {
                     <option value="Not Qualified Lead" ${lead.disposition === 'Not Qualified Lead' ? 'selected' : ''}>Not Qualified Lead</option>
                 </select>
             </td>
-            <td>${Utils.getLocationDisplay(lead)}</td>
-            <td>${Utils.escapeHtml(lead.vendor_code || '')}</td>
+            <td>${AppState.searchManager.highlightText(Utils.getLocationDisplay(lead), searchTerms)}</td>
+            <td>${AppState.searchManager.highlightText(lead.vendor_code || '', searchTerms)}</td>
             <td>${Utils.formatDate(lead.timestamp, true)}</td>
         `;
         
@@ -557,9 +562,15 @@ class LeadManagerApp {
     // This is a condensed version focusing on core functionality
     
     initializeUI() {
-        // Focus search input
+        // Enhance search input with advanced features
         if (elements.searchInput) {
             elements.searchInput.focus();
+            
+            // Enhanced search functionality
+            const searchEnhancements = AppState.searchManager.enhanceSearchInput(elements.searchInput);
+            
+            // Store references to search UI elements
+            AppState.searchUI = searchEnhancements;
         }
         
         // Hide skeleton loader
