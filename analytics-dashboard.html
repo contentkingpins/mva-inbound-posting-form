@@ -3,174 +3,577 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analytics Dashboard - Legal Lead Management</title>
+    <title>Advanced Analytics Dashboard - Claim Connectors CRM</title>
     
-    <!-- Fonts -->
+    <!-- Preconnect to CDNs -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://unpkg.com">
     
-    <!-- Dashboard Styles -->
-    <link rel="stylesheet" href="agent-aurora.css">
-    <link rel="stylesheet" href="analytics-dashboard.css">
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.3/index.min.js"></script>
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://unpkg.com/lucide@latest/dist/lucide.css">
+    
+    <!-- Chart.js for advanced visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    
+    <!-- CountUp.js for number animations -->
+    <script src="https://unpkg.com/countup.js@2.8.0/dist/countUp.umd.js"></script>
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="analytics-dashboard.css">
+
+    <!-- AppConfig Module Reference -->
+    <script src="/js/app-config.js?v=1748481232267"></script>
+
+    <!-- Build-Time Injected Configuration -->
+    <script>
+    window.APP_CONFIG = {
+      "userPoolId": "us-east-1_lhc964tLD",
+      "clientId": "5t6mane4fnvineksoqb4ta0iu1",
+      "apiEndpoint": "https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod",
+      "apiUrl": "https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod",
+      "apiKey": "",
+      "buildTime": "2025-05-29T01:13:52.266Z",
+      "buildEnv": "production"
+    };
+    window.preloadedConfig = window.APP_CONFIG;
+    console.log('🔧 Configuration injected at build time - no external loading needed');
+    </script>
 </head>
 <body>
-    <!-- Professional Background -->
-    <div class="gradient-bg"></div>
-    
-    <!-- Dashboard Container -->
-    <div class="dashboard-container">
-        <!-- Glass Header -->
-        <header class="glass-header">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h1 class="dashboard-title">Real-Time Analytics</h1>
-                    <p style="color: var(--text-secondary); margin-top: 0.5rem;">
-                        Live performance metrics updated every <span id="update-interval" style="color: var(--accent);">5 seconds</span>
-                    </p>
-                </div>
-                <div style="display: flex; gap: 1rem; align-items: center;">
-                    <div class="live-indicator">
-                        <span class="live-dot"></span>
-                        <span>LIVE</span>
-                    </div>
-                    <button class="btn btn-secondary" onclick="window.location.href='agent-aurora.html'">
-                        Back to Dashboard
-                    </button>
+    <!-- Header Navigation -->
+    <header class="analytics-header">
+        <div class="header-content">
+            <div class="header-left">
+                <h1 class="header-title">
+                    <span class="header-icon">📊</span>
+                    Advanced Analytics Dashboard
+                </h1>
+                <div class="header-subtitle">
+                    Comprehensive Lead Performance & Business Intelligence
                 </div>
             </div>
-        </header>
-
-        <!-- Key Metrics Row -->
-        <div class="metrics-row">
-            <div class="metric-card glass-metric">
-                <div class="metric-icon">📊</div>
-                <div class="metric-content">
-                    <div class="metric-value" id="total-leads-today">0</div>
-                    <div class="metric-label">Leads Today</div>
-                    <div class="metric-change positive">+0%</div>
-                </div>
-            </div>
-            
-            <div class="metric-card glass-metric">
-                <div class="metric-icon">🎯</div>
-                <div class="metric-content">
-                    <div class="metric-value" id="conversion-rate-today">0%</div>
-                    <div class="metric-label">Conversion Rate</div>
-                    <div class="metric-change positive">+0%</div>
-                </div>
-            </div>
-            
-            <div class="metric-card glass-metric">
-                <div class="metric-icon">⚡</div>
-                <div class="metric-content">
-                    <div class="metric-value" id="avg-response-time">0h</div>
-                    <div class="metric-label">Avg Response Time</div>
-                    <div class="metric-change positive">-0%</div>
-                </div>
-            </div>
-            
-            <div class="metric-card glass-metric">
-                <div class="metric-icon">👥</div>
-                <div class="metric-content">
-                    <div class="metric-value" id="active-agents">0</div>
-                    <div class="metric-label">Active Agents</div>
-                    <div class="metric-change neutral">0</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Charts Grid -->
-        <div class="charts-grid">
-            <!-- Lead Volume Chart -->
-            <div class="chart-container glass-section">
-                <div class="chart-header">
-                    <h3 class="chart-title">Lead Volume - Last 30 Days</h3>
-                    <div class="chart-controls">
-                        <button class="period-btn active" data-period="30d">30D</button>
-                        <button class="period-btn" data-period="7d">7D</button>
-                        <button class="period-btn" data-period="24h">24H</button>
-                    </div>
-                </div>
-                <div class="chart-wrapper">
-                    <canvas id="leadVolumeChart"></canvas>
-                </div>
-            </div>
-
-            <!-- Conversion Funnel -->
-            <div class="chart-container glass-section">
-                <div class="chart-header">
-                    <h3 class="chart-title">Conversion Funnel</h3>
-                    <span class="chart-subtitle">Current Month</span>
-                </div>
-                <div class="chart-wrapper">
-                    <canvas id="conversionFunnelChart"></canvas>
-                </div>
-            </div>
-
-            <!-- Hourly Activity Heatmap -->
-            <div class="chart-container glass-section full-width">
-                <div class="chart-header">
-                    <h3 class="chart-title">Activity Heatmap - This Week</h3>
-                    <span class="chart-subtitle">Leads by Hour</span>
-                </div>
-                <div class="chart-wrapper">
-                    <canvas id="activityHeatmap"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- Leaderboard Section -->
-        <div class="leaderboard-section">
-            <div class="glass-section">
-                <div class="section-header">
-                    <h2 class="section-title">Agent Leaderboard</h2>
-                    <select class="glass-input" id="leaderboard-filter" style="width: auto;">
-                        <option value="today">Today</option>
-                        <option value="week">This Week</option>
-                        <option value="month">This Month</option>
-                        <option value="all-time">All Time</option>
+            <div class="header-right">
+                <div class="header-controls">
+                    <select id="date-range-selector" class="control-select">
+                        <option value="7">Last 7 Days</option>
+                        <option value="30" selected>Last 30 Days</option>
+                        <option value="90">Last 90 Days</option>
+                        <option value="365">Last Year</option>
+                        <option value="custom">Custom Range</option>
                     </select>
+                    <button class="btn btn-secondary" id="refresh-analytics">🔄 Refresh</button>
+                    <button class="btn btn-secondary" id="export-report">📤 Export</button>
                 </div>
-                
-                <div class="leaderboard-table">
-                    <div class="leaderboard-header">
-                        <div class="rank-col">Rank</div>
-                        <div class="agent-col">Agent</div>
-                        <div class="metric-col">Leads</div>
-                        <div class="metric-col">Converted</div>
-                        <div class="metric-col">Rate</div>
-                        <div class="metric-col">Avg Time</div>
-                        <div class="trend-col">Trend</div>
-                    </div>
-                    <div id="leaderboard-rows">
-                        <!-- Leaderboard rows will be inserted here -->
-                    </div>
+                <div class="nav-links">
+                    <a href="index.html" class="nav-link">🏠 Dashboard</a>
+                    <a href="admin.html" class="nav-link">⚙️ Admin</a>
                 </div>
             </div>
         </div>
+    </header>
 
-        <!-- Real-time Activity Feed -->
-        <div class="activity-feed glass-section">
+    <!-- Main Analytics Content -->
+    <main class="analytics-main">
+        <!-- KPI Overview Cards -->
+        <section class="kpi-section">
             <div class="section-header">
-                <h3 class="section-title">Live Activity Feed</h3>
-                <div class="activity-status">
-                    <span class="activity-dot"></span>
-                    <span id="activity-count">0</span> events in last hour
+                <h2 class="section-title">📈 Key Performance Indicators</h2>
+                <div class="kpi-controls">
+                    <div class="time-comparison">
+                        <span class="comparison-text">vs. Previous Period</span>
+                        <div class="live-indicator">
+                            <span class="pulse-dot"></span>
+                            Live Data
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="activity-list" id="activity-list">
-                <!-- Activity items will be inserted here -->
+            
+            <div class="kpi-grid">
+                <div class="kpi-card glass-card">
+                    <div class="kpi-header">
+                        <div class="kpi-icon leads">📋</div>
+                        <div class="kpi-trend positive" id="leads-trend">+12.5%</div>
+                    </div>
+                    <div class="kpi-content">
+                        <div class="kpi-value" id="total-leads-kpi">--</div>
+                        <div class="kpi-label">Total Leads</div>
+                        <div class="kpi-detail">
+                            <span id="new-leads-today">--</span> new today
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kpi-card glass-card">
+                    <div class="kpi-header">
+                        <div class="kpi-icon conversion">🎯</div>
+                        <div class="kpi-trend positive" id="conversion-trend">+8.3%</div>
+                    </div>
+                    <div class="kpi-content">
+                        <div class="kpi-value" id="conversion-rate-kpi">--</div>
+                        <div class="kpi-label">Conversion Rate</div>
+                        <div class="kpi-detail">
+                            Industry avg: <span class="benchmark">65.2%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kpi-card glass-card">
+                    <div class="kpi-header">
+                        <div class="kpi-icon revenue">💰</div>
+                        <div class="kpi-trend positive" id="revenue-trend">+15.7%</div>
+                    </div>
+                    <div class="kpi-content">
+                        <div class="kpi-value" id="total-revenue-kpi">--</div>
+                        <div class="kpi-label">Total Revenue</div>
+                        <div class="kpi-detail">
+                            ARR: <span id="arr-value">$--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kpi-card glass-card">
+                    <div class="kpi-header">
+                        <div class="kpi-icon response">⚡</div>
+                        <div class="kpi-trend negative" id="response-trend">-5.2%</div>
+                    </div>
+                    <div class="kpi-content">
+                        <div class="kpi-value" id="avg-response-time">--</div>
+                        <div class="kpi-label">Avg Response Time</div>
+                        <div class="kpi-detail">
+                            Target: <span class="target">< 2 hours</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kpi-card glass-card">
+                    <div class="kpi-header">
+                        <div class="kpi-icon satisfaction">⭐</div>
+                        <div class="kpi-trend positive" id="satisfaction-trend">+3.1%</div>
+                    </div>
+                    <div class="kpi-content">
+                        <div class="kpi-value" id="customer-satisfaction">--</div>
+                        <div class="kpi-label">Customer Satisfaction</div>
+                        <div class="kpi-detail">
+                            <span id="nps-score">NPS: --</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kpi-card glass-card">
+                    <div class="kpi-header">
+                        <div class="kpi-icon forecast">🔮</div>
+                        <div class="kpi-trend positive" id="forecast-trend">+22.1%</div>
+                    </div>
+                    <div class="kpi-content">
+                        <div class="kpi-value" id="revenue-forecast">--</div>
+                        <div class="kpi-label">Revenue Forecast</div>
+                        <div class="kpi-detail">
+                            Next 30 days projection
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Advanced Analytics Grid -->
+        <section class="analytics-grid-section">
+            <div class="analytics-grid">
+                <!-- Lead Conversion Funnel -->
+                <div class="analytics-card full-width">
+                    <div class="card-header">
+                        <h3>🎯 Lead Conversion Funnel</h3>
+                        <div class="card-controls">
+                            <select class="mini-select" id="funnel-period">
+                                <option value="30">Last 30 Days</option>
+                                <option value="90">Last 90 Days</option>
+                            </select>
+                            <button class="btn-icon" id="funnel-settings">⚙️</button>
+                        </div>
+                    </div>
+                    <div class="funnel-container">
+                        <div class="funnel-stages">
+                            <div class="funnel-stage" data-stage="leads">
+                                <div class="stage-header">
+                                    <div class="stage-title">Total Leads</div>
+                                    <div class="stage-count" id="funnel-leads">--</div>
+                                </div>
+                                <div class="stage-bar">
+                                    <div class="stage-fill" style="width: 100%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="funnel-stage" data-stage="qualified">
+                                <div class="stage-header">
+                                    <div class="stage-title">Qualified</div>
+                                    <div class="stage-count" id="funnel-qualified">--</div>
+                                </div>
+                                <div class="stage-bar">
+                                    <div class="stage-fill" style="width: 78%"></div>
+                                </div>
+                                <div class="conversion-rate">78% conversion</div>
+                            </div>
+                            
+                            <div class="funnel-stage" data-stage="contacted">
+                                <div class="stage-header">
+                                    <div class="stage-title">Contacted</div>
+                                    <div class="stage-count" id="funnel-contacted">--</div>
+                                </div>
+                                <div class="stage-bar">
+                                    <div class="stage-fill" style="width: 65%"></div>
+                                </div>
+                                <div class="conversion-rate">65% conversion</div>
+                            </div>
+                            
+                            <div class="funnel-stage" data-stage="interested">
+                                <div class="stage-header">
+                                    <div class="stage-title">Interested</div>
+                                    <div class="stage-count" id="funnel-interested">--</div>
+                                </div>
+                                <div class="stage-bar">
+                                    <div class="stage-fill" style="width: 45%"></div>
+                                </div>
+                                <div class="conversion-rate">45% conversion</div>
+                            </div>
+                            
+                            <div class="funnel-stage" data-stage="converted">
+                                <div class="stage-header">
+                                    <div class="stage-title">Converted</div>
+                                    <div class="stage-count" id="funnel-converted">--</div>
+                                </div>
+                                <div class="stage-bar">
+                                    <div class="stage-fill converted" style="width: 28%"></div>
+                                </div>
+                                <div class="conversion-rate">28% conversion</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lead Sources Performance -->
+                <div class="analytics-card">
+                    <div class="card-header">
+                        <h3>📊 Lead Sources Performance</h3>
+                        <div class="performance-legend">
+                            <span class="legend-item">
+                                <span class="legend-dot high"></span>High Performing
+                            </span>
+                            <span class="legend-item">
+                                <span class="legend-dot low"></span>Needs Attention
+                            </span>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="leadSourcesChart"></canvas>
+                    </div>
+                    <div class="source-insights">
+                        <div class="insight-item">
+                            <span class="insight-icon">🔥</span>
+                            <span class="insight-text">Publisher API leads show 35% higher conversion</span>
+                        </div>
+                        <div class="insight-item">
+                            <span class="insight-icon">⚠️</span>
+                            <span class="insight-text">Social media leads need nurturing improvement</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Revenue Trends -->
+                <div class="analytics-card">
+                    <div class="card-header">
+                        <h3>💹 Revenue Trends & Forecasting</h3>
+                        <div class="trend-controls">
+                            <button class="trend-btn active" data-period="daily">Daily</button>
+                            <button class="trend-btn" data-period="weekly">Weekly</button>
+                            <button class="trend-btn" data-period="monthly">Monthly</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="revenueTrendsChart"></canvas>
+                    </div>
+                    <div class="forecast-insights">
+                        <div class="forecast-item">
+                            <span class="forecast-label">Predicted Revenue (Next 30 days):</span>
+                            <span class="forecast-value">$127,500</span>
+                            <span class="forecast-confidence">85% confidence</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Agent Performance Leaderboard -->
+                <div class="analytics-card">
+                    <div class="card-header">
+                        <h3>🏆 Agent Performance Leaderboard</h3>
+                        <div class="leaderboard-controls">
+                            <select class="mini-select" id="performance-metric">
+                                <option value="conversion">Conversion Rate</option>
+                                <option value="revenue">Revenue Generated</option>
+                                <option value="leads">Leads Handled</option>
+                                <option value="satisfaction">Customer Satisfaction</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="leaderboard-container">
+                        <div class="leaderboard-list" id="agent-leaderboard">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Publisher ROI Analysis -->
+                <div class="analytics-card">
+                    <div class="card-header">
+                        <h3>🏢 Publisher ROI Analysis</h3>
+                        <div class="roi-summary">
+                            <span class="roi-metric">Avg ROI: <strong>340%</strong></span>
+                            <span class="roi-metric">Top Performer: <strong>Legal Lead Pro</strong></span>
+                        </div>
+                    </div>
+                    <div class="publisher-roi-list" id="publisher-roi-list">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Lead Quality Insights -->
+                <div class="analytics-card">
+                    <div class="card-header">
+                        <h3>💎 Lead Quality Insights</h3>
+                        <div class="quality-score">
+                            Overall Quality Score: <span class="score-value">8.7/10</span>
+                        </div>
+                    </div>
+                    <div class="quality-metrics">
+                        <div class="quality-item">
+                            <div class="quality-label">Information Completeness</div>
+                            <div class="quality-bar">
+                                <div class="quality-fill" style="width: 92%"></div>
+                            </div>
+                            <div class="quality-percentage">92%</div>
+                        </div>
+                        <div class="quality-item">
+                            <div class="quality-label">Contact Responsiveness</div>
+                            <div class="quality-bar">
+                                <div class="quality-fill" style="width: 78%"></div>
+                            </div>
+                            <div class="quality-percentage">78%</div>
+                        </div>
+                        <div class="quality-item">
+                            <div class="quality-label">Decision Authority</div>
+                            <div class="quality-bar">
+                                <div class="quality-fill" style="width: 85%"></div>
+                            </div>
+                            <div class="quality-percentage">85%</div>
+                        </div>
+                        <div class="quality-item">
+                            <div class="quality-label">Budget Qualification</div>
+                            <div class="quality-bar">
+                                <div class="quality-fill" style="width: 73%"></div>
+                            </div>
+                            <div class="quality-percentage">73%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Predictive Analytics -->
+                <div class="analytics-card full-width">
+                    <div class="card-header">
+                        <h3>🔮 Predictive Analytics & AI Insights</h3>
+                        <div class="ai-indicator">
+                            <span class="ai-badge">AI-Powered</span>
+                            <span class="model-info">Model Accuracy: 94.2%</span>
+                        </div>
+                    </div>
+                    <div class="predictions-grid">
+                        <div class="prediction-card">
+                            <div class="prediction-header">
+                                <h4>🎯 Conversion Likelihood</h4>
+                                <div class="confidence-score">94% Accuracy</div>
+                            </div>
+                            <div class="prediction-content">
+                                <div class="prediction-chart">
+                                    <canvas id="conversionPredictionChart"></canvas>
+                                </div>
+                                <div class="prediction-insights">
+                                    <div class="insight">
+                                        <span class="insight-icon">🔥</span>
+                                        <span>High-value leads identified: <strong>23</strong></span>
+                                    </div>
+                                    <div class="insight">
+                                        <span class="insight-icon">⚡</span>
+                                        <span>Optimal contact time: <strong>2-4 PM EST</strong></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="prediction-card">
+                            <div class="prediction-header">
+                                <h4>📈 Revenue Predictions</h4>
+                                <div class="confidence-score">91% Accuracy</div>
+                            </div>
+                            <div class="prediction-content">
+                                <div class="revenue-predictions">
+                                    <div class="revenue-prediction">
+                                        <span class="period">Next 7 Days</span>
+                                        <span class="amount">$28,400</span>
+                                        <span class="confidence">89% confidence</span>
+                                    </div>
+                                    <div class="revenue-prediction">
+                                        <span class="period">Next 30 Days</span>
+                                        <span class="amount">$127,500</span>
+                                        <span class="confidence">85% confidence</span>
+                                    </div>
+                                    <div class="revenue-prediction">
+                                        <span class="period">Next Quarter</span>
+                                        <span class="amount">$425,000</span>
+                                        <span class="confidence">78% confidence</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="prediction-card">
+                            <div class="prediction-header">
+                                <h4>⚠️ Churn Risk Analysis</h4>
+                                <div class="confidence-score">87% Accuracy</div>
+                            </div>
+                            <div class="prediction-content">
+                                <div class="churn-analysis">
+                                    <div class="risk-level high">
+                                        <span class="risk-label">High Risk</span>
+                                        <span class="risk-count">3 clients</span>
+                                        <span class="risk-action">Immediate attention needed</span>
+                                    </div>
+                                    <div class="risk-level medium">
+                                        <span class="risk-label">Medium Risk</span>
+                                        <span class="risk-count">8 clients</span>
+                                        <span class="risk-action">Schedule check-in</span>
+                                    </div>
+                                    <div class="risk-level low">
+                                        <span class="risk-label">Low Risk</span>
+                                        <span class="risk-count">45 clients</span>
+                                        <span class="risk-action">Continue monitoring</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Advanced Insights Panel -->
+        <section class="insights-panel">
+            <div class="panel-header">
+                <h2>🧠 AI-Generated Insights & Recommendations</h2>
+                <div class="insights-timestamp">
+                    Last updated: <span id="insights-timestamp">--</span>
+                </div>
+            </div>
+            
+            <div class="insights-grid">
+                <div class="insight-card critical">
+                    <div class="insight-header">
+                        <span class="insight-icon">🚨</span>
+                        <span class="insight-title">Critical Action Required</span>
+                        <span class="insight-priority">High Priority</span>
+                    </div>
+                    <div class="insight-content">
+                        <p>Response time for leads from "AccidentClaims.net" has increased by 45% this week. Immediate attention needed to prevent lead loss.</p>
+                        <div class="insight-actions">
+                            <button class="btn btn-danger btn-sm">View Details</button>
+                            <button class="btn btn-secondary btn-sm">Create Task</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="insight-card opportunity">
+                    <div class="insight-header">
+                        <span class="insight-icon">💡</span>
+                        <span class="insight-title">Growth Opportunity</span>
+                        <span class="insight-priority">Medium Priority</span>
+                    </div>
+                    <div class="insight-content">
+                        <p>Legal Lead Pro shows 25% higher conversion rate. Consider expanding partnership or negotiating better rates.</p>
+                        <div class="insight-actions">
+                            <button class="btn btn-primary btn-sm">Explore Opportunity</button>
+                            <button class="btn btn-secondary btn-sm">Add to Pipeline</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="insight-card optimization">
+                    <div class="insight-header">
+                        <span class="insight-icon">⚡</span>
+                        <span class="insight-title">Process Optimization</span>
+                        <span class="insight-priority">Low Priority</span>
+                    </div>
+                    <div class="insight-content">
+                        <p>Agent performance varies significantly during 3-5 PM. Consider workload redistribution for better efficiency.</p>
+                        <div class="insight-actions">
+                            <button class="btn btn-secondary btn-sm">View Analysis</button>
+                            <button class="btn btn-secondary btn-sm">Schedule Review</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Export Modal -->
+    <div class="modal-overlay" id="export-modal">
+        <div class="modal glass-modal">
+            <div class="modal-header">
+                <h3 class="modal-title">📤 Export Analytics Report</h3>
+                <button class="modal-close" data-modal="export-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="export-options">
+                    <div class="export-section">
+                        <h4>Report Type</h4>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" checked> KPI Summary</label>
+                            <label><input type="checkbox" checked> Lead Analytics</label>
+                            <label><input type="checkbox"> Agent Performance</label>
+                            <label><input type="checkbox"> Publisher ROI</label>
+                            <label><input type="checkbox"> Predictive Insights</label>
+                        </div>
+                    </div>
+                    
+                    <div class="export-section">
+                        <h4>Format</h4>
+                        <div class="radio-group">
+                            <label><input type="radio" name="format" value="pdf" checked> PDF Report</label>
+                            <label><input type="radio" name="format" value="excel"> Excel Spreadsheet</label>
+                            <label><input type="radio" name="format" value="csv"> CSV Data</label>
+                        </div>
+                    </div>
+                    
+                    <div class="export-section">
+                        <h4>Date Range</h4>
+                        <select class="form-input">
+                            <option>Last 30 Days</option>
+                            <option>Last 90 Days</option>
+                            <option>Last Year</option>
+                            <option>Custom Range</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-modal="export-modal">Cancel</button>
+                <button class="btn btn-primary" id="generate-export">Generate Report</button>
             </div>
         </div>
     </div>
 
-    <!-- Analytics JavaScript -->
+    <!-- Scripts -->
     <script src="analytics-dashboard.js"></script>
 </body>
 </html> 
