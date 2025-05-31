@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search System Test</title>
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+    <div class="admin-container">
+        <header class="admin-header">
+            <div class="header-content">
+                <div class="header-left">
+                    <h1>🔍 Advanced Search System Test</h1>
+                </div>
+                <div class="header-right">
+                    <!-- Search bar will be inserted here -->
+                </div>
+            </div>
+        </header>
+        
+        <main class="admin-main">
+            <section class="glass-card">
+                <h2>Search Features</h2>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
+                    <!-- Quick Actions -->
+                    <div class="glass-card" style="padding: 1.5rem;">
+                        <h3>🚀 Quick Actions</h3>
+                        <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem;">
+                            <button class="btn btn-primary" onclick="testSearch('John')">
+                                Search for "John"
+                            </button>
+                            <button class="btn btn-primary" onclick="testSearch('lead')">
+                                Search for "lead"
+                            </button>
+                            <button class="btn btn-primary" onclick="testSearch('active')">
+                                Search for "active"
+                            </button>
+                            <button class="btn btn-secondary" onclick="openAdvancedSearch()">
+                                Open Advanced Filters
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Sample Data -->
+                    <div class="glass-card" style="padding: 1.5rem;">
+                        <h3>📊 Sample Data Actions</h3>
+                        <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem;">
+                            <button class="btn btn-secondary" onclick="addSampleLeads()">
+                                Add Sample Leads
+                            </button>
+                            <button class="btn btn-secondary" onclick="addSampleAgents()">
+                                Add Sample Agents
+                            </button>
+                            <button class="btn btn-secondary" onclick="addSampleVendors()">
+                                Add Sample Vendors
+                            </button>
+                            <button class="btn btn-danger" onclick="clearSearchIndex()">
+                                Clear All Data
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Search Tips -->
+                    <div class="glass-card" style="padding: 1.5rem;">
+                        <h3>💡 Search Tips</h3>
+                        <ul style="margin-top: 1rem; line-height: 1.8;">
+                            <li>Press <kbd>Ctrl+K</kbd> or <kbd>Cmd+K</kbd> to focus search</li>
+                            <li>Type at least 2 characters for suggestions</li>
+                            <li>Click ⚙️ for advanced filters</li>
+                            <li>Search history is saved automatically</li>
+                            <li>Export results as CSV, JSON, or PDF</li>
+                            <li>Save frequently used filter combinations</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <!-- Current Index Status -->
+                <div class="glass-card" style="margin-top: 2rem; padding: 1.5rem;">
+                    <h3>📈 Search Index Status</h3>
+                    <div id="index-status" style="margin-top: 1rem;">
+                        <!-- Index status will be displayed here -->
+                    </div>
+                </div>
+                
+                <!-- Search History -->
+                <div class="glass-card" style="margin-top: 2rem; padding: 1.5rem;">
+                    <h3>🕐 Recent Searches</h3>
+                    <div id="recent-searches" style="margin-top: 1rem;">
+                        <!-- Recent searches will be displayed here -->
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+    
+    <script src="js/app-config.js"></script>
+    <script src="js/notification-system.js" type="module"></script>
+    <script src="js/search-system.js" type="module"></script>
+    
+    <script>
+        // Test Functions
+        function testSearch(query) {
+            const input = document.getElementById('global-search-input');
+            if (input) {
+                input.value = query;
+                window.searchSystem.performSearch(query);
+            }
+        }
+        
+        function openAdvancedSearch() {
+            window.searchSystem.openAdvancedFilter();
+        }
+        
+        function addSampleLeads() {
+            const sampleLeads = [
+                { id: 'lead_' + Date.now() + '_1', name: 'Alice Johnson', email: 'alice@example.com', phone: '555-1001', status: 'New', source: 'Website' },
+                { id: 'lead_' + Date.now() + '_2', name: 'Bob Williams', email: 'bob@example.com', phone: '555-1002', status: 'Contacted', source: 'Phone' },
+                { id: 'lead_' + Date.now() + '_3', name: 'Carol Davis', email: 'carol@example.com', phone: '555-1003', status: 'Qualified', source: 'Referral' },
+                { id: 'lead_' + Date.now() + '_4', name: 'David Miller', email: 'david@example.com', phone: '555-1004', status: 'Converted', source: 'Email' },
+                { id: 'lead_' + Date.now() + '_5', name: 'Emma Wilson', email: 'emma@example.com', phone: '555-1005', status: 'Lost', source: 'Social Media' }
+            ];
+            
+            const existingLeads = window.searchSystem.searchIndex.get('leads') || [];
+            window.searchSystem.searchIndex.set('leads', [...existingLeads, ...sampleLeads]);
+            
+            updateIndexStatus();
+            showToast('Added 5 sample leads', 'success');
+        }
+        
+        function addSampleAgents() {
+            const sampleAgents = [
+                { id: 'agent_' + Date.now() + '_1', name: 'Frank Thomas', email: 'frank@company.com', role: 'Admin', status: 'Online' },
+                { id: 'agent_' + Date.now() + '_2', name: 'Grace Lee', email: 'grace@company.com', role: 'Agent', status: 'Online' },
+                { id: 'agent_' + Date.now() + '_3', name: 'Henry Chen', email: 'henry@company.com', role: 'Agent', status: 'Away' },
+                { id: 'agent_' + Date.now() + '_4', name: 'Iris Parker', email: 'iris@company.com', role: 'Viewer', status: 'Offline' }
+            ];
+            
+            const existingAgents = window.searchSystem.searchIndex.get('agents') || [];
+            window.searchSystem.searchIndex.set('agents', [...existingAgents, ...sampleAgents]);
+            
+            updateIndexStatus();
+            showToast('Added 4 sample agents', 'success');
+        }
+        
+        function addSampleVendors() {
+            const sampleVendors = [
+                { id: 'vendor_' + Date.now() + '_1', name: 'Tech Solutions Ltd', code: 'TECH001', email: 'info@techsolutions.com', status: 'Active', tier: 'Premium' },
+                { id: 'vendor_' + Date.now() + '_2', name: 'Marketing Pro Inc', code: 'MARK002', email: 'contact@marketingpro.com', status: 'Active', tier: 'Standard' },
+                { id: 'vendor_' + Date.now() + '_3', name: 'Lead Gen Masters', code: 'LEAD003', email: 'hello@leadgen.com', status: 'Pending', tier: 'Basic' }
+            ];
+            
+            const existingVendors = window.searchSystem.searchIndex.get('vendors') || [];
+            window.searchSystem.searchIndex.set('vendors', [...existingVendors, ...sampleVendors]);
+            
+            updateIndexStatus();
+            showToast('Added 3 sample vendors', 'success');
+        }
+        
+        function clearSearchIndex() {
+            if (!confirm('Clear all search index data?')) return;
+            
+            window.searchSystem.searchIndex.clear();
+            window.searchSystem.buildSearchIndex(); // Rebuild with defaults
+            
+            updateIndexStatus();
+            showToast('Search index cleared', 'warning');
+        }
+        
+        function updateIndexStatus() {
+            const statusDiv = document.getElementById('index-status');
+            if (!statusDiv) return;
+            
+            let html = '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">';
+            
+            for (const [type, items] of window.searchSystem.searchIndex) {
+                const config = window.searchSystem.searchConfig[type];
+                html += `
+                    <div style="background: var(--bg-primary); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <span style="font-size: 1.5rem;">${config?.icon || '📄'}</span>
+                            <strong>${config?.displayName || type}</strong>
+                        </div>
+                        <div style="font-size: 2rem; font-weight: 600; color: var(--primary);">${items.length}</div>
+                        <div style="font-size: 0.875rem; color: var(--text-secondary);">records indexed</div>
+                    </div>
+                `;
+            }
+            
+            html += '</div>';
+            statusDiv.innerHTML = html;
+        }
+        
+        function updateRecentSearches() {
+            const recentDiv = document.getElementById('recent-searches');
+            if (!recentDiv || !window.searchSystem) return;
+            
+            const searches = window.searchSystem.searchHistory.slice(0, 5);
+            
+            if (searches.length === 0) {
+                recentDiv.innerHTML = '<p style="color: var(--text-secondary);">No recent searches</p>';
+                return;
+            }
+            
+            let html = '<div style="display: flex; flex-direction: column; gap: 0.5rem;">';
+            searches.forEach(search => {
+                html += `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--bg-primary); border-radius: 6px; cursor: pointer;"
+                         onclick="testSearch('${search.query}')">
+                        <span>🔍 ${search.query}</span>
+                        <span style="font-size: 0.75rem; color: var(--text-secondary);">
+                            ${getTimeAgo(search.timestamp)}
+                        </span>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            
+            recentDiv.innerHTML = html;
+        }
+        
+        function getTimeAgo(timestamp) {
+            const now = new Date();
+            const date = new Date(timestamp);
+            const seconds = Math.floor((now - date) / 1000);
+            
+            if (seconds < 60) return 'just now';
+            if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+            if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+            return `${Math.floor(seconds / 86400)}d ago`;
+        }
+        
+        function showToast(message, type) {
+            if (window.notificationSystem) {
+                window.notificationSystem.showToast({
+                    type: 'system_alert',
+                    title: 'Search Test',
+                    message: message
+                });
+            } else {
+                console.log(`[${type}] ${message}`);
+            }
+        }
+        
+        // Initialize on load
+        setTimeout(() => {
+            updateIndexStatus();
+            updateRecentSearches();
+            
+            // Update recent searches periodically
+            setInterval(updateRecentSearches, 5000);
+        }, 1000);
+    </script>
+</body>
+</html> 
