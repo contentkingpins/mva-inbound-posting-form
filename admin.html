@@ -639,5 +639,52 @@ console.log('🔧 Configuration injected at build time - no external loading nee
             });
         });
     </script>
+    
+    <!-- Error Tracking & Monitoring System -->
+    <script src="js/error-tracker.js"></script>
+    <script src="js/feedback-widget.js"></script>
+    <script src="js/health-monitor.js"></script>
+    <script src="js/analytics-tracker.js"></script>
+    <script>
+        // Initialize monitoring systems
+        console.log('🚀 Initializing monitoring systems...');
+        
+        // Track admin-specific features
+        if (window.analyticsTracker) {
+            window.analyticsTracker.trackFeature('admin_dashboard_loaded');
+            
+            // Track admin actions
+            document.addEventListener('click', (e) => {
+                const adminAction = e.target.closest('[data-admin-action]');
+                if (adminAction) {
+                    window.analyticsTracker.trackFeature(
+                        `admin_action_${adminAction.dataset.adminAction}`
+                    );
+                }
+            });
+        }
+        
+        // Monitor admin-specific health metrics
+        if (window.healthMonitor) {
+            window.healthMonitor.addEventListener('healthUpdate', (data) => {
+                // Update admin UI with health status if needed
+                if (data.overall === 'down' || data.overall === 'degraded') {
+                    console.warn('⚠️ System health issue detected:', data);
+                }
+            });
+        }
+        
+        // Enhanced error tracking for admin
+        if (window.errorTracker) {
+            window.errorTracker.addEventListener('error', (error) => {
+                // Critical errors in admin should be more visible
+                if (error.severity === 'critical') {
+                    console.error('🚨 Critical error in admin dashboard:', error);
+                }
+            });
+        }
+        
+        console.log('✅ All monitoring systems initialized');
+    </script>
 </body>
 </html> 

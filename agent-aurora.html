@@ -190,5 +190,57 @@
 
     <!-- Professional Dashboard JS -->
     <script src="agent-aurora.js"></script>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/modules/aurora-design.js"></script>
+    <script src="js/modules/utils.js"></script>
+    <script src="js/modules/api.js"></script>
+    <script src="js/modules/navigation.js"></script>
+    <script src="js/modules/lead-management.js"></script>
+    <script src="js/modules/add-lead.js"></script>
+    <script src="agent-analytics.js"></script>
+    <script src="agent-aurora.js"></script>
+    
+    <!-- Error Tracking & Monitoring System -->
+    <script src="js/error-tracker.js"></script>
+    <script src="js/feedback-widget.js"></script>
+    <script src="js/health-monitor.js"></script>
+    <script src="js/analytics-tracker.js"></script>
+    <script>
+        // Initialize monitoring systems for agent dashboard
+        console.log('🚀 Initializing agent monitoring...');
+        
+        // Track agent-specific features
+        if (window.analyticsTracker) {
+            window.analyticsTracker.trackFeature('agent_dashboard_loaded');
+            
+            // Track lead interactions
+            document.addEventListener('click', (e) => {
+                const leadAction = e.target.closest('[data-lead-action]');
+                if (leadAction) {
+                    window.analyticsTracker.trackFeature(
+                        `lead_action_${leadAction.dataset.leadAction}`,
+                        { leadId: leadAction.dataset.leadId }
+                    );
+                }
+            });
+            
+            // Track conversion funnel
+            window.trackLeadConversion = (step, leadId) => {
+                window.analyticsTracker.trackConversion(step, null, { leadId });
+            };
+        }
+        
+        // Monitor agent-specific metrics
+        if (window.healthMonitor) {
+            // Agents should see simplified health status
+            window.healthMonitor.addEventListener('performanceIssue', (issue) => {
+                console.warn('⚡ Performance issue:', issue);
+            });
+        }
+        
+        console.log('✅ Agent monitoring initialized');
+    </script>
 </body>
 </html> 

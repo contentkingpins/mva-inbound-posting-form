@@ -413,5 +413,66 @@ console.log('🔧 Configuration injected at build time - no external loading nee
     <div class="footer">
         &copy; 2023 Claim Connectors. All rights reserved.
     </div>
+
+    <!-- Scripts -->
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1062.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.0.0/dist/amazon-cognito-identity.min.js"></script>
+    <script src="login-init.js"></script>
+    
+    <!-- Error Tracking & Monitoring System -->
+    <script src="js/error-tracker.js"></script>
+    <script src="js/analytics-tracker.js"></script>
+    <script>
+        // Initialize minimal monitoring for login page
+        console.log('🔐 Initializing login monitoring...');
+        
+        // Track login attempts
+        if (window.analyticsTracker) {
+            // Track page load
+            window.analyticsTracker.trackFeature('login_page_loaded');
+            
+            // Track login form submission
+            const loginForm = document.getElementById('login-form');
+            if (loginForm) {
+                loginForm.addEventListener('submit', () => {
+                    window.analyticsTracker.track({
+                        category: 'conversion',
+                        action: 'login_attempt',
+                        metadata: {
+                            timestamp: Date.now()
+                        }
+                    });
+                });
+            }
+            
+            // Track password reset requests
+            document.addEventListener('click', (e) => {
+                if (e.target.id === 'forgot-password-link') {
+                    window.analyticsTracker.trackFeature('forgot_password_clicked');
+                }
+            });
+        }
+        
+        // Enhanced error tracking for authentication
+        if (window.errorTracker) {
+            // Override console.error to catch auth errors
+            const originalError = console.error;
+            console.error = function(...args) {
+                originalError.apply(console, args);
+                
+                // Check if it's an auth error
+                const errorStr = args.join(' ');
+                if (errorStr.includes('auth') || errorStr.includes('login') || errorStr.includes('cognito')) {
+                    window.errorTracker.captureError({
+                        message: errorStr,
+                        type: 'authentication',
+                        severity: 'high'
+                    });
+                }
+            };
+        }
+        
+        console.log('✅ Login monitoring initialized');
+    </script>
 </body>
 </html> 
