@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Visualization Test - Dark Mode</title>
+    <link rel="stylesheet" href="admin.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    
+    <!-- For funnel chart export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <style>
+        body {
+            background: #1a1a1a;
+            color: #ffffff;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .test-header {
+            background: #2a2a2a;
+            padding: 2rem;
+            border-bottom: 1px solid #3a3a3a;
+        }
+        
+        .test-header h1 {
+            margin: 0;
+            font-size: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .test-container {
+            padding: 2rem;
+        }
+        
+        .test-controls {
+            background: #2a2a2a;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .test-section {
+            background: #2a2a2a;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            border: 1px solid #3a3a3a;
+        }
+        
+        .test-section h2 {
+            margin: 0 0 1rem 0;
+            color: #3b82f6;
+        }
+        
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+        
+        .test-card {
+            background: #1a1a1a;
+            padding: 1rem;
+            border-radius: 4px;
+            border: 1px solid #3a3a3a;
+        }
+        
+        .test-card h3 {
+            margin: 0 0 0.5rem 0;
+            color: #10b981;
+        }
+        
+        .test-status {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .test-status.success {
+            background: #10b98120;
+            color: #10b981;
+        }
+        
+        .test-status.error {
+            background: #ef444420;
+            color: #ef4444;
+        }
+        
+        .test-status.warning {
+            background: #f59e0b20;
+            color: #f59e0b;
+        }
+        
+        .test-log {
+            background: #1a1a1a;
+            padding: 1rem;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.875rem;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #3a3a3a;
+        }
+        
+        .log-entry {
+            margin-bottom: 0.5rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .log-time {
+            color: #666666;
+        }
+        
+        .log-message {
+            color: #b0b0b0;
+        }
+        
+        .log-message.success {
+            color: #10b981;
+        }
+        
+        .log-message.error {
+            color: #ef4444;
+        }
+        
+        .log-message.info {
+            color: #3b82f6;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-header">
+        <h1>📊 Data Visualization Test Suite</h1>
+        <p>Testing advanced data visualization features in dark mode</p>
+    </div>
+    
+    <div class="test-container">
+        <!-- Test Controls -->
+        <div class="test-controls">
+            <button class="btn btn-primary" onclick="runAllTests()">🚀 Run All Tests</button>
+            <button class="btn btn-secondary" onclick="testChartCreation()">📈 Test Charts</button>
+            <button class="btn btn-secondary" onclick="testFilters()">🔍 Test Filters</button>
+            <button class="btn btn-secondary" onclick="testRealTimeUpdates()">🔄 Test Updates</button>
+            <button class="btn btn-secondary" onclick="testExport()">📤 Test Export</button>
+            <button class="btn btn-danger" onclick="clearTests()">🗑️ Clear All</button>
+        </div>
+        
+        <!-- Test Status -->
+        <div class="test-section">
+            <h2>Test Status</h2>
+            <div class="test-grid">
+                <div class="test-card">
+                    <h3>Module Initialization</h3>
+                    <p id="init-status">
+                        <span class="test-status warning">Pending</span>
+                    </p>
+                </div>
+                <div class="test-card">
+                    <h3>Chart.js Integration</h3>
+                    <p id="chartjs-status">
+                        <span class="test-status warning">Pending</span>
+                    </p>
+                </div>
+                <div class="test-card">
+                    <h3>Dark Mode Theme</h3>
+                    <p id="theme-status">
+                        <span class="test-status warning">Pending</span>
+                    </p>
+                </div>
+                <div class="test-card">
+                    <h3>Data Generation</h3>
+                    <p id="data-status">
+                        <span class="test-status warning">Pending</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Visualization Container -->
+        <div class="test-section">
+            <h2>Visualization Output</h2>
+            <div id="visualization-container">
+                <!-- Data visualization will be rendered here -->
+            </div>
+        </div>
+        
+        <!-- Test Log -->
+        <div class="test-section">
+            <h2>Test Log</h2>
+            <div class="test-log" id="test-log">
+                <div class="log-entry">
+                    <span class="log-time">00:00:00</span>
+                    <span class="log-message">Test suite initialized</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Include the data visualization module -->
+    <script src="js/data-visualization.js" type="module"></script>
+    
+    <script>
+        // Test logging
+        function log(message, type = 'info') {
+            const logContainer = document.getElementById('test-log');
+            const time = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `
+                <span class="log-time">${time}</span>
+                <span class="log-message ${type}">${message}</span>
+            `;
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        // Update test status
+        function updateStatus(testId, status, message = '') {
+            const statusElement = document.getElementById(testId);
+            if (statusElement) {
+                const statusClass = status === 'pass' ? 'success' : status === 'fail' ? 'error' : 'warning';
+                statusElement.innerHTML = `<span class="test-status ${statusClass}">${status.toUpperCase()}</span> ${message}`;
+            }
+        }
+        
+        // Test module initialization
+        function testInitialization() {
+            log('Testing module initialization...', 'info');
+            
+            if (window.dataVisualization) {
+                updateStatus('init-status', 'pass', 'Module loaded successfully');
+                log('✅ Data visualization module initialized', 'success');
+                return true;
+            } else {
+                updateStatus('init-status', 'fail', 'Module not found');
+                log('❌ Data visualization module not found', 'error');
+                return false;
+            }
+        }
+        
+        // Test Chart.js integration
+        function testChartJS() {
+            log('Testing Chart.js integration...', 'info');
+            
+            if (typeof Chart !== 'undefined') {
+                updateStatus('chartjs-status', 'pass', 'Chart.js loaded');
+                log('✅ Chart.js library loaded', 'success');
+                return true;
+            } else {
+                updateStatus('chartjs-status', 'fail', 'Chart.js not found');
+                log('❌ Chart.js library not found', 'error');
+                return false;
+            }
+        }
+        
+        // Test dark mode theme
+        function testDarkMode() {
+            log('Testing dark mode theme...', 'info');
+            
+            if (window.dataVisualization && window.dataVisualization.darkTheme) {
+                const theme = window.dataVisualization.darkTheme;
+                if (theme.background === '#1a1a1a' && theme.text.primary === '#ffffff') {
+                    updateStatus('theme-status', 'pass', 'Dark theme configured');
+                    log('✅ Dark mode theme properly configured', 'success');
+                    return true;
+                }
+            }
+            
+            updateStatus('theme-status', 'fail', 'Theme not configured');
+            log('❌ Dark mode theme not properly configured', 'error');
+            return false;
+        }
+        
+        // Test chart creation
+        function testChartCreation() {
+            log('Testing chart creation...', 'info');
+            
+            if (!window.dataVisualization) {
+                log('❌ Module not initialized', 'error');
+                return;
+            }
+            
+            try {
+                // Test creating different chart types
+                const chartTypes = ['line', 'bar', 'pie', 'doughnut'];
+                
+                chartTypes.forEach(type => {
+                    const config = {
+                        id: `test-${type}-chart`,
+                        type: type,
+                        title: `Test ${type.charAt(0).toUpperCase() + type.slice(1)} Chart`,
+                        data: window.dataVisualization.generateMockData(type === 'pie' || type === 'doughnut' ? 'sources' : 'revenue')
+                    };
+                    
+                    window.dataVisualization.createChart(config);
+                    log(`✅ Created ${type} chart`, 'success');
+                });
+                
+                // Test funnel chart
+                window.dataVisualization.createFunnelChart({
+                    id: 'test-funnel',
+                    title: 'Test Conversion Funnel',
+                    data: [
+                        { label: 'Visitors', value: 10000 },
+                        { label: 'Leads', value: 2500 },
+                        { label: 'Qualified', value: 750 },
+                        { label: 'Customers', value: 150 }
+                    ]
+                });
+                log('✅ Created funnel chart', 'success');
+                
+                updateStatus('data-status', 'pass', 'Charts created successfully');
+            } catch (error) {
+                log(`❌ Error creating charts: ${error.message}`, 'error');
+                updateStatus('data-status', 'fail', error.message);
+            }
+        }
+        
+        // Test filters
+        function testFilters() {
+            log('Testing filter functionality...', 'info');
+            
+            if (!window.dataVisualization) {
+                log('❌ Module not initialized', 'error');
+                return;
+            }
+            
+            try {
+                window.dataVisualization.applyFilters();
+                log('✅ Filters applied successfully', 'success');
+            } catch (error) {
+                log(`❌ Error applying filters: ${error.message}`, 'error');
+            }
+        }
+        
+        // Test real-time updates
+        function testRealTimeUpdates() {
+            log('Testing real-time updates...', 'info');
+            
+            if (!window.dataVisualization) {
+                log('❌ Module not initialized', 'error');
+                return;
+            }
+            
+            log('✅ Real-time updates are running (check charts for changes)', 'success');
+        }
+        
+        // Test export functionality
+        function testExport() {
+            log('Testing export functionality...', 'info');
+            
+            if (!window.dataVisualization) {
+                log('❌ Module not initialized', 'error');
+                return;
+            }
+            
+            try {
+                window.dataVisualization.exportAll();
+                log('✅ Export functionality triggered', 'success');
+            } catch (error) {
+                log(`❌ Error exporting data: ${error.message}`, 'error');
+            }
+        }
+        
+        // Run all tests
+        function runAllTests() {
+            log('🚀 Running all tests...', 'info');
+            
+            // Run tests in sequence
+            const tests = [
+                testInitialization,
+                testChartJS,
+                testDarkMode
+            ];
+            
+            let allPassed = true;
+            tests.forEach(test => {
+                if (!test()) {
+                    allPassed = false;
+                }
+            });
+            
+            if (allPassed) {
+                testChartCreation();
+                log('✅ All tests completed', 'success');
+            } else {
+                log('⚠️ Some tests failed', 'error');
+            }
+        }
+        
+        // Clear all tests
+        function clearTests() {
+            log('🗑️ Clearing all tests...', 'info');
+            
+            if (window.dataVisualization) {
+                // Clear all charts
+                window.dataVisualization.charts.forEach((chart, chartId) => {
+                    window.dataVisualization.removeChart(chartId);
+                });
+                log('✅ All charts cleared', 'success');
+            }
+            
+            // Reset status
+            ['init-status', 'chartjs-status', 'theme-status', 'data-status'].forEach(id => {
+                updateStatus(id, 'pending', '');
+            });
+        }
+        
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            log('📊 Data Visualization Test Suite Ready', 'info');
+            
+            // Auto-run basic tests
+            setTimeout(() => {
+                testInitialization();
+                testChartJS();
+                testDarkMode();
+            }, 1000);
+        });
+    </script>
+</body>
+</html> 

@@ -53,6 +53,18 @@ class MockAPI {
             return this.mockFileUpload(url, options);
         }
 
+        // Notification endpoints
+        if (url === '/api/notifications/latest') {
+            if (method === 'GET') {
+                return this.mockNotificationsLatest();
+            }
+        }
+        if (url === '/api/notifications/mark-read') {
+            if (method === 'POST') {
+                return this.mockMarkNotificationsRead(body);
+            }
+        }
+
         return null; // Let original fetch handle it
     }
 
@@ -166,6 +178,39 @@ class MockAPI {
             uploadedAt: new Date().toISOString(),
             url: `https://example.com/documents/doc_${Date.now()}.pdf`
         });
+    }
+
+    async mockNotificationsLatest() {
+        return {
+            notifications: [
+                {
+                    id: 'notif_1',
+                    type: 'lead_assigned',
+                    title: 'New Lead Assigned',
+                    message: 'A high-priority lead has been assigned to you',
+                    timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+                    read: false,
+                    priority: 'high',
+                    data: { leadId: 'lead_123' }
+                },
+                {
+                    id: 'notif_2',
+                    type: 'system_update',
+                    title: 'System Update',
+                    message: 'New features have been added to the dashboard',
+                    timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+                    read: true,
+                    priority: 'low'
+                }
+            ],
+            unreadCount: 1,
+            timestamp: new Date().toISOString()
+        };
+    }
+
+    async mockMarkNotificationsRead(body) {
+        console.log('Marking notifications as read:', body);
+        return { success: true, updated: body.notificationIds?.length || 0 };
     }
 
     // Helper Methods

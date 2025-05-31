@@ -1,0 +1,398 @@
+/* Keyboard Shortcuts System Styles */
+
+/* Shortcut Feedback Toast */
+.shortcut-feedback {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    z-index: 10000;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.shortcut-feedback.show {
+    transform: translateX(-50%) translateY(0);
+}
+
+.shortcut-feedback.hide {
+    transform: translateX(-50%) translateY(100px);
+    opacity: 0;
+}
+
+.shortcut-feedback-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.shortcut-feedback-keys {
+    background: var(--primary);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-family: 'Fira Code', 'Courier New', monospace;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.shortcut-feedback-description {
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+/* Keyboard Shortcuts Modal */
+.keyboard-shortcuts-modal .modal {
+    max-width: 700px;
+    width: 90%;
+}
+
+.keyboard-shortcuts-content .modal-header-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.shortcuts-search {
+    margin-bottom: 20px;
+}
+
+.shortcuts-search .form-input {
+    width: 100%;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.shortcuts-search .form-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
+}
+
+/* Shortcuts List */
+.shortcuts-list {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.shortcuts-category {
+    margin-bottom: 30px;
+}
+
+.shortcuts-category:last-child {
+    margin-bottom: 0;
+}
+
+.shortcuts-category-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.shortcuts-items {
+    display: grid;
+    gap: 8px;
+}
+
+.shortcut-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.shortcut-item:hover {
+    background: var(--bg-hover);
+    transform: translateX(-2px);
+}
+
+.shortcut-keys {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.shortcut-keys kbd {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-family: 'Fira Code', 'Courier New', monospace;
+    font-size: 12px;
+    color: var(--text-primary);
+    box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.2);
+    min-width: 28px;
+    text-align: center;
+    display: inline-block;
+}
+
+.shortcut-description {
+    color: var(--text-primary);
+    font-size: 14px;
+    flex: 1;
+    text-align: right;
+}
+
+/* Shortcuts Footer */
+.shortcuts-footer-info {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.shortcuts-footer-info kbd {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-family: 'Fira Code', 'Courier New', monospace;
+    font-size: 12px;
+}
+
+/* Customize Shortcuts Modal */
+.shortcuts-customize-modal .modal {
+    max-width: 800px;
+}
+
+.customize-shortcuts-list {
+    max-height: 500px;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.customize-category {
+    margin-bottom: 30px;
+}
+
+.customize-category h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.customize-shortcut-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    transition: all 0.2s;
+}
+
+.customize-shortcut-item:hover {
+    background: var(--bg-hover);
+}
+
+.customize-shortcut-info {
+    flex: 1;
+}
+
+.customize-shortcut-info label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.customize-shortcut-info input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.customize-shortcut-keys {
+    width: 200px;
+}
+
+.customize-shortcut-keys .form-input {
+    width: 100%;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-family: 'Fira Code', 'Courier New', monospace;
+    font-size: 13px;
+    text-align: center;
+}
+
+.customize-shortcut-keys .form-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
+}
+
+/* Shortcut Indicators on Buttons */
+.shortcut-indicator {
+    margin-left: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-family: 'Fira Code', 'Courier New', monospace;
+    font-size: 11px;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+button:hover .shortcut-indicator {
+    opacity: 1;
+}
+
+/* Sequence Indicator */
+.sequence-indicator {
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--primary);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-family: 'Fira Code', 'Courier New', monospace;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    z-index: 10000;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: translateX(-50%) scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: translateX(-50%) scale(1.05);
+        opacity: 0.9;
+    }
+    100% {
+        transform: translateX(-50%) scale(1);
+        opacity: 1;
+    }
+}
+
+/* Scrollbar for modals */
+.shortcuts-list::-webkit-scrollbar,
+.customize-shortcuts-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.shortcuts-list::-webkit-scrollbar-track,
+.customize-shortcuts-list::-webkit-scrollbar-track {
+    background: var(--bg-primary);
+    border-radius: 4px;
+}
+
+.shortcuts-list::-webkit-scrollbar-thumb,
+.customize-shortcuts-list::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+.shortcuts-list::-webkit-scrollbar-thumb:hover,
+.customize-shortcuts-list::-webkit-scrollbar-thumb:hover {
+    background: var(--text-tertiary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .keyboard-shortcuts-modal .modal {
+        width: 95%;
+    }
+    
+    .shortcuts-list {
+        max-height: 300px;
+    }
+    
+    .shortcut-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .shortcut-description {
+        text-align: left;
+    }
+    
+    .customize-shortcut-item {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+    
+    .customize-shortcut-keys {
+        width: 100%;
+    }
+}
+
+/* Context-specific styling */
+table tr.selected {
+    background: var(--bg-hover) !important;
+    outline: 2px solid var(--primary);
+    outline-offset: -2px;
+}
+
+/* Disabled state */
+.shortcuts-disabled-indicator {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: var(--warning);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    z-index: 9999;
+}
+
+.shortcuts-disabled-indicator i {
+    font-size: 16px;
+}
+
+/* Help text styling */
+.shortcut-help-text {
+    display: inline-block;
+    margin-left: 8px;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.shortcut-help-text kbd {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    padding: 1px 4px;
+    font-family: 'Fira Code', 'Courier New', monospace;
+    font-size: 11px;
+} 

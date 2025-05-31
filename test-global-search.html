@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Search Test - MVA Lead Management</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/unified-dark-theme.css">
+    <link rel="stylesheet" href="css/unified-features.css">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* Test page specific styles */
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .test-header {
+            background: var(--glass-bg);
+            backdrop-filter: var(--backdrop-blur-heavy);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-xl);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--glass-shadow);
+        }
+        
+        .test-title {
+            font-size: 2rem;
+            font-weight: var(--font-bold);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 0 0 0.5rem 0;
+        }
+        
+        .test-description {
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+        }
+        
+        .search-trigger-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.875rem 1.5rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 1rem;
+            font-weight: var(--font-medium);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            box-shadow: 0 4px 12px var(--primary-glow);
+        }
+        
+        .search-trigger-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px var(--primary-glow);
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .feature-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            backdrop-filter: var(--backdrop-blur);
+            box-shadow: var(--glass-shadow);
+            transition: all var(--transition-base);
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--glass-shadow-hover);
+            border-color: var(--primary);
+        }
+        
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+            margin-bottom: 1rem;
+        }
+        
+        .feature-title {
+            font-size: 1.125rem;
+            font-weight: var(--font-semibold);
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .feature-description {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+        
+        .demo-section {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .demo-title {
+            font-size: 1.5rem;
+            font-weight: var(--font-bold);
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+        }
+        
+        .demo-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .keyboard-shortcut {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+        }
+        
+        .keyboard-shortcut kbd {
+            background: var(--bg-primary);
+            padding: 0.25rem 0.5rem;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--glass-border);
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            box-shadow: 0 2px 0 var(--glass-border);
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1 class="test-title">Global Search System</h1>
+            <p class="test-description">
+                Experience the power of our command palette style search. Find anything instantly with fuzzy matching,
+                quick actions, and intelligent categorization.
+            </p>
+            <button class="search-trigger-btn" onclick="globalSearch.open()">
+                <i class="fas fa-search"></i>
+                Open Global Search
+            </button>
+            <div class="keyboard-shortcut">
+                <span>or press</span>
+                <kbd>Ctrl</kbd> + <kbd>K</kbd>
+            </div>
+        </div>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <h3 class="feature-title">Lightning Fast</h3>
+                <p class="feature-description">
+                    Instant search results as you type with intelligent fuzzy matching and relevance scoring.
+                </p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-layer-group"></i>
+                </div>
+                <h3 class="feature-title">Categorized Results</h3>
+                <p class="feature-description">
+                    Results are organized by type: Leads, Actions, Pages, and Help for easy navigation.
+                </p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-history"></i>
+                </div>
+                <h3 class="feature-title">Search History</h3>
+                <p class="feature-description">
+                    Recently accessed items are saved for quick access. Your workflow, remembered.
+                </p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-keyboard"></i>
+                </div>
+                <h3 class="feature-title">Keyboard Navigation</h3>
+                <p class="feature-description">
+                    Navigate entirely with keyboard. Arrow keys to move, Enter to select, Escape to close.
+                </p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-plug"></i>
+                </div>
+                <h3 class="feature-title">Extensible</h3>
+                <p class="feature-description">
+                    Add custom search providers to integrate with any data source or service.
+                </p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-magic"></i>
+                </div>
+                <h3 class="feature-title">Smart Actions</h3>
+                <p class="feature-description">
+                    Quick actions for common tasks like creating leads, exporting data, and more.
+                </p>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2 class="demo-title">Try These Searches</h2>
+            <div class="demo-actions">
+                <button class="btn btn-secondary" onclick="demoSearch('john')">
+                    Search for "john"
+                </button>
+                <button class="btn btn-secondary" onclick="demoSearch('export')">
+                    Search for "export"
+                </button>
+                <button class="btn btn-secondary" onclick="demoSearch('settings')">
+                    Search for "settings"
+                </button>
+                <button class="btn btn-secondary" onclick="demoSearch('dashboard')">
+                    Search for "dashboard"
+                </button>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2 class="demo-title">Add Custom Search Provider</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                Developers can easily add custom search providers. Here's an example:
+            </p>
+            <pre style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-md); overflow-x: auto;">
+<code style="color: var(--text-primary); font-family: var(--font-mono); font-size: 0.875rem;">// Register a custom search provider
+globalSearch.registerProvider('products', {
+    name: 'Products',
+    icon: 'fas fa-box',
+    search: async (query) => {
+        const products = await fetchProducts(query);
+        return products.map(product => ({
+            id: `product-${product.id}`,
+            title: product.name,
+            subtitle: `$${product.price}`,
+            icon: 'fas fa-box',
+            category: 'Products',
+            action: () => navigateToProduct(product.id)
+        }));
+    }
+});</code></pre>
+            <button class="btn btn-primary" onclick="addCustomProvider()">
+                <i class="fas fa-plus"></i> Add Product Search
+            </button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/global-search.js"></script>
+    <script>
+        // Demo functions
+        function demoSearch(query) {
+            globalSearch.open();
+            setTimeout(() => {
+                globalSearch.searchInput.value = query;
+                globalSearch.handleSearch(query);
+            }, 300);
+        }
+
+        // Add custom provider example
+        function addCustomProvider() {
+            // Register products provider
+            globalSearch.registerProvider('products', {
+                name: 'Products',
+                icon: 'fas fa-box',
+                search: async (query) => {
+                    // Mock product data
+                    const products = [
+                        { id: 1, name: 'Premium Widget', price: 99.99, sku: 'PW-001' },
+                        { id: 2, name: 'Standard Widget', price: 49.99, sku: 'SW-001' },
+                        { id: 3, name: 'Basic Widget', price: 19.99, sku: 'BW-001' },
+                        { id: 4, name: 'Enterprise Suite', price: 999.99, sku: 'ES-001' }
+                    ];
+                    
+                    return products
+                        .filter(product => 
+                            product.name.toLowerCase().includes(query.toLowerCase()) ||
+                            product.sku.toLowerCase().includes(query.toLowerCase())
+                        )
+                        .map(product => ({
+                            id: `product-${product.id}`,
+                            title: product.name,
+                            subtitle: `$${product.price} • SKU: ${product.sku}`,
+                            icon: 'fas fa-box',
+                            category: 'Products',
+                            action: () => {
+                                console.log('Navigate to product:', product);
+                                alert(`Product selected: ${product.name}`);
+                            }
+                        }));
+                }
+            });
+            
+            alert('Product search provider added! Try searching for "widget"');
+        }
+
+        // Show tip on load
+        setTimeout(() => {
+            console.log('%c💡 Tip: Press Ctrl+K (or Cmd+K on Mac) to open search anytime!', 
+                       'background: #6366f1; color: white; padding: 8px 16px; border-radius: 4px; font-weight: bold;');
+        }, 1000);
+    </script>
+</body>
+</html> 

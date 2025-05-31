@@ -25,6 +25,14 @@
     <link rel="icon" type="image/png" sizes="32x32" href="./images/claim_connectors_blue_transparent_150.png">
     <link rel="icon" type="image/png" sizes="16x16" href="./images/claim_connectors_blue_transparent_150.png")
     
+    <!-- Phase 1-3 Optimizations: Unified Dark Theme and Features -->
+    <link rel="stylesheet" href="css/unified-dark-theme.css">
+    <link rel="stylesheet" href="css/notification-center.css">
+    <link rel="stylesheet" href="css/data-export.css">
+    <link rel="stylesheet" href="css/keyboard-shortcuts.css">
+    <link rel="stylesheet" href="css/performance-monitor.css">
+    <link rel="stylesheet" href="css/virtual-scroll.css">
+    
     <!-- Preconnect to speed up external resources -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://cognito-idp.us-east-1.amazonaws.com">
@@ -80,6 +88,8 @@ console.log('🔧 Configuration injected at build time - no external loading nee
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <!-- CountUp.js for number animations -->
     <script src="https://cdn.jsdelivr.net/npm/countup.js@2.6.2/dist/countUp.umd.js"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- Critical Path CSS - Inline for instant rendering -->
     <style>
@@ -581,8 +591,18 @@ console.log('🔧 Configuration injected at build time - no external loading nee
     <script src="js/modules/pagination.js"></script>
     <script src="js/modules/charts.js"></script>
     
-    <!-- Main application script -->
-    <script src="app.js?v=1.0.1"></script>
+    <!-- Phase 2-3 Feature Scripts -->
+    <script src="js/notification-center.js"></script>
+    <script src="js/data-export.js"></script>
+    <script src="js/keyboard-shortcuts.js"></script>
+    <script src="js/performance-monitor.js"></script>
+    <script src="js/virtual-scroll.js"></script>
+    <script src="js/global-search.js"></script>
+    <script src="js/data-visualization.js"></script>
+    <script src="js/service-worker-registration.js"></script>
+    
+    <!-- Main Application Script -->
+    <script src="app.js"></script>
     
     <!-- Version tracking for auto-updates -->
     <script src="version.js?v=1.0.1"></script>

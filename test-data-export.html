@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Export Module Test</title>
+    <link rel="stylesheet" href="css/unified-dark-theme.css">
+    <link rel="stylesheet" href="css/data-export.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            padding: 40px;
+        }
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .test-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+        .sample-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .sample-table th,
+        .sample-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .sample-table th {
+            background: var(--bg-primary);
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .sample-table tr:hover {
+            background: var(--bg-hover);
+        }
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        .test-btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .test-btn:hover {
+            background: var(--bg-hover);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .grid-item {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+        .grid-item-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+        .grid-item-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1>Data Export Module Test</h1>
+            <p class="text-secondary">Test various export functionalities and formats</p>
+        </div>
+
+        <!-- Sample Table Data -->
+        <div class="test-section">
+            <h2>Sample Table Data</h2>
+            <p>This table contains sample lead data that can be exported in various formats.</p>
+            
+            <table class="sample-table" id="leads-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Status</th>
+                        <th>Created Date</th>
+                        <th>Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>001</td>
+                        <td>John Doe</td>
+                        <td>john.doe@example.com</td>
+                        <td>(555) 123-4567</td>
+                        <td>Active</td>
+                        <td>2024-01-15</td>
+                        <td>$5,000</td>
+                    </tr>
+                    <tr>
+                        <td>002</td>
+                        <td>Jane Smith</td>
+                        <td>jane.smith@example.com</td>
+                        <td>(555) 234-5678</td>
+                        <td>Pending</td>
+                        <td>2024-01-16</td>
+                        <td>$7,500</td>
+                    </tr>
+                    <tr>
+                        <td>003</td>
+                        <td>Robert Johnson</td>
+                        <td>robert.j@example.com</td>
+                        <td>(555) 345-6789</td>
+                        <td>Active</td>
+                        <td>2024-01-17</td>
+                        <td>$3,200</td>
+                    </tr>
+                    <tr>
+                        <td>004</td>
+                        <td>Maria Garcia</td>
+                        <td>maria.g@example.com</td>
+                        <td>(555) 456-7890</td>
+                        <td>Converted</td>
+                        <td>2024-01-18</td>
+                        <td>$12,000</td>
+                    </tr>
+                    <tr>
+                        <td>005</td>
+                        <td>David Wilson</td>
+                        <td>david.w@example.com</td>
+                        <td>(555) 567-8901</td>
+                        <td>Active</td>
+                        <td>2024-01-19</td>
+                        <td>$8,900</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="action-buttons">
+                <button class="test-btn" onclick="exportTableData()">
+                    <i class="fas fa-file-export"></i> Export Table
+                </button>
+                <button class="test-btn" onclick="quickExportCSV()">
+                    <i class="fas fa-file-csv"></i> Quick CSV Export
+                </button>
+                <button class="test-btn" onclick="quickExportJSON()">
+                    <i class="fas fa-file-code"></i> Quick JSON Export
+                </button>
+            </div>
+        </div>
+
+        <!-- Grid Data -->
+        <div class="test-section">
+            <h2>Sample Grid Data</h2>
+            <p>Analytics data displayed in a grid format.</p>
+            
+            <div class="data-grid" id="analytics-grid">
+                <div class="grid-item" data-metric="total-leads" data-value="1,234">
+                    <div class="grid-item-value">1,234</div>
+                    <div class="grid-item-label">Total Leads</div>
+                </div>
+                <div class="grid-item" data-metric="conversion-rate" data-value="23.5">
+                    <div class="grid-item-value">23.5%</div>
+                    <div class="grid-item-label">Conversion Rate</div>
+                </div>
+                <div class="grid-item" data-metric="revenue" data-value="45678">
+                    <div class="grid-item-value">$45,678</div>
+                    <div class="grid-item-label">Total Revenue</div>
+                </div>
+                <div class="grid-item" data-metric="active-users" data-value="89">
+                    <div class="grid-item-value">89</div>
+                    <div class="grid-item-label">Active Users</div>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="test-btn" onclick="exportGridData()">
+                    <i class="fas fa-th"></i> Export Grid Data
+                </button>
+            </div>
+        </div>
+
+        <!-- Custom Data Export -->
+        <div class="test-section">
+            <h2>Custom Data Export</h2>
+            <p>Export custom JSON data with various options.</p>
+            
+            <div class="action-buttons">
+                <button class="test-btn" onclick="exportCustomData()">
+                    <i class="fas fa-database"></i> Export Custom Data
+                </button>
+                <button class="test-btn" onclick="exportLargeDataset()">
+                    <i class="fas fa-server"></i> Export Large Dataset (1000 rows)
+                </button>
+                <button class="test-btn" onclick="exportComplexData()">
+                    <i class="fas fa-project-diagram"></i> Export Complex Data
+                </button>
+            </div>
+        </div>
+
+        <!-- Export History -->
+        <div class="test-section">
+            <h2>Export Management</h2>
+            <p>View and manage your export history.</p>
+            
+            <div class="action-buttons">
+                <button class="test-btn" onclick="dataExport.showExportHistory()">
+                    <i class="fas fa-history"></i> View Export History
+                </button>
+                <button class="test-btn" onclick="toggleExportButton()">
+                    <i class="fas fa-toggle-on"></i> Toggle Export Button
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/data-export.js"></script>
+    <script>
+        // Sample data generators
+        function generateSampleLeads(count = 5) {
+            const firstNames = ['John', 'Jane', 'Robert', 'Maria', 'David', 'Lisa', 'Michael', 'Sarah'];
+            const lastNames = ['Doe', 'Smith', 'Johnson', 'Garcia', 'Wilson', 'Brown', 'Davis', 'Miller'];
+            const statuses = ['Active', 'Pending', 'Converted', 'Inactive'];
+            
+            const leads = [];
+            for (let i = 0; i < count; i++) {
+                leads.push({
+                    id: String(i + 1).padStart(3, '0'),
+                    name: `${firstNames[i % firstNames.length]} ${lastNames[i % lastNames.length]}`,
+                    email: `user${i + 1}@example.com`,
+                    phone: `(555) ${String(Math.floor(Math.random() * 900) + 100)}-${String(Math.floor(Math.random() * 9000) + 1000)}`,
+                    status: statuses[Math.floor(Math.random() * statuses.length)],
+                    createdDate: new Date(2024, 0, 15 + i).toISOString().split('T')[0],
+                    value: Math.floor(Math.random() * 20000) + 1000
+                });
+            }
+            return leads;
+        }
+
+        // Export functions
+        function exportTableData() {
+            // Extract data from the table
+            const table = document.getElementById('leads-table');
+            const data = dataExport.extractTableData(table);
+            
+            // Open export modal with the data
+            dataExport.openExportModal(data, {
+                filename: 'leads_table_export'
+            });
+        }
+
+        function quickExportCSV() {
+            const data = generateSampleLeads(5);
+            dataExport.quickExportCSV(data, 'quick_leads_export');
+        }
+
+        function quickExportJSON() {
+            const data = generateSampleLeads(5);
+            dataExport.quickExportJSON(data, 'quick_leads_export');
+        }
+
+        function exportGridData() {
+            // Extract data from grid
+            const grid = document.getElementById('analytics-grid');
+            const items = grid.querySelectorAll('.grid-item');
+            const data = [];
+            
+            items.forEach(item => {
+                data.push({
+                    metric: item.dataset.metric,
+                    value: item.dataset.value,
+                    label: item.querySelector('.grid-item-label').textContent
+                });
+            });
+            
+            dataExport.openExportModal(data, {
+                filename: 'analytics_grid_export'
+            });
+        }
+
+        function exportCustomData() {
+            const customData = [
+                {
+                    category: 'Sales',
+                    q1: 45000,
+                    q2: 52000,
+                    q3: 48000,
+                    q4: 61000,
+                    total: 206000
+                },
+                {
+                    category: 'Marketing',
+                    q1: 15000,
+                    q2: 18000,
+                    q3: 22000,
+                    q4: 25000,
+                    total: 80000
+                },
+                {
+                    category: 'Operations',
+                    q1: 30000,
+                    q2: 32000,
+                    q3: 35000,
+                    q4: 38000,
+                    total: 135000
+                }
+            ];
+            
+            dataExport.openExportModal(customData, {
+                filename: 'quarterly_report'
+            });
+        }
+
+        function exportLargeDataset() {
+            const largeData = generateSampleLeads(1000);
+            dataExport.openExportModal(largeData, {
+                filename: 'large_dataset'
+            });
+        }
+
+        function exportComplexData() {
+            const complexData = [
+                {
+                    id: 1,
+                    user: {
+                        name: 'John Doe',
+                        email: 'john@example.com',
+                        profile: {
+                            age: 30,
+                            location: 'New York'
+                        }
+                    },
+                    orders: [
+                        { id: 101, product: 'Widget A', quantity: 2, price: 29.99 },
+                        { id: 102, product: 'Widget B', quantity: 1, price: 49.99 }
+                    ],
+                    totalSpent: 109.97,
+                    lastActivity: new Date().toISOString()
+                },
+                {
+                    id: 2,
+                    user: {
+                        name: 'Jane Smith',
+                        email: 'jane@example.com',
+                        profile: {
+                            age: 28,
+                            location: 'Los Angeles'
+                        }
+                    },
+                    orders: [
+                        { id: 201, product: 'Widget C', quantity: 3, price: 19.99 }
+                    ],
+                    totalSpent: 59.97,
+                    lastActivity: new Date().toISOString()
+                }
+            ];
+            
+            dataExport.openExportModal(complexData, {
+                filename: 'complex_user_data'
+            });
+        }
+
+        function toggleExportButton() {
+            const btn = document.getElementById('global-export-button');
+            if (btn.style.display === 'none' || btn.style.display === '') {
+                btn.style.display = 'flex';
+                btn.onclick = () => exportTableData();
+            } else {
+                btn.style.display = 'none';
+            }
+        }
+
+        // Initialize with some export history
+        setTimeout(() => {
+            // Simulate some previous exports
+            if (dataExport.exportHistory.length === 0) {
+                dataExport.addToExportHistory({
+                    format: 'csv',
+                    filename: 'previous_export.csv',
+                    timestamp: new Date(Date.now() - 3600000),
+                    rowCount: 150,
+                    settings: { includeHeaders: true }
+                });
+                
+                dataExport.addToExportHistory({
+                    format: 'json',
+                    filename: 'analytics_data.json',
+                    timestamp: new Date(Date.now() - 7200000),
+                    rowCount: 75,
+                    settings: { includeMetadata: true }
+                });
+            }
+        }, 1000);
+    </script>
+</body>
+</html> 

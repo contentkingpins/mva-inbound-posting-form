@@ -1,0 +1,373 @@
+/* Virtual Scroll Styles */
+
+/* Base container */
+.virtual-scroll-viewport {
+    position: relative;
+    overflow-y: auto;
+    height: 100%;
+    background: var(--bg-primary);
+    
+    /* Smooth scrolling */
+    scroll-behavior: smooth;
+    
+    /* Custom scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) var(--bg-secondary);
+}
+
+.virtual-scroll-viewport::-webkit-scrollbar {
+    width: 12px;
+}
+
+.virtual-scroll-viewport::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+    border-radius: 6px;
+}
+
+.virtual-scroll-viewport::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 6px;
+    border: 2px solid var(--bg-secondary);
+}
+
+.virtual-scroll-viewport::-webkit-scrollbar-thumb:hover {
+    background: var(--text-tertiary);
+}
+
+/* Spacer for maintaining scroll height */
+.virtual-scroll-spacer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1px;
+    pointer-events: none;
+    visibility: hidden;
+}
+
+/* Content container */
+.virtual-scroll-content {
+    position: relative;
+    width: 100%;
+    will-change: transform;
+}
+
+/* Individual items */
+.virtual-scroll-item {
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
+    contain: layout style;
+}
+
+/* Loading state */
+.virtual-scroll-item.loading {
+    background: var(--bg-secondary);
+    position: relative;
+    overflow: hidden;
+}
+
+.virtual-scroll-item.loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.05) 50%,
+        transparent 100%
+    );
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    to {
+        left: 100%;
+    }
+}
+
+/* Virtual Table Styles */
+.virtual-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.virtual-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--bg-secondary);
+    border-bottom: 2px solid var(--border-color);
+}
+
+.virtual-table th {
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    user-select: none;
+    position: relative;
+}
+
+.virtual-table th.sortable {
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.virtual-table th.sortable:hover {
+    background: var(--bg-hover);
+}
+
+.virtual-table th.sortable::after {
+    content: '';
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 4px;
+    border-color: transparent;
+    opacity: 0.3;
+    transition: opacity 0.2s;
+}
+
+.virtual-table th.sort-asc::after {
+    border-bottom-color: var(--text-primary);
+    border-top-width: 0;
+    opacity: 1;
+}
+
+.virtual-table th.sort-desc::after {
+    border-top-color: var(--text-primary);
+    border-bottom-width: 0;
+    opacity: 1;
+}
+
+/* Table rows */
+.virtual-table-row {
+    background: var(--bg-primary);
+    border-bottom: 1px solid var(--border-color);
+    transition: background-color 0.2s;
+}
+
+.virtual-table-row:hover {
+    background: var(--bg-hover);
+}
+
+.virtual-table-row.selected {
+    background: rgba(var(--primary-rgb), 0.1);
+    border-color: var(--primary);
+}
+
+.virtual-table-row.selected:hover {
+    background: rgba(var(--primary-rgb), 0.15);
+}
+
+.virtual-table td {
+    padding: 12px 16px;
+    color: var(--text-primary);
+    vertical-align: middle;
+}
+
+/* Optimize for performance */
+.virtual-table-row {
+    contain: layout style;
+    will-change: transform;
+}
+
+/* Empty state */
+.virtual-scroll-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 300px;
+    color: var(--text-secondary);
+}
+
+.virtual-scroll-empty i {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.virtual-scroll-empty p {
+    margin: 0;
+    font-size: 16px;
+}
+
+/* List variant */
+.virtual-list .virtual-scroll-item {
+    padding: 16px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    transition: all 0.2s;
+}
+
+.virtual-list .virtual-scroll-item:hover {
+    background: var(--bg-hover);
+    transform: translateX(4px);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Grid variant */
+.virtual-grid .virtual-scroll-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 16px;
+    padding: 16px;
+}
+
+.virtual-grid .virtual-scroll-item {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    transition: all 0.3s;
+}
+
+.virtual-grid .virtual-scroll-item:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+/* Performance indicators */
+.virtual-scroll-performance {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-family: 'Fira Code', monospace;
+    font-size: 12px;
+    color: var(--text-secondary);
+    z-index: 100;
+    opacity: 0.8;
+}
+
+.virtual-scroll-performance span {
+    display: block;
+    margin-bottom: 4px;
+}
+
+.virtual-scroll-performance span:last-child {
+    margin-bottom: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .virtual-table {
+        font-size: 14px;
+    }
+    
+    .virtual-table th,
+    .virtual-table td {
+        padding: 8px 12px;
+    }
+    
+    .virtual-grid .virtual-scroll-content {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Horizontal scroll variant */
+.virtual-scroll-horizontal .virtual-scroll-viewport {
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+}
+
+.virtual-scroll-horizontal .virtual-scroll-content {
+    display: inline-flex;
+}
+
+.virtual-scroll-horizontal .virtual-scroll-item {
+    display: inline-block;
+    vertical-align: top;
+}
+
+/* Selection styles */
+.virtual-scroll-item.selecting {
+    background: rgba(var(--primary-rgb), 0.05);
+    border-color: var(--primary);
+}
+
+.virtual-scroll-selection-box {
+    position: absolute;
+    border: 1px solid var(--primary);
+    background: rgba(var(--primary-rgb), 0.1);
+    pointer-events: none;
+    z-index: 1000;
+}
+
+/* Drag and drop */
+.virtual-scroll-item.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+}
+
+.virtual-scroll-item.drag-over {
+    border-top: 3px solid var(--primary);
+}
+
+/* Accessibility */
+.virtual-scroll-item:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.virtual-table-row:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: -2px;
+}
+
+/* Loading skeleton */
+.virtual-scroll-skeleton {
+    padding: 16px;
+}
+
+.skeleton-line {
+    height: 16px;
+    background: var(--bg-secondary);
+    border-radius: 4px;
+    margin-bottom: 8px;
+    position: relative;
+    overflow: hidden;
+}
+
+.skeleton-line:last-child {
+    margin-bottom: 0;
+    width: 60%;
+}
+
+.skeleton-line::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.05) 50%,
+        transparent 100%
+    );
+    animation: skeleton-shimmer 1.5s infinite;
+}
+
+@keyframes skeleton-shimmer {
+    to {
+        left: 100%;
+    }
+} 
