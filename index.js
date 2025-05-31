@@ -19,6 +19,9 @@ const dynamoDB = DynamoDBDocumentClient.from(client);
 
 const VENDORS_TABLE = process.env.VENDORS_TABLE;
 const LEADS_TABLE = process.env.LEADS_TABLE;
+const AGENT_GOALS_TABLE = process.env.AGENT_GOALS_TABLE;
+const AGENT_PERFORMANCE_TABLE = process.env.AGENT_PERFORMANCE_TABLE;
+const AGENT_ACTIVITY_TABLE = process.env.AGENT_ACTIVITY_TABLE;
 
 // Initialize Cognito Identity Service Provider
 const cognitoISP = new AWS.CognitoIdentityServiceProvider();
@@ -119,6 +122,18 @@ exports.handler = async (event) => {
           body: JSON.stringify({
             status: 'error',
             message: 'Admin access required'
+          })
+        };
+      }
+      
+      // For agent-only routes, check role
+      if (isAgentRoute(path) && authResult.user.role !== 'agent') {
+        return {
+          statusCode: 403,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            status: 'error',
+            message: 'Agent access required'
           })
         };
       }
@@ -227,6 +242,34 @@ exports.handler = async (event) => {
     } else if (path === '/vendor/profile') {
       if (httpMethod === 'PUT') {
         return await handleUpdateVendorProfile(event);
+      }
+    } else if (path === '/agent/analytics/kpis') {
+      if (httpMethod === 'GET') {
+        return await handleAgentKPIs(event);
+      }
+    } else if (path === '/agent/goals') {
+      if (httpMethod === 'GET') {
+        return await handleGetAgentGoals(event);
+      } else if (httpMethod === 'POST') {
+        return await handleCreateAgentGoal(event);
+      } else if (httpMethod === 'PUT') {
+        return await handleUpdateAgentGoal(event);
+      }
+    } else if (path === '/agent/analytics/funnel') {
+      if (httpMethod === 'GET') {
+        return await handleAgentConversionFunnel(event);
+      }
+    } else if (path === '/agent/analytics/lead-sources') {
+      if (httpMethod === 'GET') {
+        return await handleAgentLeadSources(event);
+      }
+    } else if (path === '/agent/analytics/revenue-trends') {
+      if (httpMethod === 'GET') {
+        return await handleAgentRevenueTrends(event);
+      }
+    } else if (path === '/agent/analytics/activities') {
+      if (httpMethod === 'GET') {
+        return await handleAgentActivities(event);
       }
     }
     
@@ -1628,6 +1671,13 @@ function isAdminRoute(path) {
          path.match(/^\/admin\/force-logout-all\/?$/); // Force logout endpoint
 }
 
+// Helper function to determine if a route requires agent role
+function isAgentRoute(path) {
+  // Routes that require agent access
+  return path.match(/^\/agent\/analytics\//) || // Agent analytics endpoints
+         path.match(/^\/agent\/goals\/?/); // Agent goals endpoints
+}
+
 // Handler for GET /admin/analytics/dashboard
 async function handleDashboardAnalytics(event) {
   try {
@@ -2816,4 +2866,624 @@ async function handleUpdateVendorProfile(event) {
       message: 'Internal server error'
     });
   }
-} 
+}
+
+// Handler for GET /agent/analytics/kpis
+async function handleAgentKPIs(event) {
+  try {
+    const authHeader = event.headers.Authorization || event.headers.authorization;
+    const authResult = authRoutes.verifyAuthToken(authHeader);
+    
+    if (!authResult.authenticated || authResult.user.role !== 'agent') {
+      return createResponse(403, {
+        status: 'error',
+        message: 'Agent access required'
+      });
+    }
+    
+    const agentId = authResult.user.id || authResult.user.username;
+    const queryParams = event.queryStringParameters || {};
+    const period = parseInt(queryParams.period) || 30; // Default to 30 days
+    
+    // Calculate date ranges
+    const now = new Date();
+    const startDate = new Date(now);
+    startDate.setDate(now.getDate() - period);
+    
+    const prevStartDate = new Date(startDate);
+    prevStartDate.setDate(startDate.getDate() - period);
+    
+    // Get agent's leads for current period
+    const currentLeadsResult = await dynamoDB.send(new ScanCommand({
+      TableName: LEADS_TABLE,
+      FilterExpression: 'assigned_agent = :agentId AND #timestamp >= :startDate',
+      ExpressionAttributeNames: {
+        '#timestamp': 'timestamp'
+      },
+      ExpressionAttributeValues: {
+        ':agentId': agentId,
+        ':startDate': startDate.toISOString()
+      }
+    }));
+    
+    const currentLeads = currentLeadsResult.Items || [];
+    
+    // Calculate KPIs
+    const totalLeads = currentLeads.length;
+    const convertedLeads = currentLeads.filter(l => l.status === 'converted' || l.status === 'closed').length;
+    const conversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
+    
+    const totalRevenue = currentLeads
+      .filter(l => l.status === 'converted' || l.status === 'closed')
+      .reduce((sum, l) => sum + parseFloat(l.lead_value || 0), 0);
+    
+    // Get agent's goals for current period
+    const goalsResult = await dynamoDB.send(new QueryCommand({
+      TableName: AGENT_GOALS_TABLE,
+      KeyConditionExpression: 'agent_id = :agentId',
+      ExpressionAttributeValues: {
+        ':agentId': agentId
+      }
+    }));
+    
+    const goals = goalsResult.Items || [];
+    const activeGoals = goals.filter(g => g.status === 'active');
+    
+    const kpiData = {
+      agent_id: agentId,
+      period_days: period,
+      metrics: {
+        total_leads: {
+          value: totalLeads,
+          trend: 'up'
+        },
+        conversion_rate: {
+          value: Math.round(conversionRate * 100) / 100,
+          trend: 'up'
+        },
+        total_revenue: {
+          value: Math.round(totalRevenue * 100) / 100,
+          trend: 'up'
+        }
+      },
+      goals: activeGoals,
+      active_goals_count: activeGoals.length
+    };
+    
+    return createResponse(200, {
+      status: 'success',
+      data: kpiData
+    });
+    
+  } catch (error) {
+    console.error('Error fetching agent KPIs:', error);
+    return createResponse(500, {
+      status: 'error',
+      message: 'Internal server error'
+    });
+  }
+}
+
+// Handler for GET /agent/goals
+async function handleGetAgentGoals(event) {
+  try {
+    const authHeader = event.headers.Authorization || event.headers.authorization;
+    const authResult = authRoutes.verifyAuthToken(authHeader);
+    
+    if (!authResult.authenticated || authResult.user.role !== 'agent') {
+      return createResponse(403, {
+        status: 'error',
+        message: 'Agent access required'
+      });
+    }
+    
+    const agentId = authResult.user.id || authResult.user.username;
+    
+    const goalsResult = await dynamoDB.send(new QueryCommand({
+      TableName: AGENT_GOALS_TABLE,
+      KeyConditionExpression: 'agent_id = :agentId',
+      ExpressionAttributeValues: {
+        ':agentId': agentId
+      }
+    }));
+    
+    return createResponse(200, {
+      status: 'success',
+      data: goalsResult.Items || []
+    });
+    
+  } catch (error) {
+    console.error('Error fetching agent goals:', error);
+    return createResponse(500, {
+      status: 'error',
+      message: 'Internal server error'
+    });
+  }
+}
+
+// Handler for POST /agent/goals
+async function handleCreateAgentGoal(event) {
+  try {
+    const authHeader = event.headers.Authorization || event.headers.authorization;
+    const authResult = authRoutes.verifyAuthToken(authHeader);
+    
+    if (!authResult.authenticated || authResult.user.role !== 'agent') {
+      return createResponse(403, {
+        status: 'error',
+        message: 'Agent access required'
+      });
+    }
+    
+    const agentId = authResult.user.id || authResult.user.username;
+    const body = JSON.parse(event.body || '{}');
+    
+    const { title, metric, target, period, deadline } = body;
+    
+    if (!title || !metric || !target || !period) {
+      return createResponse(400, {
+        status: 'error',
+        message: 'Required fields: title, metric, target, period'
+      });
+    }
+    
+    const goalId = uuidv4();
+    const now = new Date().toISOString();
+    
+    const goal = {
+      agent_id: agentId,
+      goal_id: goalId,
+      title,
+      metric, // 'leads', 'conversion_rate', 'revenue'
+      target: parseFloat(target),
+      period, // 'daily', 'weekly', 'monthly', 'quarterly'
+      deadline: deadline || null,
+      status: 'active',
+      created_at: now,
+      updated_at: now,
+      progress: 0,
+      current_value: 0
+    };
+    
+    await dynamoDB.send(new PutCommand({
+      TableName: AGENT_GOALS_TABLE,
+      Item: goal
+    }));
+    
+    return createResponse(201, {
+      status: 'success',
+      data: goal,
+      message: 'Goal created successfully'
+    });
+    
+  } catch (error) {
+    console.error('Error creating agent goal:', error);
+    return createResponse(500, {
+      status: 'error',
+      message: 'Internal server error'
+    });
+  }
+}
+
+// Handler for PUT /agent/goals
+async function handleUpdateAgentGoal(event) {
+  try {
+    const authHeader = event.headers.Authorization || event.headers.authorization;
+    const authResult = authRoutes.verifyAuthToken(authHeader);
+    
+    if (!authResult.authenticated || authResult.user.role !== 'agent') {
+      return createResponse(403, {
+        status: 'error',
+        message: 'Agent access required'
+      });
+    }
+    
+    const agentId = authResult.user.id || authResult.user.username;
+    const body = JSON.parse(event.body || '{}');
+    
+    const { goal_id, title, target, deadline, status } = body;
+    
+    if (!goal_id) {
+      return createResponse(400, {
+        status: 'error',
+        message: 'goal_id is required'
+      });
+    }
+    
+    // Verify goal belongs to this agent
+    const existingGoal = await dynamoDB.send(new GetCommand({
+      TableName: AGENT_GOALS_TABLE,
+      Key: { agent_id: agentId, goal_id }
+    }));
+    
+    if (!existingGoal.Item) {
+      return createResponse(404, {
+        status: 'error',
+        message: 'Goal not found'
+      });
+    }
+    
+    const updates = [];
+    const values = {};
+    const names = {};
+    
+    if (title) {
+      updates.push('#title = :title');
+      values[':title'] = title;
+      names['#title'] = 'title';
+    }
+    
+    if (target) {
+      updates.push('#target = :target');
+      values[':target'] = parseFloat(target);
+      names['#target'] = 'target';
+    }
+    
+    if (deadline !== undefined) {
+      updates.push('#deadline = :deadline');
+      values[':deadline'] = deadline;
+      names['#deadline'] = 'deadline';
+    }
+    
+    if (status) {
+      updates.push('#status = :status');
+      values[':status'] = status;
+      names['#status'] = 'status';
+    }
+    
+    updates.push('#updated_at = :updated_at');
+    values[':updated_at'] = new Date().toISOString();
+    names['#updated_at'] = 'updated_at';
+    
+    const result = await dynamoDB.send(new UpdateCommand({
+      TableName: AGENT_GOALS_TABLE,
+      Key: { agent_id: agentId, goal_id },
+      UpdateExpression: 'SET ' + updates.join(', '),
+      ExpressionAttributeValues: values,
+      ExpressionAttributeNames: names,
+      ReturnValues: 'ALL_NEW'
+    }));
+    
+    return createResponse(200, {
+      status: 'success',
+      data: result.Attributes,
+      message: 'Goal updated successfully'
+    });
+    
+  } catch (error) {
+    console.error('Error updating agent goal:', error);
+    return createResponse(500, {
+      status: 'error',
+      message: 'Internal server error'
+    });
+  }
+}
+
+// Handler for GET /agent/analytics/funnel
+async function handleAgentConversionFunnel(event) {
+  try {
+    const authHeader = event.headers.Authorization || event.headers.authorization;
+    const authResult = authRoutes.verifyAuthToken(authHeader);
+    
+    if (!authResult.authenticated || authResult.user.role !== 'agent') {
+      return createResponse(403, {
+        status: 'error',
+        message: 'Agent access required'
+      });
+    }
+    
+    const agentId = authResult.user.id || authResult.user.username;
+    const queryParams = event.queryStringParameters || {};
+    const period = parseInt(queryParams.period) || 30;
+    
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - period);
+    
+    // Get agent's leads for the period
+    const leadsResult = await dynamoDB.send(new ScanCommand({
+      TableName: LEADS_TABLE,
+      FilterExpression: 'assigned_agent = :agentId AND #timestamp >= :startDate',
+      ExpressionAttributeNames: {
+        '#timestamp': 'timestamp'
+      },
+      ExpressionAttributeValues: {
+        ':agentId': agentId,
+        ':startDate': startDate.toISOString()
+      }
+    }));
+    
+    const leads = leadsResult.Items || [];
+    
+    // Calculate funnel stages
+    const funnelStages = {
+      new_leads: leads.filter(l => l.status === 'new' || !l.status).length,
+      contacted: leads.filter(l => l.status === 'contacted').length,
+      qualified: leads.filter(l => l.status === 'qualified').length,
+      proposal_sent: leads.filter(l => l.status === 'proposal').length,
+      closed_won: leads.filter(l => l.status === 'converted' || l.status === 'closed').length
+    };
+    
+    const totalLeads = leads.length;
+    const funnelData = [
+      {
+        stage: 'New Leads',
+        count: funnelStages.new_leads,
+        percentage: 100
+      },
+      {
+        stage: 'Contacted',
+        count: funnelStages.contacted,
+        percentage: totalLeads > 0 ? (funnelStages.contacted / totalLeads) * 100 : 0
+      },
+      {
+        stage: 'Qualified',
+        count: funnelStages.qualified,
+        percentage: totalLeads > 0 ? (funnelStages.qualified / totalLeads) * 100 : 0
+      },
+      {
+        stage: 'Proposal Sent',
+        count: funnelStages.proposal_sent,
+        percentage: totalLeads > 0 ? (funnelStages.proposal_sent / totalLeads) * 100 : 0
+      },
+      {
+        stage: 'Closed Won',
+        count: funnelStages.closed_won,
+        percentage: totalLeads > 0 ? (funnelStages.closed_won / totalLeads) * 100 : 0
+      }
+    ];
+    
+    return createResponse(200, {
+      status: 'success',
+      data: {
+        agent_id: agentId,
+        period_days: period,
+        total_leads: totalLeads,
+        funnel_stages: funnelData,
+        overall_conversion_rate: totalLeads > 0 ? (funnelStages.closed_won / totalLeads) * 100 : 0
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error fetching agent funnel data:', error);
+    return createResponse(500, {
+      status: 'error',
+      message: 'Internal server error'
+    });
+  }
+}
+
+// Handler for GET /agent/analytics/lead-sources
+async function handleAgentLeadSources(event) {
+  try {
+    const authHeader = event.headers.Authorization || event.headers.authorization;
+    const authResult = authRoutes.verifyAuthToken(authHeader);
+    
+    if (!authResult.authenticated || authResult.user.role !== 'agent') {
+      return createResponse(403, {
+        status: 'error',
+        message: 'Agent access required'
+      });
+    }
+    
+    const agentId = authResult.user.id || authResult.user.username;
+    const queryParams = event.queryStringParameters || {};
+    const period = parseInt(queryParams.period) || 30;
+    
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - period);
+    
+    // Get agent's leads for the period
+    const leadsResult = await dynamoDB.send(new ScanCommand({
+      TableName: LEADS_TABLE,
+      FilterExpression: 'assigned_agent = :agentId AND #timestamp >= :startDate',
+      ExpressionAttributeNames: {
+        '#timestamp': 'timestamp'
+      },
+      ExpressionAttributeValues: {
+        ':agentId': agentId,
+        ':startDate': startDate.toISOString()
+      }
+    }));
+    
+    const leads = leadsResult.Items || [];
+    
+    // Group by vendor (lead source)
+    const sourceStats = leads.reduce((acc, lead) => {
+      const source = lead.vendor_code || 'Unknown';
+      if (!acc[source]) {
+        acc[source] = {
+          vendor_code: source,
+          total_leads: 0,
+          converted_leads: 0,
+          revenue: 0
+        };
+      }
+      
+      acc[source].total_leads++;
+      
+      if (lead.status === 'converted' || lead.status === 'closed') {
+        acc[source].converted_leads++;
+        acc[source].revenue += parseFloat(lead.lead_value || 0);
+      }
+      
+      return acc;
+    }, {});
+    
+    // Calculate rates and averages
+    const sourceData = Object.values(sourceStats).map(source => ({
+      ...source,
+      conversion_rate: source.total_leads > 0 ? (source.converted_leads / source.total_leads) * 100 : 0,
+      avg_deal_size: source.converted_leads > 0 ? source.revenue / source.converted_leads : 0
+    }));
+    
+    // Sort by performance
+    sourceData.sort((a, b) => b.revenue - a.revenue);
+    
+    return createResponse(200, {
+      status: 'success',
+      data: {
+        agent_id: agentId,
+        period_days: period,
+        lead_sources: sourceData,
+        total_sources: sourceData.length,
+        top_performer: sourceData[0] || null
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error fetching agent lead sources:', error);
+    return createResponse(500, {
+      status: 'error',
+      message: 'Internal server error'
+    });
+  }
+}
+
+// Handler for GET /agent/analytics/revenue-trends
+async function handleAgentRevenueTrends(event) {
+  try {
+    const authHeader = event.headers.Authorization || event.headers.authorization;
+    const authResult = authRoutes.verifyAuthToken(authHeader);
+    
+    if (!authResult.authenticated || authResult.user.role !== 'agent') {
+      return createResponse(403, {
+        status: 'error',
+        message: 'Agent access required'
+      });
+    }
+    
+    const agentId = authResult.user.id || authResult.user.username;
+    const queryParams = event.queryStringParameters || {};
+    const period = parseInt(queryParams.period) || 90; // Default to 90 days for trends
+    
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(endDate.getDate() - period);
+    
+    // Get agent's leads for the period
+    const leadsResult = await dynamoDB.send(new ScanCommand({
+      TableName: LEADS_TABLE,
+      FilterExpression: 'assigned_agent = :agentId AND #timestamp BETWEEN :startDate AND :endDate',
+      ExpressionAttributeNames: {
+        '#timestamp': 'timestamp'
+      },
+      ExpressionAttributeValues: {
+        ':agentId': agentId,
+        ':startDate': startDate.toISOString(),
+        ':endDate': endDate.toISOString()
+      }
+    }));
+    
+    const leads = leadsResult.Items || [];
+    const convertedLeads = leads.filter(l => l.status === 'converted' || l.status === 'closed');
+    
+    // Group by week for trend analysis
+    const weeklyData = {};
+    convertedLeads.forEach(lead => {
+      const leadDate = new Date(lead.timestamp);
+      const weekStart = new Date(leadDate);
+      weekStart.setDate(leadDate.getDate() - leadDate.getDay()); // Start of week
+      const weekKey = weekStart.toISOString().split('T')[0];
+      
+      if (!weeklyData[weekKey]) {
+        weeklyData[weekKey] = {
+          week_start: weekKey,
+          revenue: 0,
+          deals_closed: 0
+        };
+      }
+      
+      weeklyData[weekKey].revenue += parseFloat(lead.lead_value || 0);
+      weeklyData[weekKey].deals_closed++;
+    });
+    
+    // Calculate averages and sort by date
+    const trendData = Object.values(weeklyData).map(week => ({
+      ...week,
+      avg_deal_size: week.deals_closed > 0 ? week.revenue / week.deals_closed : 0
+    })).sort((a, b) => new Date(a.week_start) - new Date(b.week_start));
+    
+    // Calculate totals
+    const totalRevenue = convertedLeads.reduce((sum, lead) => sum + parseFloat(lead.lead_value || 0), 0);
+    const totalDeals = convertedLeads.length;
+    const avgDealSize = totalDeals > 0 ? totalRevenue / totalDeals : 0;
+    
+    return createResponse(200, {
+      status: 'success',
+      data: {
+        agent_id: agentId,
+        period_days: period,
+        total_revenue: Math.round(totalRevenue * 100) / 100,
+        total_deals: totalDeals,
+        avg_deal_size: Math.round(avgDealSize * 100) / 100,
+        weekly_trends: trendData
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error fetching agent revenue trends:', error);
+    return createResponse(500, {
+      status: 'error',
+      message: 'Internal server error'
+    });
+  }
+}
+
+// Handler for GET /agent/analytics/activities
+async function handleAgentActivities(event) {
+  try {
+    const authHeader = event.headers.Authorization || event.headers.authorization;
+    const authResult = authRoutes.verifyAuthToken(authHeader);
+    
+    if (!authResult.authenticated || authResult.user.role !== 'agent') {
+      return createResponse(403, {
+        status: 'error',
+        message: 'Agent access required'
+      });
+    }
+    
+    const agentId = authResult.user.id || authResult.user.username;
+    const queryParams = event.queryStringParameters || {};
+    const limit = parseInt(queryParams.limit) || 50;
+    
+    // Get recent activities for this agent
+    const activitiesResult = await dynamoDB.send(new QueryCommand({
+      TableName: AGENT_ACTIVITY_TABLE,
+      KeyConditionExpression: 'agent_id = :agentId',
+      ExpressionAttributeValues: {
+        ':agentId': agentId
+      },
+      ScanIndexForward: false, // Sort by timestamp descending
+      Limit: limit
+    }));
+    
+    const activities = activitiesResult.Items || [];
+    
+    // Group activities by type for summary
+    const activitySummary = activities.reduce((acc, activity) => {
+      const type = activity.activity_type;
+      if (!acc[type]) {
+        acc[type] = 0;
+      }
+      acc[type]++;
+      return acc;
+    }, {});
+    
+    return createResponse(200, {
+      status: 'success',
+      data: {
+        agent_id: agentId,
+        recent_activities: activities,
+        activity_summary: activitySummary,
+        total_activities: activities.length
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error fetching agent activities:', error);
+    return createResponse(500, {
+      status: 'error',
+      message: 'Internal server error'
+    });
+  }
+}
+  
