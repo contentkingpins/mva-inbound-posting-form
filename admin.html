@@ -137,6 +137,11 @@ console.log('🔧 Configuration injected at build time - no external loading nee
             </div>
         </section>
 
+        <!-- Dashboard Widgets Section -->
+        <section class="dashboard-widgets-section">
+            <!-- Widget controls and grid will be automatically inserted here by dashboard-widgets.js -->
+        </section>
+
         <!-- Live Activity Feed -->
         <section class="activity-section glass-card">
             <div class="section-header">
@@ -624,7 +629,9 @@ console.log('🔧 Configuration injected at build time - no external loading nee
     <div class="toast-container" id="toast-container"></div>
 
     <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="admin.js"></script>
+    <script src="js/dashboard-widgets.js" type="module"></script>
 
     <!-- Include Vendor Control Module -->
     <script src="admin-vendor-controls.js"></script>

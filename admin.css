@@ -1033,28 +1033,48 @@ input:checked + .toggle-slider:before {
 /* Toast Notifications */
 .toast-container {
     position: fixed;
-    top: 2rem;
-    right: 2rem;
-    z-index: 200;
+    bottom: 20px;
+    right: 20px;
+    z-index: 10000;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 10px;
 }
 
 .toast {
     background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 15px 20px;
     border-radius: 8px;
-    padding: 1rem 1.5rem;
-    box-shadow: var(--shadow-lg);
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    min-width: 300px;
-    animation: slideInRight 0.3s ease-out;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 250px;
+    max-width: 400px;
+    animation: slideIn 0.3s ease-out;
+    position: relative;
+    border-left: 4px solid var(--border-color);
 }
 
-@keyframes slideInRight {
+.toast.toast-success {
+    border-left-color: #10b981;
+    background: linear-gradient(to right, rgba(16, 185, 129, 0.1), var(--bg-secondary));
+}
+
+.toast.toast-error {
+    border-left-color: #ef4444;
+    background: linear-gradient(to right, rgba(239, 68, 68, 0.1), var(--bg-secondary));
+}
+
+.toast.toast-warning {
+    border-left-color: #f59e0b;
+    background: linear-gradient(to right, rgba(245, 158, 11, 0.1), var(--bg-secondary));
+}
+
+.toast.toast-info {
+    border-left-color: #3b82f6;
+    background: linear-gradient(to right, rgba(59, 130, 246, 0.1), var(--bg-secondary));
+}
+
+@keyframes slideIn {
     from {
         transform: translateX(100%);
         opacity: 0;
@@ -1065,27 +1085,50 @@ input:checked + .toggle-slider:before {
     }
 }
 
-.toast.success {
-    border-color: var(--success);
-    background: rgba(16, 185, 129, 0.1);
+/* Widget-specific form styles */
+.form-input, .select-input {
+    width: 100%;
+    padding: 10px 15px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 14px;
+    transition: all 0.2s ease;
 }
 
-.toast.error {
-    border-color: var(--danger);
-    background: rgba(239, 68, 68, 0.1);
+.form-input:focus, .select-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
 }
 
-.toast.info {
-    border-color: var(--info);
-    background: rgba(59, 130, 246, 0.1);
+.form-group {
+    margin-bottom: 20px;
 }
 
-.toast-icon {
-    font-size: 1.25rem;
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--text-primary);
 }
 
-.toast-message {
-    flex: 1;
+.settings-form {
+    padding: 10px;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+/* Dashboard Widgets Section */
+.dashboard-widgets-section {
+    margin: 40px 0;
 }
 
 /* Responsive Design */
