@@ -824,23 +824,56 @@ function generateRandomDate() {
 
 // Initialize modals
 function initializeModals() {
+    // Generic modal functions
+    window.openModal = function(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.add('show');
+        }
+    };
+    
+    window.closeModal = function(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.remove('show');
+        }
+    };
+    
+    // Close modal when clicking outside
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('modal')) {
+            e.target.classList.remove('show');
+        }
+    });
+    
     // Close modal buttons
-    document.querySelectorAll('.modal-close').forEach(btn => {
+    document.querySelectorAll('.close, [id*="close"]').forEach(btn => {
         btn.addEventListener('click', () => {
-            const modalId = btn.dataset.modal;
-            document.getElementById(modalId).style.display = 'none';
+            const modal = btn.closest('.modal');
+            if (modal) {
+                modal.classList.remove('show');
+            }
         });
     });
     
     // Cancel buttons
-    document.querySelectorAll('[data-modal]').forEach(btn => {
-        if (btn.textContent === 'Cancel') {
-            btn.addEventListener('click', () => {
-                const modalId = btn.dataset.modal;
-                document.getElementById(modalId).style.display = 'none';
-            });
-        }
+    document.querySelectorAll('#cancel-publisher, #cancel-agent').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const modal = btn.closest('.modal');
+            if (modal) {
+                modal.classList.remove('show');
+            }
+        });
     });
+    
+    // Publisher form submission with vendor code generation
+    const publisherForm = document.getElementById('publisher-form');
+    if (publisherForm) {
+        publisherForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await handlePublisherSubmission();
+        });
+    }
     
     // Add agent modal
     const sendInviteBtn = document.getElementById('send-agent-invite');
@@ -898,7 +931,7 @@ function initializeModals() {
                 
                 renderEnhancedAgentsTable();
                 updateAgentLeaderboard();
-                document.getElementById('add-agent-modal').style.display = 'none';
+                closeModal('add-agent-modal');
                 showToast(`Agent invitation sent to ${email}`, 'success');
                 addActivity('👤', `New agent ${email} invited to system`, 'just now');
                 
@@ -918,12 +951,331 @@ function initializeModals() {
     }
 }
 
+// Handle publisher form submission with vendor code generation
+async function handlePublisherSubmission() {
+    const formData = new FormData(document.getElementById('publisher-form'));
+    const publisherData = Object.fromEntries(formData.entries());
+    
+    try {
+        // Show loading state
+        const saveBtn = document.getElementById('save-publisher');
+        const loader = saveBtn.querySelector('.btn-loader');
+        const originalText = saveBtn.textContent;
+        
+        if (loader) loader.style.display = 'inline-block';
+        saveBtn.disabled = true;
+        
+        // Generate vendor code
+        const vendorCode = generateVendorCode(publisherData.name);
+        
+        // Generate API key if requested
+        let apiKey = null;
+        if (document.getElementById('generate-api').checked) {
+            apiKey = 'pk_live_' + generateSecureToken(32);
+        }
+        
+        // Create publisher object
+        const newPublisher = {
+            id: 'pub_' + Date.now(),
+            name: publisherData.name,
+            email: publisherData.email,
+            phone: publisherData.phone || '',
+            website: publisherData.website || '',
+            status: publisherData.status || 'active',
+            commission: parseFloat(publisherData.commission) || 0,
+            description: publisherData.description || '',
+            vendorCode: vendorCode,
+            apiKey: apiKey,
+            rateLimit: parseInt(publisherData.rateLimit) || 1000,
+            totalLeads: 0,
+            revenue: 0,
+            conversion: 0,
+            createdAt: new Date().toISOString()
+        };
+        
+        // Add to publishers array
+        publishers.push(newPublisher);
+        
+        // Update displays
+        renderPublishersTable();
+        updatePublisherStats();
+        renderTopPublishers();
+        updatePublisherChart();
+        
+        // Close publisher modal
+        closeModal('publisherModal');
+        
+        // Show success toast
+        showToast(`Publisher "${publisherData.name}" created successfully with vendor code: ${vendorCode}`, 'success');
+        
+        // Add activity
+        addActivity('🏢', `New publisher "${publisherData.name}" onboarded with vendor code ${vendorCode}`, 'just now');
+        
+        // Show API instructions ONLY if API key was generated
+        if (apiKey) {
+            setTimeout(() => {
+                showPublisherOnboardingSuccess(newPublisher);
+            }, 500);
+        }
+        
+    } catch (error) {
+        console.error('Error creating publisher:', error);
+        showToast(`Failed to create publisher: ${error.message}`, 'error');
+    } finally {
+        // Reset button state
+        const saveBtn = document.getElementById('save-publisher');
+        const loader = saveBtn.querySelector('.btn-loader');
+        if (loader) loader.style.display = 'none';
+        saveBtn.disabled = false;
+    }
+}
+
+// Generate vendor code
+function generateVendorCode(publisherName) {
+    // Create a vendor code based on publisher name + timestamp
+    const nameCode = publisherName
+        .toUpperCase()
+        .replace(/[^A-Z]/g, '')
+        .substring(0, 3)
+        .padEnd(3, 'X');
+    
+    const timestamp = Date.now().toString().slice(-4);
+    return `${nameCode}${timestamp}`;
+}
+
+// Show publisher onboarding success with API instructions
+function showPublisherOnboardingSuccess(publisher) {
+    const modalHtml = `
+        <div class="modal show" id="publisherOnboardingModal">
+            <div class="modal-content large">
+                <div class="modal-header">
+                    <h3>🎉 Publisher Onboarded Successfully!</h3>
+                    <span class="close" onclick="closeModal('publisherOnboardingModal')">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="onboarding-success">
+                        <div class="success-header">
+                            <h4>✅ ${publisher.name} is now ready to submit leads!</h4>
+                            <div class="vendor-code-display">
+                                <label><strong>Vendor Code:</strong></label>
+                                <div class="code-container">
+                                    <code id="vendor-code-display">${publisher.vendorCode}</code>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="copyToClipboard('vendor-code-display')">📋 Copy</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        ${publisher.apiKey ? `
+                        <div class="api-section">
+                            <h5>🔑 API Configuration</h5>
+                            <div class="api-key-display">
+                                <label><strong>API Key:</strong></label>
+                                <div class="api-key-container">
+                                    <input type="text" value="${publisher.apiKey}" class="form-input" readonly id="api-key-display">
+                                    <button type="button" class="btn btn-secondary" onclick="copyToClipboard('api-key-display')">📋 Copy</button>
+                                </div>
+                                <p class="warning-text">⚠️ <strong>Important:</strong> Save this API key securely. It won't be shown again for security reasons.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="api-section">
+                            <h5>📖 API Documentation</h5>
+                            <p>Here are the endpoints and instructions for ${publisher.name}:</p>
+                            
+                            <div class="endpoint-section">
+                                <h6>Authentication</h6>
+                                <p>Include the API key in the Authorization header:</p>
+                                <div class="code-block">
+                                    <code>Authorization: Bearer ${publisher.apiKey}</code>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="copyToClipboard('auth-header')">📋 Copy</button>
+                                </div>
+                            </div>
+                            
+                            <div class="endpoint-section">
+                                <h6>Submit Lead</h6>
+                                <div class="endpoint">
+                                    <span class="method post">POST</span>
+                                    <span class="url">${window.APP_CONFIG.apiEndpoint}/leads/submit</span>
+                                </div>
+                                
+                                <p><strong>Request Body Example:</strong></p>
+                                <pre><code>{
+  "vendorCode": "${publisher.vendorCode}",
+  "firstName": "John",
+  "lastName": "Doe", 
+  "email": "john@example.com",
+  "phone": "+1234567890",
+  "leadType": "motor_vehicle_accident",
+  "incidentDate": "2024-05-30",
+  "description": "Rear-end collision",
+  "injuries": true,
+  "location": {
+    "city": "Los Angeles",
+    "state": "CA", 
+    "zipCode": "90210"
+  },
+  "metadata": {
+    "source": "web_form",
+    "campaign": "summer_2024"
+  }
+}</code></pre>
+                            </div>
+                            
+                            <div class="endpoint-section">
+                                <h6>Rate Limits</h6>
+                                <p>Your current rate limit: <strong>${publisher.rateLimit} calls/hour</strong></p>
+                                <ul>
+                                    <li>Standard: 1,000 calls/hour</li>
+                                    <li>Premium: 5,000 calls/hour</li> 
+                                    <li>Enterprise: Unlimited</li>
+                                </ul>
+                            </div>
+                            
+                            <div class="endpoint-section">
+                                <h6>Error Codes</h6>
+                                <table class="error-codes-table">
+                                    <tr><td>400</td><td>Bad Request - Invalid data format</td></tr>
+                                    <tr><td>401</td><td>Unauthorized - Invalid API key</td></tr>
+                                    <tr><td>429</td><td>Rate Limited - Too many requests</td></tr>
+                                    <tr><td>500</td><td>Server Error - Contact support</td></tr>
+                                </table>
+                            </div>
+                        </div>
+                        ` : ''}
+                        
+                        <div class="next-steps">
+                            <h5>🚀 Next Steps</h5>
+                            <ol>
+                                <li>Save the vendor code: <strong>${publisher.vendorCode}</strong></li>
+                                ${publisher.apiKey ? '<li>Securely store the API key</li>' : ''}
+                                <li>Share integration details with ${publisher.name}</li>
+                                <li>Test lead submission</li>
+                                <li>Monitor performance in the dashboard</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="downloadInstructions('${publisher.id}')">📄 Download Instructions</button>
+                    <button type="button" class="btn btn-primary" onclick="closeModal('publisherOnboardingModal')">Complete Onboarding</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove any existing onboarding modal
+    const existingModal = document.getElementById('publisherOnboardingModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+// Copy to clipboard utility
+window.copyToClipboard = function(elementId) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        const text = element.value || element.textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('Copied to clipboard!', 'success');
+        }).catch(() => {
+            // Fallback for older browsers
+            element.select();
+            document.execCommand('copy');
+            showToast('Copied to clipboard!', 'success');
+        });
+    }
+};
+
+// Download instructions for publisher
+window.downloadInstructions = function(publisherId) {
+    const publisher = publishers.find(p => p.id === publisherId);
+    if (!publisher) return;
+    
+    const instructions = `
+# ${publisher.name} - API Integration Instructions
+
+## Publisher Details
+- **Name:** ${publisher.name}
+- **Vendor Code:** ${publisher.vendorCode}
+- **Rate Limit:** ${publisher.rateLimit} calls/hour
+- **Status:** ${publisher.status}
+
+${publisher.apiKey ? `
+## API Configuration
+- **API Key:** ${publisher.apiKey}
+- **Base URL:** ${window.APP_CONFIG.apiEndpoint}
+
+## Authentication
+Include the API key in the Authorization header:
+\`\`\`
+Authorization: Bearer ${publisher.apiKey}
+\`\`\`
+
+## Submit Lead Endpoint
+\`\`\`
+POST ${window.APP_CONFIG.apiEndpoint}/leads/submit
+\`\`\`
+
+### Request Body Example:
+\`\`\`json
+{
+  "vendorCode": "${publisher.vendorCode}",
+  "firstName": "John",
+  "lastName": "Doe",
+  "email": "john@example.com", 
+  "phone": "+1234567890",
+  "leadType": "motor_vehicle_accident",
+  "incidentDate": "2024-05-30",
+  "description": "Rear-end collision",
+  "injuries": true,
+  "location": {
+    "city": "Los Angeles",
+    "state": "CA",
+    "zipCode": "90210"
+  },
+  "metadata": {
+    "source": "web_form",
+    "campaign": "summer_2024"
+  }
+}
+\`\`\`
+
+## Error Codes
+- **400:** Bad Request - Invalid data format
+- **401:** Unauthorized - Invalid API key  
+- **429:** Rate Limited - Too many requests
+- **500:** Server Error - Contact support
+` : ''}
+
+## Next Steps
+1. Save the vendor code: ${publisher.vendorCode}
+${publisher.apiKey ? '2. Securely store the API key' : ''}
+3. Test lead submission
+4. Monitor performance in dashboard
+
+---
+Generated on: ${new Date().toLocaleString()}
+Claim Connectors CRM - Admin Dashboard
+    `;
+    
+    const blob = new Blob([instructions], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${publisher.name.replace(/[^a-zA-Z0-9]/g, '_')}_integration_instructions.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    showToast('Instructions downloaded!', 'success');
+};
+
 // Show add agent modal
 function showAddAgentModal() {
-    const modal = document.getElementById('add-agent-modal');
-    if (modal) {
-        modal.style.display = 'flex';
-    }
+    openModal('add-agent-modal');
 }
 
 // Generate temporary password
