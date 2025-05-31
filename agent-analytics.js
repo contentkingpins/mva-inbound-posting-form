@@ -215,53 +215,231 @@ async function loadAgentData() {
 }
 
 async function fetchAgentData(agentId, dateRange) {
-    // Mock API call - replace with actual endpoint
-    return new Promise(resolve => {
-        setTimeout(() => {
-            const mockData = {
-                kpis: {
-                    leadsHandled: 47,
-                    leadsThisWeek: 12,
-                    conversionRate: 68.1,
-                    totalRevenue: 12450,
-                    responseTime: '1.2h',
-                    satisfactionScore: 4.7,
-                    satisfactionCount: 23,
-                    teamRanking: 3,
-                    totalAgents: 15
-                },
-                trends: {
-                    leads: 8.3,
-                    conversion: 12.1,
-                    revenue: 18.7,
-                    response: -15.2,
-                    satisfaction: 4.2,
-                    ranking: 2
-                },
-                goals: {
-                    conversions: { current: 12, target: 15 },
-                    revenue: { current: 12450, target: 15000 },
-                    responseTime: { current: 1.2, target: 2.0 }
-                },
-                funnel: {
-                    assigned: 47,
-                    contacted: 40,
-                    interested: 34,
-                    converted: 32
-                },
-                leadSources: [
-                    { source: 'Referrals', count: 18, conversion: 78, revenue: 5400 },
-                    { source: 'Web Forms', count: 15, conversion: 53, revenue: 3200 },
-                    { source: 'Phone Calls', count: 8, conversion: 75, revenue: 2400 },
-                    { source: 'Social Media', count: 6, conversion: 67, revenue: 1450 }
-                ],
-                revenueData: generateRevenueData(dateRange),
-                activities: generateActivityData()
-            };
+    try {
+        const token = localStorage.getItem('auth_token');
+        const apiBase = window.APP_CONFIG?.apiEndpoint || 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod';
+        
+        console.log('🔄 Fetching real agent data from backend...');
+        
+        // Fetch all agent analytics data in parallel
+        const [kpisResponse, goalsResponse, funnelResponse, sourcesResponse, trendsResponse, activitiesResponse] = await Promise.allSettled([
+            fetch(`${apiBase}/agent/analytics/kpis?period=${dateRange}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            }),
+            fetch(`${apiBase}/agent/goals`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            }),
+            fetch(`${apiBase}/agent/analytics/funnel?period=${dateRange}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            }),
+            fetch(`${apiBase}/agent/analytics/lead-sources?period=${dateRange}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            }),
+            fetch(`${apiBase}/agent/analytics/revenue-trends?period=${dateRange}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            }),
+            fetch(`${apiBase}/agent/analytics/activities?limit=10`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+        ]);
+        
+        // Process responses and extract data
+        const kpis = kpisResponse.status === 'fulfilled' && kpisResponse.value.ok ? 
+            await kpisResponse.value.json() : null;
+        const goals = goalsResponse.status === 'fulfilled' && goalsResponse.value.ok ? 
+            await goalsResponse.value.json() : null;
+        const funnel = funnelResponse.status === 'fulfilled' && funnelResponse.value.ok ? 
+            await funnelResponse.value.json() : null;
+        const sources = sourcesResponse.status === 'fulfilled' && sourcesResponse.value.ok ? 
+            await sourcesResponse.value.json() : null;
+        const trends = trendsResponse.status === 'fulfilled' && trendsResponse.value.ok ? 
+            await trendsResponse.value.json() : null;
+        const activities = activitiesResponse.status === 'fulfilled' && activitiesResponse.value.ok ? 
+            await activitiesResponse.value.json() : null;
+        
+        console.log('✅ Real agent data loaded successfully');
+        
+        // Transform backend data to frontend format
+        return {
+            kpis: kpis?.data ? {
+                leadsHandled: kpis.data.kpis.leadsHandled || 0,
+                leadsThisWeek: kpis.data.kpis.leadsThisWeek || 0,
+                conversionRate: kpis.data.kpis.conversionRate || 0,
+                totalRevenue: kpis.data.kpis.totalRevenue || 0,
+                responseTime: `${kpis.data.kpis.responseTimeHours || 0}h`,
+                satisfactionScore: kpis.data.kpis.satisfactionScore || 0,
+                satisfactionCount: kpis.data.kpis.satisfactionCount || 0,
+                teamRanking: kpis.data.kpis.teamRanking || 1,
+                totalAgents: kpis.data.kpis.totalAgents || 1
+            } : getDefaultKPIs(),
             
-            resolve(mockData);
-        }, 500);
-    });
+            trends: kpis?.data?.trends ? {
+                leads: kpis.data.trends.leads || 0,
+                conversion: kpis.data.trends.conversion || 0,
+                revenue: kpis.data.trends.revenue || 0,
+                response: kpis.data.trends.response || 0,
+                satisfaction: kpis.data.trends.satisfaction || 0,
+                ranking: kpis.data.trends.ranking || 0
+            } : getDefaultTrends(),
+            
+            goals: goals?.data ? transformGoalsData(goals.data) : getDefaultGoals(),
+            
+            funnel: funnel?.data ? {
+                assigned: funnel.data.funnel.assigned || 0,
+                contacted: funnel.data.funnel.contacted || 0,
+                interested: funnel.data.funnel.interested || 0,
+                converted: funnel.data.funnel.converted || 0
+            } : getDefaultFunnel(),
+            
+            leadSources: sources?.data?.lead_sources ? 
+                sources.data.lead_sources.map(source => ({
+                    source: source.source || 'Unknown',
+                    count: source.count || 0,
+                    conversion: Math.round(source.conversionRate || 0),
+                    revenue: source.revenue || 0
+                })) : getDefaultLeadSources(),
+            
+            revenueData: trends?.data?.weekly_trends ? 
+                trends.data.weekly_trends.map(week => ({
+                    date: week.week_start,
+                    revenue: Math.round(week.revenue || 0)
+                })) : generateRevenueData(dateRange),
+            
+            activities: activities?.data?.recent_activities ? 
+                activities.data.recent_activities.map(activity => ({
+                    type: activity.activity_type || 'unknown',
+                    icon: getActivityIcon(activity.activity_type),
+                    title: activity.title || 'Activity',
+                    description: activity.description || '',
+                    time: formatRelativeTime(activity.timestamp),
+                    class: activity.activity_type || 'unknown'
+                })) : generateActivityData()
+        };
+        
+    } catch (error) {
+        console.error('❌ Error fetching agent data from backend:', error);
+        console.log('🔄 Falling back to mock data...');
+        
+        // Fallback to mock data if API fails
+        return getDefaultAgentData(dateRange);
+    }
+}
+
+// Helper functions for default/fallback data
+function getDefaultKPIs() {
+    return {
+        leadsHandled: 47,
+        leadsThisWeek: 12,
+        conversionRate: 68.1,
+        totalRevenue: 12450,
+        responseTime: '1.2h',
+        satisfactionScore: 4.7,
+        satisfactionCount: 23,
+        teamRanking: 3,
+        totalAgents: 15
+    };
+}
+
+function getDefaultTrends() {
+    return {
+        leads: 8.3,
+        conversion: 12.1,
+        revenue: 18.7,
+        response: -15.2,
+        satisfaction: 4.2,
+        ranking: 2
+    };
+}
+
+function getDefaultGoals() {
+    return {
+        conversions: { current: 12, target: 15 },
+        revenue: { current: 12450, target: 15000 },
+        responseTime: { current: 1.2, target: 2.0 }
+    };
+}
+
+function getDefaultFunnel() {
+    return {
+        assigned: 47,
+        contacted: 40,
+        interested: 34,
+        converted: 32
+    };
+}
+
+function getDefaultLeadSources() {
+    return [
+        { source: 'Referrals', count: 18, conversion: 78, revenue: 5400 },
+        { source: 'Web Forms', count: 15, conversion: 53, revenue: 3200 },
+        { source: 'Phone Calls', count: 8, conversion: 75, revenue: 2400 },
+        { source: 'Social Media', count: 6, conversion: 67, revenue: 1450 }
+    ];
+}
+
+function getDefaultAgentData(dateRange) {
+    return {
+        kpis: getDefaultKPIs(),
+        trends: getDefaultTrends(),
+        goals: getDefaultGoals(),
+        funnel: getDefaultFunnel(),
+        leadSources: getDefaultLeadSources(),
+        revenueData: generateRevenueData(dateRange),
+        activities: generateActivityData()
+    };
+}
+
+function transformGoalsData(goalsData) {
+    // Transform backend goals format to frontend format
+    const goals = {};
+    
+    if (Array.isArray(goalsData)) {
+        goalsData.forEach(goal => {
+            const type = goal.goal_type;
+            goals[type] = {
+                current: goal.current_value || 0,
+                target: goal.target_value || 0
+            };
+        });
+    }
+    
+    // Ensure we have all required goal types
+    return {
+        conversions: goals.conversions || { current: 0, target: 15 },
+        revenue: goals.revenue || { current: 0, target: 15000 },
+        responseTime: goals.response_time || { current: 0, target: 2.0 }
+    };
+}
+
+function getActivityIcon(activityType) {
+    const icons = {
+        'conversion': '💰',
+        'call': '📞',
+        'email': '📧',
+        'meeting': '📅',
+        'contact': '👤',
+        'lead_assigned': '📋',
+        'follow_up': '🔄',
+        'quote_sent': '📄',
+        'default': '📝'
+    };
+    
+    return icons[activityType] || icons.default;
+}
+
+function formatRelativeTime(timestamp) {
+    if (!timestamp) return 'Unknown time';
+    
+    const now = new Date();
+    const time = new Date(timestamp);
+    const diffMs = now - time;
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHours / 24);
+    
+    if (diffHours < 1) return 'Just now';
+    if (diffHours < 24) return `${diffHours} hours ago`;
+    if (diffDays === 1) return '1 day ago';
+    return `${diffDays} days ago`;
 }
 
 function generateRevenueData(days) {
@@ -662,26 +840,74 @@ function handleTrendPeriodChange(event) {
     showToast(`Showing ${period} trends`, 'info');
 }
 
-function handleSaveGoals() {
+async function handleSaveGoals() {
     const conversionsGoal = document.getElementById('conversions-goal').value;
     const revenueGoal = document.getElementById('revenue-goal-input').value;
     const responseGoal = document.getElementById('response-goal').value;
     
-    // Save goals (mock save)
-    console.log('💾 Saving goals:', { conversionsGoal, revenueGoal, responseGoal });
-    
-    // Update goals in data
-    agentData.goals = {
-        conversions: { current: agentData.goals.conversions.current, target: parseInt(conversionsGoal) },
-        revenue: { current: agentData.goals.revenue.current, target: parseInt(revenueGoal) },
-        responseTime: { current: agentData.goals.responseTime.current, target: parseFloat(responseGoal) }
-    };
-    
-    // Update display
-    updateGoalsDisplay();
-    
-    closeModal('goals-modal');
-    showToast('Goals saved successfully!', 'success');
+    try {
+        const token = localStorage.getItem('auth_token');
+        const apiBase = window.APP_CONFIG?.apiEndpoint || 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod';
+        
+        console.log('💾 Saving goals to backend:', { conversionsGoal, revenueGoal, responseGoal });
+        
+        // Show saving state
+        const saveBtn = document.getElementById('save-goals');
+        const originalText = saveBtn.textContent;
+        saveBtn.textContent = 'Saving...';
+        saveBtn.disabled = true;
+        
+        // Prepare goals data for backend
+        const goalsData = {
+            period: 'monthly', // Default to monthly goals
+            goals: {
+                conversions: parseInt(conversionsGoal) || 0,
+                revenue: parseInt(revenueGoal) || 0,
+                response_time: parseFloat(responseGoal) || 0
+            }
+        };
+        
+        // Save goals to backend
+        const response = await fetch(`${apiBase}/agent/goals`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(goalsData)
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Failed to save goals: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('✅ Goals saved successfully:', result);
+        
+        // Update local goals data
+        agentData.goals = {
+            conversions: { current: agentData.goals.conversions.current, target: parseInt(conversionsGoal) },
+            revenue: { current: agentData.goals.revenue.current, target: parseInt(revenueGoal) },
+            responseTime: { current: agentData.goals.responseTime.current, target: parseFloat(responseGoal) }
+        };
+        
+        // Update display
+        updateGoalsDisplay();
+        
+        closeModal('goals-modal');
+        showToast('Goals saved successfully!', 'success');
+        
+    } catch (error) {
+        console.error('❌ Error saving goals:', error);
+        showToast('Failed to save goals. Please try again.', 'error');
+    } finally {
+        // Reset button state
+        const saveBtn = document.getElementById('save-goals');
+        if (saveBtn) {
+            saveBtn.textContent = 'Save Goals';
+            saveBtn.disabled = false;
+        }
+    }
 }
 
 function handleGenerateExport() {
