@@ -110,9 +110,9 @@ console.log('🔧 Configuration injected at build time - no external loading nee
                 <div class="stat-card glass-card">
                     <div class="stat-icon">🏢</div>
                     <div class="stat-content">
-                        <div class="stat-number" id="total-vendors-stat">--</div>
-                        <div class="stat-label">Active Vendors</div>
-                        <div class="stat-change positive" id="vendors-change">+2 this week</div>
+                        <div class="stat-label">Total Publishers</div>
+                        <div class="stat-number" id="total-publishers">0</div>
+                        <div class="stat-change positive" id="publishers-change">+0 this month</div>
                     </div>
                 </div>
                 
@@ -254,33 +254,97 @@ console.log('🔧 Configuration injected at build time - no external loading nee
             </div>
         </section>
 
-        <!-- Vendor Performance Analytics -->
-        <section class="vendor-analytics glass-card">
+        <!-- Publisher Analytics & Management -->
+        <section class="analytics-section">
             <div class="section-header">
-                <h2 class="section-title">🏢 Vendor Performance Analytics</h2>
-                <div class="vendor-controls">
-                    <select id="vendor-period" class="select-input">
-                        <option value="today">Today</option>
-                        <option value="week">This Week</option>
-                        <option value="month" selected>This Month</option>
-                        <option value="quarter">This Quarter</option>
-                    </select>
-                    <button class="btn btn-secondary" id="vendor-comparison">📊 Compare Vendors</button>
-                    <button class="btn btn-primary" id="add-vendor-btn">
-                        <span class="btn-icon">+</span>
-                        Add Vendor
-                    </button>
+                <h2 class="section-title">🏢 Publisher Management</h2>
+                <div class="header-actions">
+                    <button class="btn btn-primary" id="add-publisher-btn">➕ Add Publisher</button>
+                    <button class="btn btn-secondary" id="bulk-publisher-actions">📋 Bulk Actions</button>
                 </div>
             </div>
             
-            <!-- Vendor Metrics Grid -->
-            <div class="vendor-metrics-grid" id="vendor-metrics">
-                <!-- Vendor performance cards will be populated here -->
-            </div>
-            
-            <!-- Vendor Comparison Chart -->
-            <div class="vendor-chart-container">
-                <canvas id="vendor-performance-chart"></canvas>
+            <div class="analytics-grid">
+                <!-- Publisher Search & Filters -->
+                <div class="analytics-card full-width">
+                    <div class="card-header">
+                        <h3>🔍 Publisher Search & Management</h3>
+                        <div class="search-filters">
+                            <input type="text" class="search-input" id="publisher-search" placeholder="Search publishers...">
+                            <select class="filter-select" id="publisher-status-filter">
+                                <option value="">All Status</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                                <option value="pending">Pending</option>
+                            </select>
+                            <select class="filter-select" id="publisher-sort">
+                                <option value="name">Sort by Name</option>
+                                <option value="leads">Sort by Leads</option>
+                                <option value="revenue">Sort by Revenue</option>
+                                <option value="date">Sort by Date Added</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="table-container">
+                        <table class="data-table" id="publishers-table">
+                            <thead>
+                                <tr>
+                                    <th><input type="checkbox" id="select-all-publishers"></th>
+                                    <th class="sortable" data-sort="name">Publisher Name</th>
+                                    <th class="sortable" data-sort="status">Status</th>
+                                    <th class="sortable" data-sort="api">API Key</th>
+                                    <th class="sortable" data-sort="leads">Total Leads</th>
+                                    <th class="sortable" data-sort="revenue">Revenue</th>
+                                    <th class="sortable" data-sort="lastActivity">Last Activity</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="publishers-table-body">
+                                <!-- Publishers will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Publisher Performance Chart -->
+                <div class="analytics-card">
+                    <div class="card-header">
+                        <h3>📈 Publisher Performance</h3>
+                    </div>
+                    <canvas id="publisher-chart"></canvas>
+                </div>
+                
+                <!-- Top Publishers -->
+                <div class="analytics-card">
+                    <div class="card-header">
+                        <h3>🏆 Top Publishers</h3>
+                    </div>
+                    <div class="top-list" id="top-publishers-list">
+                        <!-- Top publishers will be loaded here -->
+                    </div>
+                </div>
+                
+                <!-- API Generation Panel -->
+                <div class="analytics-card">
+                    <div class="card-header">
+                        <h3>🔑 API Management</h3>
+                    </div>
+                    <div class="api-panel">
+                        <div class="api-stats">
+                            <div class="api-stat">
+                                <span class="api-stat-number" id="active-apis">0</span>
+                                <span class="api-stat-label">Active APIs</span>
+                            </div>
+                            <div class="api-stat">
+                                <span class="api-stat-number" id="api-calls-today">0</span>
+                                <span class="api-stat-label">Calls Today</span>
+                            </div>
+                        </div>
+                        <button class="btn btn-success" id="generate-api-key">🔑 Generate New API Key</button>
+                        <button class="btn btn-secondary" id="api-documentation">📖 API Documentation</button>
+                    </div>
+                </div>
             </div>
         </section>
     </main>
@@ -374,6 +438,194 @@ console.log('🔧 Configuration injected at build time - no external loading nee
         </div>
     </div>
 
+    <!-- Add Publisher Modal -->
+    <div id="publisherModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="publisher-modal-title">Add New Publisher</h3>
+                <span class="close" id="close-publisher-modal">&times;</span>
+            </div>
+            <form id="publisher-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="publisher-name">Publisher Name *</label>
+                        <input type="text" id="publisher-name" name="name" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="publisher-email">Contact Email *</label>
+                        <input type="email" id="publisher-email" name="email" class="form-input" required>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="publisher-phone">Phone Number</label>
+                        <input type="tel" id="publisher-phone" name="phone" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="publisher-website">Website</label>
+                        <input type="url" id="publisher-website" name="website" class="form-input" placeholder="https://">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="publisher-status">Status</label>
+                        <select id="publisher-status" name="status" class="form-input">
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="pending">Pending</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="publisher-commission">Commission Rate (%)</label>
+                        <input type="number" id="publisher-commission" name="commission" class="form-input" min="0" max="100" step="0.1">
+                    </div>
+                </div>
+                
+                <div class="form-group full-width">
+                    <label for="publisher-description">Description</label>
+                    <textarea id="publisher-description" name="description" class="form-input" rows="3" placeholder="Brief description of the publisher..."></textarea>
+                </div>
+                
+                <!-- API Configuration -->
+                <div class="api-config-section">
+                    <h4>🔑 API Configuration</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="generate-api">
+                                <input type="checkbox" id="generate-api" name="generateApi" checked>
+                                Generate API Key for Lead Submission
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label for="api-rate-limit">API Rate Limit (calls/hour)</label>
+                            <input type="number" id="api-rate-limit" name="rateLimit" class="form-input" value="1000" min="1">
+                        </div>
+                    </div>
+                    
+                    <div class="api-info" id="api-info" style="display: none;">
+                        <div class="api-key-display">
+                            <label>Generated API Key:</label>
+                            <div class="api-key-container">
+                                <input type="text" id="generated-api-key" class="form-input" readonly>
+                                <button type="button" class="btn btn-secondary" id="copy-api-key">📋 Copy</button>
+                            </div>
+                        </div>
+                        
+                        <div class="api-endpoints">
+                            <label>Lead Submission Endpoint:</label>
+                            <code id="api-endpoint">POST /api/v1/leads/submit</code>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="cancel-publisher">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="save-publisher">
+                        <span class="btn-loader" style="display: none;">⏳</span>
+                        Save Publisher
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- API Documentation Modal -->
+    <div id="apiDocModal" class="modal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h3>📖 Publisher API Documentation</h3>
+                <span class="close" id="close-api-doc-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="api-docs">
+                    <h4>Lead Submission API</h4>
+                    <p>Publishers can submit leads directly to our system using these endpoints:</p>
+                    
+                    <div class="api-section">
+                        <h5>Authentication</h5>
+                        <p>Include your API key in the Authorization header:</p>
+                        <pre><code>Authorization: Bearer YOUR_API_KEY</code></pre>
+                    </div>
+                    
+                    <div class="api-section">
+                        <h5>Submit Lead</h5>
+                        <div class="endpoint">
+                            <span class="method post">POST</span>
+                            <span class="url">/api/v1/leads/submit</span>
+                        </div>
+                        
+                        <h6>Request Body:</h6>
+                        <pre><code>{
+  "firstName": "John",
+  "lastName": "Doe",
+  "email": "john@example.com",
+  "phone": "+1234567890",
+  "leadType": "motor_vehicle_accident",
+  "incidentDate": "2024-05-30",
+  "description": "Rear-end collision",
+  "injuries": true,
+  "location": {
+    "city": "Los Angeles",
+    "state": "CA",
+    "zipCode": "90210"
+  },
+  "metadata": {
+    "source": "web_form",
+    "campaign": "summer_2024"
+  }
+}</code></pre>
+                        
+                        <h6>Response:</h6>
+                        <pre><code>{
+  "success": true,
+  "leadId": "lead_12345",
+  "message": "Lead submitted successfully",
+  "timestamp": "2024-05-30T14:30:00Z"
+}</code></pre>
+                    </div>
+                    
+                    <div class="api-section">
+                        <h5>Lead Status</h5>
+                        <div class="endpoint">
+                            <span class="method get">GET</span>
+                            <span class="url">/api/v1/leads/{leadId}/status</span>
+                        </div>
+                        
+                        <h6>Response:</h6>
+                        <pre><code>{
+  "leadId": "lead_12345",
+  "status": "processing",
+  "assignedTo": "agent_456",
+  "lastUpdated": "2024-05-30T14:35:00Z"
+}</code></pre>
+                    </div>
+                    
+                    <div class="api-section">
+                        <h5>Rate Limits</h5>
+                        <p>API calls are limited based on your publisher plan:</p>
+                        <ul>
+                            <li>Standard: 1,000 calls/hour</li>
+                            <li>Premium: 5,000 calls/hour</li>
+                            <li>Enterprise: Unlimited</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="api-section">
+                        <h5>Error Codes</h5>
+                        <table class="error-codes-table">
+                            <tr><td>400</td><td>Bad Request - Invalid data format</td></tr>
+                            <tr><td>401</td><td>Unauthorized - Invalid API key</td></tr>
+                            <tr><td>429</td><td>Rate Limited - Too many requests</td></tr>
+                            <tr><td>500</td><td>Server Error - Contact support</td></tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Container -->
     <div class="toast-container" id="toast-container"></div>
 
@@ -394,5 +646,4 @@ console.log('🔧 Configuration injected at build time - no external loading nee
         });
     </script>
 </body>
-</html> 
 </html> 

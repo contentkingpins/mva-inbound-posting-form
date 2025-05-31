@@ -1,13 +1,14 @@
-// Admin Dashboard JavaScript - Enhanced Command Center
+// Admin Dashboard JavaScript - Enhanced Command Center with Publisher Management
 
 // Global variables
 let performanceChart;
-let vendorChart;
+let publisherChart;
 let agents = [];
-let vendors = [];
+let publishers = [];
 let activities = [];
 let sortConfig = { key: null, direction: 'asc' };
 let selectedAgents = new Set();
+let selectedPublishers = new Set();
 let activityPaused = false;
 
 // Initialize on DOM load
@@ -21,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeSystemStats();
     initializeActivityFeed();
     initializeEnhancedAgentManagement();
-    initializeVendorAnalytics();
+    initializePublisherManagement();
     initializeModals();
     
     // Load data
@@ -131,7 +132,7 @@ function initializeThemeToggle() {
         
         // Update charts if they exist
         if (performanceChart) performanceChart.update();
-        if (vendorChart) vendorChart.update();
+        if (publisherChart) publisherChart.update();
     }
 }
 
@@ -140,7 +141,7 @@ function initializeSystemStats() {
     // Mock data for demonstration - replace with API calls
     const systemStats = {
         totalAgents: 15,
-        totalVendors: 8,
+        totalPublishers: 8,
         totalLeads: 2847,
         totalRevenue: 89250,
         systemHealth: 98,
@@ -154,7 +155,7 @@ function initializeSystemStats() {
 function updateSystemStats(stats) {
     if (typeof CountUp !== 'undefined') {
         new CountUp('total-agents-stat', stats.totalAgents, { duration: 2 }).start();
-        new CountUp('total-vendors-stat', stats.totalVendors, { duration: 2 }).start();
+        new CountUp('total-publishers-stat', stats.totalPublishers, { duration: 2 }).start();
         new CountUp('total-leads-stat', stats.totalLeads, { duration: 2.5, separator: ',' }).start();
         new CountUp('total-revenue-stat', stats.totalRevenue, { 
             duration: 2.5, 
@@ -169,7 +170,7 @@ function updateSystemStats(stats) {
         }).start();
     } else {
         document.getElementById('total-agents-stat').textContent = stats.totalAgents;
-        document.getElementById('total-vendors-stat').textContent = stats.totalVendors;
+        document.getElementById('total-publishers-stat').textContent = stats.totalPublishers;
         document.getElementById('total-leads-stat').textContent = stats.totalLeads.toLocaleString();
         document.getElementById('total-revenue-stat').textContent = '$' + stats.totalRevenue.toLocaleString();
         document.getElementById('conversion-rate-stat').textContent = stats.conversionRate + '%';
@@ -517,153 +518,161 @@ function updateAgentLeaderboard() {
     `).join('');
 }
 
-// Initialize vendor analytics
-function initializeVendorAnalytics() {
-    loadVendorsFromAPI();
-    setupVendorControls();
-    initializeVendorChart();
-}
-
-// Setup vendor controls
-function setupVendorControls() {
-    const periodSelect = document.getElementById('vendor-period');
-    const comparisonBtn = document.getElementById('vendor-comparison');
+// Initialize Publisher Management
+function initializePublisherManagement() {
+    console.log('🏢 Initializing Publisher Management...');
     
-    periodSelect.addEventListener('change', updateVendorAnalytics);
-    comparisonBtn.addEventListener('click', showVendorComparison);
+    // Publisher search and filtering
+    const publisherSearch = document.getElementById('publisher-search');
+    const statusFilter = document.getElementById('publisher-status-filter');
+    const sortSelect = document.getElementById('publisher-sort');
+    
+    if (publisherSearch) {
+        publisherSearch.addEventListener('input', debounce(filterPublishers, 300));
+    }
+    
+    if (statusFilter) {
+        statusFilter.addEventListener('change', filterPublishers);
+    }
+    
+    if (sortSelect) {
+        sortSelect.addEventListener('change', sortPublishers);
+    }
+    
+    // Publisher table sorting
+    const sortableHeaders = document.querySelectorAll('#publishers-table .sortable');
+    sortableHeaders.forEach(header => {
+        header.addEventListener('click', () => {
+            const sortKey = header.dataset.sort;
+            handlePublisherSort(sortKey);
+        });
+    });
+    
+    // Select all publishers checkbox
+    const selectAllPublishers = document.getElementById('select-all-publishers');
+    if (selectAllPublishers) {
+        selectAllPublishers.addEventListener('change', (e) => {
+            const checkboxes = document.querySelectorAll('#publishers-table-body input[type="checkbox"]');
+            checkboxes.forEach(cb => {
+                cb.checked = e.target.checked;
+                const publisherId = cb.dataset.publisherId;
+                if (e.target.checked) {
+                    selectedPublishers.add(publisherId);
+                } else {
+                    selectedPublishers.delete(publisherId);
+                }
+            });
+            updateBulkActionsState();
+        });
+    }
+    
+    // Add publisher button
+    const addPublisherBtn = document.getElementById('add-publisher-btn');
+    if (addPublisherBtn) {
+        addPublisherBtn.addEventListener('click', () => openPublisherModal());
+    }
+    
+    // Bulk actions
+    const bulkActionsBtn = document.getElementById('bulk-publisher-actions');
+    if (bulkActionsBtn) {
+        bulkActionsBtn.addEventListener('click', showBulkPublisherActions);
+    }
+    
+    // API management buttons
+    const generateApiBtn = document.getElementById('generate-api-key');
+    const apiDocsBtn = document.getElementById('api-documentation');
+    
+    if (generateApiBtn) {
+        generateApiBtn.addEventListener('click', generateApiKey);
+    }
+    
+    if (apiDocsBtn) {
+        apiDocsBtn.addEventListener('click', () => openModal('apiDocModal'));
+    }
+    
+    // Load publishers
+    loadPublishersFromAPI();
 }
 
-// Load vendors from API
-async function loadVendorsFromAPI() {
+// Load publishers from API
+async function loadPublishersFromAPI() {
     try {
-        const response = await fetch('https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod/vendors', {
+        showToast('📊 Loading publishers...', 'info');
+        
+        // Mock API call - replace with actual endpoint
+        const response = await fetch('/api/publishers', {
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-                'Content-Type': 'application/json'
+                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
             }
         });
         
         if (response.ok) {
-            vendors = await response.json();
-            renderVendorMetrics();
+            publishers = await response.json();
         } else {
-            // Use mock data
-            vendors = generateMockVendors();
-            renderVendorMetrics();
-        }
-    } catch (error) {
-        console.error('Error loading vendors:', error);
-        vendors = generateMockVendors();
-        renderVendorMetrics();
-    }
-}
-
-// Generate mock vendor data
-function generateMockVendors() {
-    return [
-        { id: 'v1', name: 'Smith Legal Group', status: 'active', leads: 156, revenue: 12450, conversionRate: 68 },
-        { id: 'v2', name: 'Johnson & Associates', status: 'active', leads: 203, revenue: 18670, conversionRate: 74 },
-        { id: 'v3', name: 'Williams Law Firm', status: 'active', leads: 89, revenue: 7120, conversionRate: 62 },
-        { id: 'v4', name: 'Brown Legal Services', status: 'active', leads: 134, revenue: 10890, conversionRate: 71 },
-        { id: 'v5', name: 'Davis & Partners', status: 'inactive', leads: 67, revenue: 4230, conversionRate: 58 }
-    ];
-}
-
-// Render vendor metrics
-function renderVendorMetrics() {
-    const metricsGrid = document.getElementById('vendor-metrics');
-    
-    metricsGrid.innerHTML = vendors.map(vendor => `
-        <div class="vendor-metric-card">
-            <div class="vendor-header">
-                <div class="vendor-name">${vendor.name}</div>
-                <div class="vendor-status ${vendor.status}">${vendor.status}</div>
-            </div>
-            <div class="vendor-metrics">
-                <div class="vendor-metric">
-                    <div class="vendor-metric-value">${vendor.leads}</div>
-                    <div class="vendor-metric-label">Leads</div>
-                </div>
-                <div class="vendor-metric">
-                    <div class="vendor-metric-value">$${vendor.revenue.toLocaleString()}</div>
-                    <div class="vendor-metric-label">Revenue</div>
-                </div>
-                <div class="vendor-metric">
-                    <div class="vendor-metric-value">${vendor.conversionRate}%</div>
-                    <div class="vendor-metric-label">Conversion</div>
-                </div>
-                <div class="vendor-metric">
-                    <div class="vendor-metric-value">${Math.round(vendor.revenue / vendor.leads)}</div>
-                    <div class="vendor-metric-label">Avg Value</div>
-                </div>
-            </div>
-        </div>
-    `).join('');
-}
-
-// Initialize vendor performance chart
-function initializeVendorChart() {
-    const ctx = document.getElementById('vendor-performance-chart');
-    if (!ctx) return;
-    
-    vendorChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: vendors.map(v => v.name.split(' ')[0]), // First word of vendor name
-            datasets: [{
-                label: 'Leads',
-                data: vendors.map(v => v.leads),
-                backgroundColor: 'rgba(66, 153, 225, 0.6)',
-                borderColor: 'rgba(66, 153, 225, 1)',
-                borderWidth: 1
-            }, {
-                label: 'Revenue',
-                data: vendors.map(v => v.revenue),
-                backgroundColor: 'rgba(16, 185, 129, 0.6)',
-                borderColor: 'rgba(16, 185, 129, 1)',
-                borderWidth: 1,
-                yAxisID: 'y1'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    type: 'linear',
-                    display: true,
-                    position: 'left',
+            // Mock data for development
+            publishers = [
+                {
+                    id: 'pub_001',
+                    name: 'Legal Lead Pro',
+                    email: 'contact@legalleadpro.com',
+                    phone: '+1-555-0123',
+                    website: 'https://legalleadpro.com',
+                    status: 'active',
+                    commission: 15.0,
+                    description: 'Premium legal lead provider specializing in MVA cases',
+                    apiKey: 'llp_sk_live_abc123...',
+                    rateLimit: 5000,
+                    totalLeads: 1247,
+                    revenue: 34567.89,
+                    lastActivity: new Date().toISOString(),
+                    createdAt: '2024-01-15T08:00:00Z'
                 },
-                y1: {
-                    type: 'linear',
-                    display: true,
-                    position: 'right',
-                    grid: {
-                        drawOnChartArea: false,
-                    },
+                {
+                    id: 'pub_002',
+                    name: 'AccidentClaims.net',
+                    email: 'admin@accidentclaims.net',
+                    phone: '+1-555-0124',
+                    website: 'https://accidentclaims.net',
+                    status: 'active',
+                    commission: 12.5,
+                    description: 'High-volume accident claim lead generation',
+                    apiKey: 'acn_sk_live_def456...',
+                    rateLimit: 2000,
+                    totalLeads: 892,
+                    revenue: 23456.78,
+                    lastActivity: new Date(Date.now() - 3600000).toISOString(),
+                    createdAt: '2024-02-10T10:30:00Z'
+                },
+                {
+                    id: 'pub_003',
+                    name: 'InjuryLeads Direct',
+                    email: 'support@injuryleadsdirect.com',
+                    phone: '+1-555-0125',
+                    website: 'https://injuryleadsdirect.com',
+                    status: 'pending',
+                    commission: 18.0,
+                    description: 'Targeted injury lead campaigns',
+                    apiKey: null,
+                    rateLimit: 1000,
+                    totalLeads: 234,
+                    revenue: 5678.90,
+                    lastActivity: new Date(Date.now() - 86400000).toISOString(),
+                    createdAt: '2024-05-20T14:15:00Z'
                 }
-            }
+            ];
         }
-    });
-}
-
-// Update vendor analytics
-function updateVendorAnalytics() {
-    const period = document.getElementById('vendor-period').value;
-    console.log('Updating vendor analytics for period:', period);
-    
-    // Mock data update - replace with API call
-    renderVendorMetrics();
-    if (vendorChart) {
-        vendorChart.update();
+        
+        renderPublishersTable();
+        updatePublisherStats();
+        renderTopPublishers();
+        updatePublisherChart();
+        
+        showToast(`✅ Loaded ${publishers.length} publishers`, 'success');
+        
+    } catch (error) {
+        console.error('Error loading publishers:', error);
+        showToast('❌ Failed to load publishers', 'error');
     }
-}
-
-// Show vendor comparison
-function showVendorComparison() {
-    // This would open a modal with detailed vendor comparison
-    console.log('Showing vendor comparison modal');
-    showToast('Vendor comparison feature coming soon!', 'info');
 }
 
 // Start real-time updates
@@ -731,7 +740,7 @@ function loadDashboardData() {
     // Load system-wide data
     loadSystemMetrics();
     loadAgentsFromAPI();
-    loadVendorsFromAPI();
+    loadPublishersFromAPI();
     updateLastRefreshTime();
 }
 
@@ -741,7 +750,7 @@ async function loadSystemMetrics() {
         // Mock API call - replace with actual endpoints
         const systemData = {
             totalAgents: agents.length,
-            totalVendors: vendors.length,
+            totalPublishers: publishers.length,
             totalLeads: Math.floor(Math.random() * 5000) + 2000,
             totalRevenue: Math.floor(Math.random() * 100000) + 50000,
             systemHealth: Math.floor(Math.random() * 5) + 95,
@@ -995,4 +1004,343 @@ window.handleAgentSelection = handleAgentSelection;
 window.viewAgentDetails = viewAgentDetails;
 window.editAgent = editAgent;
 window.deleteAgent = deleteAgent;
-window.showAddAgentModal = showAddAgentModal; 
+window.showAddAgentModal = showAddAgentModal;
+
+// Render publishers table
+function renderPublishersTable() {
+    const tableBody = document.getElementById('publishers-table-body');
+    if (!tableBody) return;
+
+    tableBody.innerHTML = publishers.map(publisher => `
+        <tr>
+            <td>
+                <input type="checkbox" data-publisher-id="${publisher.id}" 
+                       onchange="handlePublisherSelection('${publisher.id}', this.checked)">
+            </td>
+            <td>
+                <div class="publisher-info">
+                    <div class="publisher-name">${publisher.name}</div>
+                    <div class="publisher-email">${publisher.email}</div>
+                </div>
+            </td>
+            <td>
+                <span class="status-badge ${publisher.status}">${publisher.status}</span>
+            </td>
+            <td>
+                <div class="api-key-cell">
+                    ${publisher.apiKey ? 
+                        `<code class="api-key-preview">${publisher.apiKey.substring(0, 12)}...</code>` : 
+                        '<span class="no-api">No API Key</span>'
+                    }
+                </div>
+            </td>
+            <td class="text-center">${publisher.totalLeads.toLocaleString()}</td>
+            <td class="text-center">$${publisher.revenue.toLocaleString()}</td>
+            <td class="text-center">${formatRelativeTime(publisher.lastActivity)}</td>
+            <td>
+                <div class="action-buttons">
+                    <button class="action-btn edit" onclick="editPublisher('${publisher.id}')">
+                        ✏️ Edit
+                    </button>
+                    ${publisher.apiKey ? 
+                        `<button class="action-btn api" onclick="regenerateApiKey('${publisher.id}')">
+                            🔄 Regen API
+                        </button>` : 
+                        `<button class="action-btn api" onclick="generatePublisherApiKey('${publisher.id}')">
+                            🔑 Gen API
+                        </button>`
+                    }
+                    <button class="action-btn delete" onclick="deletePublisher('${publisher.id}')">
+                        🗑️ Delete
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// Handle publisher selection
+function handlePublisherSelection(publisherId, isSelected) {
+    if (isSelected) {
+        selectedPublishers.add(publisherId);
+    } else {
+        selectedPublishers.delete(publisherId);
+    }
+    updateBulkActionsState();
+}
+
+// Update bulk actions state
+function updateBulkActionsState() {
+    const bulkBtn = document.getElementById('bulk-publisher-actions');
+    if (bulkBtn) {
+        bulkBtn.textContent = selectedPublishers.size > 0 ? 
+            `📋 Bulk Actions (${selectedPublishers.size})` : 
+            '📋 Bulk Actions';
+        bulkBtn.disabled = selectedPublishers.size === 0;
+    }
+}
+
+// Filter publishers
+function filterPublishers() {
+    const search = document.getElementById('publisher-search').value.toLowerCase();
+    const statusFilter = document.getElementById('publisher-status-filter').value;
+    
+    const filtered = publishers.filter(publisher => {
+        const matchesSearch = publisher.name.toLowerCase().includes(search) || 
+                            publisher.email.toLowerCase().includes(search);
+        const matchesStatus = !statusFilter || publisher.status === statusFilter;
+        
+        return matchesSearch && matchesStatus;
+    });
+    
+    renderFilteredPublishers(filtered);
+}
+
+// Render filtered publishers
+function renderFilteredPublishers(filteredPublishers) {
+    const tableBody = document.getElementById('publishers-table-body');
+    if (!tableBody) return;
+    
+    // Store original publishers and update with filtered
+    const originalPublishers = [...publishers];
+    publishers = filteredPublishers;
+    renderPublishersTable();
+    publishers = originalPublishers; // Restore original
+}
+
+// Handle publisher sorting
+function handlePublisherSort(sortKey) {
+    const header = document.querySelector(`#publishers-table .sortable[data-sort="${sortKey}"]`);
+    
+    // Update sort direction
+    if (sortConfig.key === sortKey) {
+        sortConfig.direction = sortConfig.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortConfig.key = sortKey;
+        sortConfig.direction = 'asc';
+    }
+    
+    // Update UI
+    document.querySelectorAll('#publishers-table .sortable').forEach(h => {
+        h.classList.remove('asc', 'desc');
+    });
+    header.classList.add(sortConfig.direction);
+    
+    // Sort publishers
+    publishers.sort((a, b) => {
+        let aVal = a[sortKey];
+        let bVal = b[sortKey];
+        
+        // Handle different data types
+        if (typeof aVal === 'string') {
+            aVal = aVal.toLowerCase();
+            bVal = bVal.toLowerCase();
+        }
+        
+        if (sortConfig.direction === 'asc') {
+            return aVal > bVal ? 1 : -1;
+        } else {
+            return aVal < bVal ? 1 : -1;
+        }
+    });
+    
+    renderPublishersTable();
+}
+
+// Sort publishers from select dropdown
+function sortPublishers() {
+    const sortBy = document.getElementById('publisher-sort').value;
+    handlePublisherSort(sortBy);
+}
+
+// Update publisher stats
+function updatePublisherStats() {
+    const totalPublishers = publishers.length;
+    const activePublishers = publishers.filter(p => p.status === 'active').length;
+    const totalRevenue = publishers.reduce((sum, p) => sum + p.revenue, 0);
+    const totalLeads = publishers.reduce((sum, p) => sum + p.totalLeads, 0);
+    const activeApis = publishers.filter(p => p.apiKey).length;
+    const apiCallsToday = Math.floor(Math.random() * 5000) + 1000; // Mock data
+    
+    // Update stat elements
+    const elements = {
+        'total-publishers': totalPublishers,
+        'active-apis': activeApis,
+        'api-calls-today': apiCallsToday
+    };
+    
+    Object.entries(elements).forEach(([id, value]) => {
+        const element = document.getElementById(id);
+        if (element) {
+            if (typeof CountUp !== 'undefined' && !isNaN(value)) {
+                new CountUp(id, value, { duration: 1.5 }).start();
+            } else {
+                element.textContent = value.toLocaleString();
+            }
+        }
+    });
+}
+
+// Render top publishers
+function renderTopPublishers() {
+    const topList = document.getElementById('top-publishers-list');
+    if (!topList) return;
+    
+    const topPublishers = [...publishers]
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, 5);
+    
+    topList.innerHTML = topPublishers.map((publisher, index) => `
+        <div class="top-item">
+            <div class="top-item-rank">${index + 1}</div>
+            <div class="top-item-info">
+                <div class="top-item-name">${publisher.name}</div>
+                <div class="top-item-stats">
+                    ${publisher.totalLeads} leads • $${publisher.revenue.toLocaleString()}
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Update publisher chart
+function updatePublisherChart() {
+    const ctx = document.getElementById('publisher-chart');
+    if (!ctx) return;
+    
+    // Destroy existing chart
+    if (publisherChart) {
+        publisherChart.destroy();
+    }
+    
+    publisherChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: publishers.map(p => p.name),
+            datasets: [{
+                data: publishers.map(p => p.revenue),
+                backgroundColor: [
+                    '#4299e1',
+                    '#10b981', 
+                    '#f59e0b',
+                    '#ef4444',
+                    '#8b5cf6',
+                    '#f97316'
+                ],
+                borderWidth: 2,
+                borderColor: 'var(--bg-primary)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: 'var(--text-primary)',
+                        usePointStyle: true,
+                        padding: 15
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Open publisher modal
+function openPublisherModal(publisherId = null) {
+    const modal = document.getElementById('publisherModal');
+    const form = document.getElementById('publisher-form');
+    const title = document.getElementById('publisher-modal-title');
+    const apiInfo = document.getElementById('api-info');
+    
+    if (publisherId) {
+        // Edit mode
+        const publisher = publishers.find(p => p.id === publisherId);
+        if (publisher) {
+            title.textContent = 'Edit Publisher';
+            populatePublisherForm(publisher);
+            
+            // Show API info if publisher has API key
+            if (publisher.apiKey) {
+                document.getElementById('generated-api-key').value = publisher.apiKey;
+                apiInfo.style.display = 'block';
+            }
+        }
+    } else {
+        // Add mode
+        title.textContent = 'Add New Publisher';
+        form.reset();
+        document.getElementById('generate-api').checked = true;
+        apiInfo.style.display = 'none';
+    }
+    
+    openModal('publisherModal');
+}
+
+// Generate API key
+async function generateApiKey() {
+    try {
+        showToast('🔑 Generating new API key...', 'info');
+        
+        // Generate a secure API key
+        const apiKey = 'pk_live_' + generateSecureToken(32);
+        
+        // Mock API call to save the key
+        const response = await mockApiCall('/api/admin/generate-api-key', {
+            method: 'POST',
+            body: JSON.stringify({
+                keyType: 'publisher',
+                permissions: ['leads:submit', 'leads:status']
+            })
+        });
+        
+        if (response.success) {
+            showToast('✅ API key generated successfully!', 'success');
+            
+            // Show the key in a modal or alert
+            showApiKeyModal(apiKey);
+        }
+        
+    } catch (error) {
+        console.error('Error generating API key:', error);
+        showToast('❌ Failed to generate API key', 'error');
+    }
+}
+
+// Generate secure token
+function generateSecureToken(length) {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+}
+
+// Show API key modal
+function showApiKeyModal(apiKey) {
+    // Create a temporary modal to display the API key
+    const modalHtml = `
+        <div class="modal" id="apiKeyDisplayModal" style="display: block;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>🔑 New API Key Generated</h3>
+                </div>
+                <div class="modal-body">
+                    <p><strong>⚠️ Important:</strong> Copy this API key now. For security reasons, it won't be shown again.</p>
+                    <div class="api-key-container">
+                        <input type="text" value="${apiKey}" class="form-input" readonly id="new-api-key">
+                        <button type="button" class="btn btn-secondary" onclick="copyToClipboard('new-api-key')">📋 Copy</button>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-primary" onclick="closeApiKeyModal()">Got it!</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+} 
