@@ -104,37 +104,14 @@ function initializeDateTime() {
     setInterval(updateDateTime, 60000); // Update every minute
 }
 
-// Theme toggle functionality
+// Theme - Force Dark Mode Always
 function initializeThemeToggle() {
-    const lightBtn = document.querySelector('.theme-btn[data-theme="light"]');
-    const darkBtn = document.querySelector('.theme-btn[data-theme="dark"]');
+    // Force dark mode always
+    document.documentElement.setAttribute('data-theme', 'dark');
+    localStorage.setItem('admin-theme', 'dark');
     
-    if (!lightBtn || !darkBtn) return;
-    
-    // Get saved theme or default to light
-    const savedTheme = localStorage.getItem('admin-theme') || 'light';
-    document.documentElement.setAttribute('data-theme', savedTheme);
-    
-    // Update button states
-    lightBtn.classList.toggle('active', savedTheme === 'light');
-    darkBtn.classList.toggle('active', savedTheme === 'dark');
-    
-    // Theme button handlers
-    lightBtn.addEventListener('click', () => setTheme('light'));
-    darkBtn.addEventListener('click', () => setTheme('dark'));
-    
-    function setTheme(theme) {
-        document.documentElement.setAttribute('data-theme', theme);
-        localStorage.setItem('admin-theme', theme);
-        
-        // Update button states
-        lightBtn.classList.toggle('active', theme === 'light');
-        darkBtn.classList.toggle('active', theme === 'dark');
-        
-        // Update charts if they exist
-        if (performanceChart) performanceChart.update();
-        if (publisherChart) publisherChart.update();
-    }
+    // No theme toggle buttons - dark mode is permanent
+    console.log('🌙 Dark mode permanently enabled');
 }
 
 // Initialize system-wide statistics

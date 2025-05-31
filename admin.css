@@ -130,30 +130,6 @@ body {
     color: var(--text-secondary);
 }
 
-/* Theme Toggle */
-.theme-toggle {
-    display: flex;
-    background: var(--bg-primary);
-    border-radius: 100px;
-    padding: 2px;
-    gap: 2px;
-}
-
-.theme-btn {
-    background: transparent;
-    border: none;
-    padding: 0.5rem;
-    cursor: pointer;
-    border-radius: 100px;
-    transition: all 0.2s ease;
-    font-size: 1rem;
-}
-
-.theme-btn.active {
-    background: var(--bg-secondary);
-    box-shadow: var(--shadow-sm);
-}
-
 /* Main Content */
 .admin-main {
     max-width: 1400px;
