@@ -2627,4 +2627,23 @@ input:checked + .toggle-slider:before {
 
 [data-theme="dark"] .next-steps li {
     color: #bfdbfe;
+}
+
+/* Modal Overlay for vendor pricing and other overlays */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-overlay.active {
+    display: flex;
 } 

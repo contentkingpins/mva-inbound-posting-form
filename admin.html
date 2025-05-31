@@ -345,6 +345,17 @@ console.log('🔧 Configuration injected at build time - no external loading nee
                         <button class="btn btn-secondary" id="api-documentation">📖 API Documentation</button>
                     </div>
                 </div>
+
+                <div class="smart-pricing-controls">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="smart-pricing">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span>Enable Smart Pricing</span>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="openVendorPricingModal()">
+                        💵 Manage Vendor Pricing
+                    </button>
+                </div>
             </div>
         </section>
     </main>

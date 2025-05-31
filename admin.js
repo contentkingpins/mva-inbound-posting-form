@@ -19,11 +19,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize components
     initializeDateTime();
     initializeThemeToggle();
+    initializeModals();
+    initializeVendorPricing();
     initializeSystemStats();
     initializeActivityFeed();
     initializeEnhancedAgentManagement();
     initializePublisherManagement();
-    initializeModals();
     
     // Load data
     loadDashboardData();
@@ -824,34 +825,46 @@ function generateRandomDate() {
 
 // Initialize modals
 function initializeModals() {
-    // Generic modal functions
+    // Generic modal functions for both .modal and .modal-overlay
     window.openModal = function(modalId) {
         const modal = document.getElementById(modalId);
         if (modal) {
-            modal.classList.add('show');
+            if (modal.classList.contains('modal-overlay')) {
+                modal.classList.add('active');
+            } else {
+                modal.classList.add('show');
+            }
         }
     };
     
     window.closeModal = function(modalId) {
         const modal = document.getElementById(modalId);
         if (modal) {
-            modal.classList.remove('show');
+            modal.classList.remove('show', 'active');
         }
     };
     
     // Close modal when clicking outside
     document.addEventListener('click', (e) => {
-        if (e.target.classList.contains('modal')) {
-            e.target.classList.remove('show');
+        if (e.target.classList.contains('modal') || e.target.classList.contains('modal-overlay')) {
+            e.target.classList.remove('show', 'active');
         }
     });
     
-    // Close modal buttons
-    document.querySelectorAll('.close, [id*="close"]').forEach(btn => {
+    // Close modal buttons (including data-modal attributes)
+    document.querySelectorAll('.close, [id*="close"], .modal-close, [data-modal]').forEach(btn => {
         btn.addEventListener('click', () => {
-            const modal = btn.closest('.modal');
+            // Handle data-modal attribute
+            const dataModal = btn.getAttribute('data-modal');
+            if (dataModal) {
+                closeModal(dataModal);
+                return;
+            }
+            
+            // Handle closest modal
+            const modal = btn.closest('.modal, .modal-overlay');
             if (modal) {
-                modal.classList.remove('show');
+                modal.classList.remove('show', 'active');
             }
         });
     });
@@ -859,9 +872,9 @@ function initializeModals() {
     // Cancel buttons
     document.querySelectorAll('#cancel-publisher, #cancel-agent').forEach(btn => {
         btn.addEventListener('click', () => {
-            const modal = btn.closest('.modal');
+            const modal = btn.closest('.modal, .modal-overlay');
             if (modal) {
-                modal.classList.remove('show');
+                modal.classList.remove('show', 'active');
             }
         });
     });
@@ -1357,6 +1370,7 @@ window.viewAgentDetails = viewAgentDetails;
 window.editAgent = editAgent;
 window.deleteAgent = deleteAgent;
 window.showAddAgentModal = showAddAgentModal;
+window.openVendorPricingModal = openVendorPricingModal;
 
 // Render publishers table
 function renderPublishersTable() {
@@ -1695,4 +1709,84 @@ function showApiKeyModal(apiKey) {
     `;
     
     document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+// Initialize vendor pricing functionality
+function initializeVendorPricing() {
+    const updateAllBtn = document.getElementById('update-all-prices');
+    if (updateAllBtn) {
+        updateAllBtn.addEventListener('click', updateAllVendorPrices);
+    }
+    
+    // Ensure modal is hidden on page load
+    const customPricingModal = document.getElementById('custom-pricing-modal');
+    if (customPricingModal) {
+        customPricingModal.classList.remove('active');
+    }
+}
+
+// Handle price updates for publishers
+function updateAllVendorPrices() {
+    const pricingInputs = document.querySelectorAll('.pricing-input');
+    let updatedCount = 0;
+    
+    pricingInputs.forEach(input => {
+        const publisherId = input.getAttribute('data-publisher-id');
+        const newCommission = parseFloat(input.value) || 0;
+        
+        // Find and update publisher
+        const publisher = publishers.find(p => p.id === publisherId);
+        if (publisher) {
+            publisher.commission = newCommission;
+            updatedCount++;
+        }
+    });
+    
+    if (updatedCount > 0) {
+        showToast(`Updated commission rates for ${updatedCount} publisher${updatedCount > 1 ? 's' : ''}`, 'success');
+        addActivity('💰', `Updated commission rates for ${updatedCount} publishers`, 'just now');
+        
+        // Update publisher displays
+        renderPublishersTable();
+        updatePublisherStats();
+    }
+    
+    closeModal('custom-pricing-modal');
+}
+
+// Vendor pricing management - only called when needed
+function openVendorPricingModal() {
+    const modal = document.getElementById('custom-pricing-modal');
+    const pricingList = document.getElementById('vendor-pricing-list');
+    
+    // Check if we have publishers that can act as vendors
+    if (publishers && publishers.length > 0) {
+        const pricingHTML = publishers.map(publisher => `
+            <div class="pricing-item">
+                <div class="pricing-vendor">${publisher.name}</div>
+                <div class="pricing-input-wrapper">
+                    <span class="currency">$</span>
+                    <input type="number" class="pricing-input" value="${publisher.commission || 15}" 
+                           data-publisher-id="${publisher.id}" min="0" max="100" step="0.1">
+                    <span style="margin-left: 0.5rem; color: var(--text-secondary);">%</span>
+                </div>
+            </div>
+        `).join('');
+        
+        pricingList.innerHTML = pricingHTML;
+    } else {
+        pricingList.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">🏢</div>
+                <div class="empty-state-title">No Publishers Available</div>
+                <div class="empty-state-text">Add publishers first to configure custom pricing and commission rates.</div>
+                <button type="button" class="btn btn-primary" onclick="closeModal('custom-pricing-modal'); openPublisherModal();">
+                    ➕ Add First Publisher
+                </button>
+            </div>
+        `;
+    }
+    
+    // Open the modal
+    openModal('custom-pricing-modal');
 } 
