@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - Lead Management System</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
     
     <!-- Preconnect to CDNs -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -93,56 +94,44 @@ console.log('🔧 Configuration injected at build time - no external loading nee
             
             <div class="stats-grid">
                 <div class="stat-card glass-card">
-                    <div class="stat-icon">👥</div>
+                    <div class="stat-icon" data-tooltip="Total revenue from all closed leads" data-tooltip-theme="success">💰</div>
                     <div class="stat-content">
-                        <div class="stat-number" id="total-agents-stat">--</div>
-                        <div class="stat-label">Total Agents</div>
-                        <div class="stat-change positive" id="agents-change">+3 this month</div>
-                    </div>
-                </div>
-                
-                <div class="stat-card glass-card">
-                    <div class="stat-icon">🏢</div>
-                    <div class="stat-content">
-                        <div class="stat-label">Total Publishers</div>
-                        <div class="stat-number" id="total-publishers">0</div>
-                        <div class="stat-change positive" id="publishers-change">+0 this month</div>
-                    </div>
-                </div>
-                
-                <div class="stat-card glass-card">
-                    <div class="stat-icon">📋</div>
-                    <div class="stat-content">
-                        <div class="stat-number" id="total-leads-stat">--</div>
-                        <div class="stat-label">Total Leads</div>
-                        <div class="stat-change positive" id="leads-change">+12% vs last month</div>
-                    </div>
-                </div>
-                
-                <div class="stat-card glass-card">
-                    <div class="stat-icon">💰</div>
-                    <div class="stat-content">
-                        <div class="stat-number" id="total-revenue-stat">$--</div>
                         <div class="stat-label">Total Revenue</div>
-                        <div class="stat-change positive" id="revenue-change">+8% vs last month</div>
+                        <div class="stat-value" id="total-revenue">$0</div>
+                        <div class="stat-change positive" id="revenue-change" data-tooltip="Compared to last period">
+                            <span>↑ 0%</span>
+                        </div>
                     </div>
                 </div>
                 
                 <div class="stat-card glass-card">
-                    <div class="stat-icon">⚡</div>
+                    <div class="stat-icon" data-tooltip="Cost Per Acquisition - Average cost per lead" data-tooltip-theme="primary">📊</div>
                     <div class="stat-content">
-                        <div class="stat-number" id="system-health-stat">98%</div>
-                        <div class="stat-label">System Health</div>
-                        <div class="stat-change positive">All systems operational</div>
+                        <div class="stat-label">Average CPA</div>
+                        <div class="stat-value" id="average-cpa">$0</div>
+                        <div class="stat-change negative" id="cpa-change" data-tooltip="Lower is better">
+                            <span>↓ 0%</span>
+                        </div>
                     </div>
                 </div>
                 
                 <div class="stat-card glass-card">
-                    <div class="stat-icon">📈</div>
+                    <div class="stat-icon" data-tooltip="Number of agents currently online" data-tooltip-theme="success">👥</div>
                     <div class="stat-content">
-                        <div class="stat-number" id="conversion-rate-stat">--</div>
-                        <div class="stat-label">Avg Conversion Rate</div>
-                        <div class="stat-change positive" id="conversion-change">+2.3% vs last month</div>
+                        <div class="stat-label">Active Agents</div>
+                        <div class="stat-value" id="active-agents">0</div>
+                        <div class="stat-subtext" id="total-agents">of 0 total</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card glass-card">
+                    <div class="stat-icon" data-tooltip="Percentage of leads converted to customers" data-tooltip-theme="warning">🎯</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Conversion Rate</div>
+                        <div class="stat-value" id="conversion-rate">0%</div>
+                        <div class="stat-change positive" id="conversion-change" data-tooltip="Conversion trend">
+                            <span>↑ 0%</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -356,21 +345,21 @@ console.log('🔧 Configuration injected at build time - no external loading nee
 
     <!-- Floating Action Button -->
     <div class="fab-container">
-        <button class="fab" id="fab-button">
+        <button class="fab" id="mainFab" data-tooltip="Quick Actions" data-tooltip-position="left">
             <span class="fab-icon">+</span>
         </button>
-        <div class="fab-menu" id="fab-menu">
-            <button class="fab-action" data-action="report">
-                <span>📊</span>
-                Report
+        <div class="fab-menu" id="fabMenu">
+            <button class="fab-action" id="newLeadBtn" data-tooltip="Create a new lead" data-tooltip-position="left">
+                <span>📋</span> New Lead
             </button>
-            <button class="fab-action" data-action="agent">
-                <span>👥</span>
-                Agent
+            <button class="fab-action" id="newAgentBtn" data-tooltip="Add a new agent" data-tooltip-position="left">
+                <span>👤</span> New Agent
             </button>
-            <button class="fab-action" data-action="pricing">
-                <span>💵</span>
-                Pricing
+            <button class="fab-action" id="newVendorBtn" data-tooltip="Register a new vendor" data-tooltip-position="left">
+                <span>🏢</span> New Vendor
+            </button>
+            <button class="fab-action" id="exportDataBtn" data-tooltip="Export data to CSV/PDF" data-tooltip-position="left">
+                <span>📤</span> Export Data
             </button>
         </div>
     </div>

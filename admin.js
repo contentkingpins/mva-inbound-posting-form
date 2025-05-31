@@ -1,6 +1,16 @@
-// Admin Dashboard JavaScript - Enhanced Command Center with Publisher Management
+/**
+ * Admin Dashboard Main Controller
+ * Coordinates all admin modules and initializes the dashboard
+ */
+
+// Import modules
+import { AdminAnalytics } from './js/admin/admin-analytics.js';
+import { AdminVendors } from './js/admin/admin-vendors.js';
 
 // Global variables
+let adminAnalytics = null;
+let adminVendors = null;
+let currentUser = null;
 let performanceChart;
 let publisherChart;
 let agents = [];
@@ -11,30 +21,34 @@ let selectedAgents = new Set();
 let selectedPublishers = new Set();
 let activityPaused = false;
 
-// Initialize on DOM load
-document.addEventListener('DOMContentLoaded', () => {
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log('🚀 Admin Dashboard Initializing...');
+    
+    // Set dark theme permanently
+    document.documentElement.setAttribute('data-theme', 'dark');
+    
     // Check authentication
-    checkAuth();
+    const isAuthenticated = await checkAuth();
+    if (!isAuthenticated) {
+        window.location.href = 'login.html';
+        return;
+    }
     
-    // Initialize components
-    initializeDateTime();
-    initializeThemeToggle();
-    initializeModals();
-    initializeVendorPricing();
-    initializeSystemStats();
-    initializeActivityFeed();
-    initializeEnhancedAgentManagement();
-    initializePublisherManagement();
+    // Initialize modules
+    await initializeModules();
     
-    // Load data
-    loadDashboardData();
+    // Initialize dashboard
+    await initializeDashboard();
     
-    // Start real-time updates
-    startRealTimeUpdates();
+    // Setup global event listeners
+    setupGlobalEventListeners();
+    
+    console.log('✅ Admin Dashboard Ready');
 });
 
 // Authentication check
-function checkAuth() {
+async function checkAuth() {
     const token = localStorage.getItem('auth_token');
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     
@@ -63,8 +77,7 @@ function checkAuth() {
     if (!token || !userEmail || !shouldBeAdmin) {
         console.log('❌ Admin access denied, redirecting to login');
         // Not logged in or not admin, redirect to login page
-        window.location.href = 'login.html';
-        return;
+        return false;
     }
     
     // If admin email but role not set, fix it
@@ -79,6 +92,8 @@ function checkAuth() {
     
     // Set admin name
     document.getElementById('admin-name').textContent = user.name || user.given_name || user.email.split('@')[0];
+    currentUser = user;
+    return true;
 }
 
 // Initialize date/time
@@ -714,90 +729,91 @@ function deleteAgent(agentId) {
 }
 
 // Load dashboard data
-function loadDashboardData() {
-    // Load system-wide data
-    loadSystemMetrics();
-    loadAgentsFromAPI();
-    loadPublishersFromAPI();
-    updateLastRefreshTime();
-}
-
-// Load system metrics
-async function loadSystemMetrics() {
+async function loadDashboardData() {
+    console.log('📊 Loading dashboard data...');
+    
+    // Show skeletons while loading
+    showStatSkeletons();
+    showChartSkeleton('revenue-chart');
+    showTableSkeleton('vendor-table-body', 3);
+    
     try {
-        // Mock API call - replace with actual endpoints
-        const systemData = {
-            totalAgents: agents.length,
-            totalPublishers: publishers.length,
-            totalLeads: Math.floor(Math.random() * 5000) + 2000,
-            totalRevenue: Math.floor(Math.random() * 100000) + 50000,
-            systemHealth: Math.floor(Math.random() * 5) + 95,
-            conversionRate: Math.floor(Math.random() * 20) + 60
-        };
+        const token = localStorage.getItem('auth_token');
+        const apiBase = window.APP_CONFIG?.apiEndpoint || 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod';
         
-        updateSystemStats(systemData);
-    } catch (error) {
-        console.error('Error loading system metrics:', error);
-    }
-}
-
-// Load agents from API with enhanced data
-async function loadAgentsFromAPI() {
-    try {
-        const response = await fetch('https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod/auth/users', {
-            method: 'GET',
+        // Simulate minimum loading time for better UX
+        const minLoadTime = new Promise(resolve => setTimeout(resolve, 800));
+        
+        // Fetch dashboard data
+        const dataPromise = fetch(`${apiBase}/admin/stats`, {
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-                'Content-Type': 'application/json'
+                'Authorization': `Bearer ${token}`
             }
         });
         
-        if (response.ok) {
-            const users = await response.json();
-            
-            // Convert API users to enhanced agents format
-            agents = users.map(user => ({
-                id: user.username || user.email,
-                name: user.name || user.email?.split('@')[0] || 'Unknown',
-                email: user.email,
-                status: user.enabled ? (Math.random() > 0.5 ? 'online' : 'offline') : 'inactive',
-                leads: Math.floor(Math.random() * 200) + 10,
-                conversion: Math.floor(Math.random() * 40) + 50,
-                role: user.role || 'agent',
-                lastActive: generateRandomDate()
-            }));
-            
-            renderEnhancedAgentsTable();
-            updateAgentLeaderboard();
-        } else {
-            // Use enhanced mock data
-            agents = generateMockAgents();
-            renderEnhancedAgentsTable();
-            updateAgentLeaderboard();
+        // Wait for both minimum time and actual data
+        const [response] = await Promise.all([dataPromise, minLoadTime]);
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch dashboard data');
         }
+        
+        const data = await response.json();
+        
+        // Hide skeletons
+        hideStatSkeletons();
+        
+        // Update dashboard with real data
+        updateDashboard(data);
+        
     } catch (error) {
-        console.error('Error loading agents:', error);
-        agents = generateMockAgents();
-        renderEnhancedAgentsTable();
-        updateAgentLeaderboard();
+        console.error('Error loading dashboard data:', error);
+        hideStatSkeletons();
+        showEmptyState();
     }
 }
 
-// Generate enhanced mock agent data
-function generateMockAgents() {
-    return [
-        { id: 'a1', name: 'Sarah Johnson', email: 'sarah@company.com', status: 'online', leads: 156, conversion: 78, role: 'agent', lastActive: '2 min ago' },
-        { id: 'a2', name: 'Mike Chen', email: 'mike@company.com', status: 'online', leads: 203, conversion: 72, role: 'agent', lastActive: '5 min ago' },
-        { id: 'a3', name: 'Emily Davis', email: 'emily@company.com', status: 'offline', leads: 89, conversion: 65, role: 'agent', lastActive: '2 hours ago' },
-        { id: 'a4', name: 'John Smith', email: 'john@company.com', status: 'online', leads: 134, conversion: 81, role: 'admin', lastActive: 'just now' },
-        { id: 'a5', name: 'Lisa Brown', email: 'lisa@company.com', status: 'offline', leads: 97, conversion: 69, role: 'agent', lastActive: '1 day ago' }
-    ];
+// Add skeleton loading functions
+function showStatSkeletons() {
+    const statCards = document.querySelectorAll('.stat-card');
+    statCards.forEach(card => {
+        card.classList.add('skeleton-loading');
+    });
 }
 
-// Generate random date for demo
-function generateRandomDate() {
-    const dates = ['just now', '2 min ago', '15 min ago', '1 hour ago', '3 hours ago', '1 day ago'];
-    return dates[Math.floor(Math.random() * dates.length)];
+function hideStatSkeletons() {
+    const statCards = document.querySelectorAll('.stat-card');
+    statCards.forEach(card => {
+        card.classList.remove('skeleton-loading');
+    });
+}
+
+function showTableSkeleton(containerId, rows = 5) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    const skeletonHTML = `
+        <div class="table-skeleton">
+            ${Array(rows).fill('').map(() => `
+                <div class="table-skeleton-row">
+                    <div class="table-skeleton-cell small"></div>
+                    <div class="table-skeleton-cell"></div>
+                    <div class="table-skeleton-cell"></div>
+                    <div class="table-skeleton-cell large"></div>
+                    <div class="table-skeleton-cell small"></div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+    
+    container.innerHTML = skeletonHTML;
+}
+
+function showChartSkeleton(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    container.innerHTML = '<div class="chart-skeleton"></div>';
 }
 
 // Initialize modals
