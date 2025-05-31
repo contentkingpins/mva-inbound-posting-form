@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notification System Test</title>
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+    <div class="admin-container">
+        <header class="admin-header">
+            <div class="header-content">
+                <div class="header-left">
+                    <h1>Notification System Test</h1>
+                </div>
+                <div class="header-right">
+                    <!-- Notification bell will be inserted here -->
+                </div>
+            </div>
+        </header>
+        
+        <main class="admin-main">
+            <section class="glass-card">
+                <h2>Test Notification Functions</h2>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
+                    <!-- Lead Notifications -->
+                    <div class="glass-card" style="padding: 1.5rem;">
+                        <h3>📋 Lead Notifications</h3>
+                        <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem;">
+                            <button class="btn btn-primary" onclick="testNewLead()">
+                                New Lead Notification
+                            </button>
+                            <button class="btn btn-primary" onclick="testLeadAssigned()">
+                                Lead Assigned Notification
+                            </button>
+                            <button class="btn btn-primary" onclick="testLeadConverted()">
+                                Lead Converted Notification
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Agent Notifications -->
+                    <div class="glass-card" style="padding: 1.5rem;">
+                        <h3>👥 Agent Notifications</h3>
+                        <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem;">
+                            <button class="btn btn-secondary" onclick="testAgentOnline()">
+                                Agent Online Notification
+                            </button>
+                            <button class="btn btn-secondary" onclick="testAgentOffline()">
+                                Agent Offline Notification
+                            </button>
+                            <button class="btn btn-secondary" onclick="testPerformanceUpdate()">
+                                Performance Update
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- System Notifications -->
+                    <div class="glass-card" style="padding: 1.5rem;">
+                        <h3>⚙️ System Notifications</h3>
+                        <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem;">
+                            <button class="btn btn-danger" onclick="testSystemAlert()">
+                                System Alert
+                            </button>
+                            <button class="btn btn-success" onclick="testRevenueMilestone()">
+                                Revenue Milestone
+                            </button>
+                            <button class="btn btn-secondary" onclick="testMultipleNotifications()">
+                                Multiple Notifications
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Activity Feed Section -->
+                <div class="glass-card" style="margin-top: 2rem; padding: 1.5rem;">
+                    <h3>🔴 Live Activity Feed</h3>
+                    <div class="activity-feed" id="activity-feed" style="max-height: 300px; overflow-y: auto; margin-top: 1rem;">
+                        <!-- Activities will appear here -->
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+    
+    <script src="js/app-config.js"></script>
+    <script src="js/notification-system.js" type="module"></script>
+    
+    <script>
+        // Test Functions
+        function testNewLead() {
+            window.notificationSystem.addNotification({
+                id: `notif_${Date.now()}`,
+                type: 'lead_new',
+                title: 'New Lead Received',
+                message: 'John Doe submitted a motor vehicle accident claim',
+                data: { leadId: 'lead_123' },
+                actions: [
+                    { id: 'view', label: 'View Lead', type: 'primary' },
+                    { id: 'assign', label: 'Assign', type: 'secondary' }
+                ]
+            });
+        }
+        
+        function testLeadAssigned() {
+            window.notificationSystem.addNotification({
+                id: `notif_${Date.now()}`,
+                type: 'lead_assigned',
+                title: 'Lead Assigned to You',
+                message: 'You have been assigned the lead for Jane Smith',
+                data: { leadId: 'lead_456', agentId: 'agent_789' }
+            });
+        }
+        
+        function testLeadConverted() {
+            window.notificationSystem.addNotification({
+                id: `notif_${Date.now()}`,
+                type: 'lead_converted',
+                title: 'Lead Converted! 🎉',
+                message: 'Sarah Johnson successfully converted the lead for ABC Corp',
+                data: { leadId: 'lead_789', revenue: 5000 }
+            });
+        }
+        
+        function testAgentOnline() {
+            window.notificationSystem.addNotification({
+                id: `notif_${Date.now()}`,
+                type: 'agent_online',
+                title: 'Agent Online',
+                message: 'Mike Smith is now online and available',
+                data: { agentId: 'agent_123' }
+            });
+        }
+        
+        function testAgentOffline() {
+            window.notificationSystem.addNotification({
+                id: `notif_${Date.now()}`,
+                type: 'agent_offline',
+                title: 'Agent Offline',
+                message: 'Lisa Chen has gone offline',
+                data: { agentId: 'agent_456' }
+            });
+        }
+        
+        function testSystemAlert() {
+            window.notificationSystem.addNotification({
+                id: `notif_${Date.now()}`,
+                type: 'system_alert',
+                title: 'System Alert',
+                message: 'High API usage detected - 90% of rate limit reached',
+                priority: 'critical'
+            });
+        }
+        
+        function testRevenueMilestone() {
+            window.notificationSystem.addNotification({
+                id: `notif_${Date.now()}`,
+                type: 'revenue_milestone',
+                title: 'Revenue Milestone Reached! 💰',
+                message: 'Congratulations! You\'ve reached $100,000 in monthly revenue',
+                data: { amount: 100000, period: 'monthly' }
+            });
+        }
+        
+        function testPerformanceUpdate() {
+            window.notificationSystem.addNotification({
+                id: `notif_${Date.now()}`,
+                type: 'performance_update',
+                title: 'Weekly Performance Update',
+                message: 'Your conversion rate improved by 15% this week',
+                data: { metric: 'conversion_rate', change: 15 }
+            });
+        }
+        
+        function testMultipleNotifications() {
+            // Simulate multiple notifications coming in
+            setTimeout(() => testNewLead(), 0);
+            setTimeout(() => testLeadAssigned(), 500);
+            setTimeout(() => testAgentOnline(), 1000);
+            setTimeout(() => testRevenueMilestone(), 1500);
+            setTimeout(() => testSystemAlert(), 2000);
+        }
+        
+        // Add some initial activities
+        setTimeout(() => {
+            window.notificationSystem.addActivity({
+                id: `activity_${Date.now()}`,
+                user: 'System',
+                action: 'initialized notification system',
+                timestamp: new Date().toISOString(),
+                icon: '🚀'
+            });
+        }, 1000);
+    </script>
+</body>
+</html> 
