@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendor Portal Login - MVA Lead Management</title>
+    
+    <!-- Preconnect to CDNs -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://unpkg.com/lucide@latest/dist/lucide.css">
+    
+    <!-- AWS Cognito SDK -->
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1.24.min.js"></script>
+    <script src="https://unpkg.com/amazon-cognito-identity-js@6.3.12/dist/amazon-cognito-identity.min.js"></script>
+    
+    <style>
+        :root {
+            --primary: #8B5CF6;
+            --primary-dark: #7C3AED;
+            --primary-light: #A78BFA;
+            --secondary: #6366F1;
+            --background: #0F0F23;
+            --surface: #1A1A2E;
+            --surface-light: #16213E;
+            --text: #FFFFFF;
+            --text-secondary: #CBD5E1;
+            --success: #10B981;
+            --error: #EF4444;
+            --warning: #F59E0B;
+            --border: #374151;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--background) 0%, var(--surface) 100%);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-container {
+            background: rgba(26, 26, 46, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            border-radius: 20px;
+            padding: 3rem;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 20px 40px rgba(139, 92, 246, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+        }
+
+        .vendor-logo {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .vendor-logo h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .vendor-logo p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text);
+            font-size: 0.95rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 1rem;
+            background: rgba(139, 92, 246, 0.05);
+            border: 2px solid rgba(139, 92, 246, 0.2);
+            border-radius: 12px;
+            color: var(--text);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(139, 92, 246, 0.1);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .login-btn {
+            width: 100%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(139, 92, 246, 0.3);
+        }
+
+        .login-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .forgot-password {
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+
+        .forgot-password a {
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s ease;
+        }
+
+        .forgot-password a:hover {
+            color: var(--primary-light);
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .alert.error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #FCA5A5;
+        }
+
+        .alert.success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #6EE7B7;
+        }
+
+        .password-change-form {
+            display: none;
+        }
+
+        .password-requirements {
+            background: rgba(139, 92, 246, 0.05);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .requirement {
+            margin-bottom: 0.25rem;
+        }
+
+        .requirement.met {
+            color: var(--success);
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .vendor-info {
+            text-align: center;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(139, 92, 246, 0.2);
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 480px) {
+            .login-container {
+                margin: 1rem;
+                padding: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="vendor-logo">
+            <h1>🏢 Vendor Portal</h1>
+            <p>MVA Lead Management System</p>
+        </div>
+
+        <div id="alert" class="alert"></div>
+
+        <!-- Login Form -->
+        <form id="login-form">
+            <div class="form-group">
+                <label class="form-label" for="username">Username</label>
+                <input type="text" id="username" class="form-input" placeholder="Enter your username" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="password">Password</label>
+                <input type="password" id="password" class="form-input" placeholder="Enter your password" required>
+            </div>
+            
+            <button type="submit" class="login-btn" id="login-btn">
+                Sign In to Portal
+            </button>
+        </form>
+
+        <!-- Password Change Form (hidden initially) -->
+        <form id="password-change-form" class="password-change-form">
+            <h3 style="margin-bottom: 1rem; color: var(--primary);">Change Your Password</h3>
+            <p style="margin-bottom: 1rem; color: var(--text-secondary); font-size: 0.9rem;">
+                You must change your password before accessing the portal.
+            </p>
+            
+            <div class="password-requirements">
+                <div class="requirement" id="req-length">• At least 8 characters</div>
+                <div class="requirement" id="req-upper">• One uppercase letter</div>
+                <div class="requirement" id="req-lower">• One lowercase letter</div>
+                <div class="requirement" id="req-number">• One number</div>
+                <div class="requirement" id="req-special">• One special character</div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="new-password">New Password</label>
+                <input type="password" id="new-password" class="form-input" placeholder="Enter new password" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="confirm-password">Confirm Password</label>
+                <input type="password" id="confirm-password" class="form-input" placeholder="Confirm new password" required>
+            </div>
+            
+            <button type="submit" class="login-btn" id="change-password-btn">
+                Update Password
+            </button>
+        </form>
+
+        <div class="forgot-password">
+            <a href="#" id="forgot-password-link">Forgot your password?</a>
+        </div>
+
+        <div class="vendor-info">
+            <p>Need help? Contact your account manager</p>
+        </div>
+    </div>
+
+    <!-- Build-Time Injected Configuration -->
+    <script>
+    window.APP_CONFIG = {
+        "userPoolId": "us-east-1_lhc964tLD",
+        "clientId": "5t6mane4fnvineksoqb4ta0iu1",
+        "apiEndpoint": "https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod"
+    };
+    </script>
+
+    <script>
+        // Initialize Cognito
+        const poolData = {
+            UserPoolId: window.APP_CONFIG.userPoolId,
+            ClientId: window.APP_CONFIG.clientId
+        };
+        const userPool = new AmazonCognitoIdentity.CognitoUserPool(poolData);
+
+        // DOM elements
+        const loginForm = document.getElementById('login-form');
+        const passwordChangeForm = document.getElementById('password-change-form');
+        const alert = document.getElementById('alert');
+        const loginBtn = document.getElementById('login-btn');
+        const changePasswordBtn = document.getElementById('change-password-btn');
+
+        let currentUser = null;
+        let tempPassword = null;
+
+        // Show alert message
+        function showAlert(message, type = 'error') {
+            alert.textContent = message;
+            alert.className = `alert ${type}`;
+            alert.style.display = 'block';
+            
+            if (type === 'success') {
+                setTimeout(() => {
+                    alert.style.display = 'none';
+                }, 3000);
+            }
+        }
+
+        // Hide alert
+        function hideAlert() {
+            alert.style.display = 'none';
+        }
+
+        // Password validation
+        function validatePassword(password) {
+            const requirements = {
+                length: password.length >= 8,
+                upper: /[A-Z]/.test(password),
+                lower: /[a-z]/.test(password),
+                number: /\d/.test(password),
+                special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
+            };
+
+            // Update requirement indicators
+            Object.keys(requirements).forEach(req => {
+                const element = document.getElementById(`req-${req}`);
+                if (element) {
+                    element.className = requirements[req] ? 'requirement met' : 'requirement';
+                }
+            });
+
+            return Object.values(requirements).every(req => req);
+        }
+
+        // Listen for password input
+        document.getElementById('new-password').addEventListener('input', function() {
+            validatePassword(this.value);
+        });
+
+        // Login form submission
+        loginForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            hideAlert();
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (!username || !password) {
+                showAlert('Please enter both username and password');
+                return;
+            }
+
+            // Show loading state
+            loginBtn.innerHTML = '<span class="loading-spinner"></span>Signing In...';
+            loginBtn.disabled = true;
+
+            try {
+                const authenticationData = {
+                    Username: username,
+                    Password: password
+                };
+
+                const authenticationDetails = new AmazonCognitoIdentity.AuthenticationDetails(authenticationData);
+                const userData = {
+                    Username: username,
+                    Pool: userPool
+                };
+
+                currentUser = new AmazonCognitoIdentity.CognitoUser(userData);
+
+                currentUser.authenticateUser(authenticationDetails, {
+                    onSuccess: function(result) {
+                        console.log('Login successful');
+                        
+                        // Get user attributes to verify vendor role
+                        currentUser.getUserAttributes(function(err, attributes) {
+                            if (err) {
+                                console.error('Error getting user attributes:', err);
+                                showAlert('Login successful but failed to get user details');
+                                return;
+                            }
+
+                            const userRole = attributes.find(attr => attr.Name === 'custom:role')?.Value;
+                            const vendorCode = attributes.find(attr => attr.Name === 'custom:vendor_code')?.Value;
+
+                            if (userRole !== 'vendor') {
+                                showAlert('Access denied. This portal is for vendors only.');
+                                currentUser.signOut();
+                                return;
+                            }
+
+                            // Store auth info and redirect
+                            localStorage.setItem('vendor_token', result.getAccessToken().getJwtToken());
+                            localStorage.setItem('vendor_code', vendorCode || '');
+                            localStorage.setItem('vendor_username', username);
+                            
+                            showAlert('Login successful! Redirecting...', 'success');
+                            setTimeout(() => {
+                                window.location.href = 'vendor-dashboard.html';
+                            }, 1000);
+                        });
+                    },
+
+                    onFailure: function(err) {
+                        console.error('Login failed:', err);
+                        let message = 'Login failed. Please check your credentials.';
+                        
+                        if (err.code === 'NotAuthorizedException') {
+                            message = 'Invalid username or password.';
+                        } else if (err.code === 'UserNotConfirmedException') {
+                            message = 'Please contact your administrator to activate your account.';
+                        } else if (err.code === 'UserNotFoundException') {
+                            message = 'Username not found. Please contact your administrator.';
+                        }
+                        
+                        showAlert(message);
+                    },
+
+                    newPasswordRequired: function(userAttributes, requiredAttributes) {
+                        console.log('New password required');
+                        tempPassword = password;
+                        
+                        // Show password change form
+                        loginForm.style.display = 'none';
+                        passwordChangeForm.style.display = 'block';
+                        
+                        showAlert('You must change your password before continuing.', 'success');
+                    }
+                });
+
+            } catch (error) {
+                console.error('Authentication error:', error);
+                showAlert('An error occurred during login. Please try again.');
+            } finally {
+                // Reset button
+                loginBtn.innerHTML = 'Sign In to Portal';
+                loginBtn.disabled = false;
+            }
+        });
+
+        // Password change form submission
+        passwordChangeForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            hideAlert();
+
+            const newPassword = document.getElementById('new-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+
+            if (!validatePassword(newPassword)) {
+                showAlert('Password does not meet requirements');
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                showAlert('Passwords do not match');
+                return;
+            }
+
+            // Show loading state
+            changePasswordBtn.innerHTML = '<span class="loading-spinner"></span>Updating Password...';
+            changePasswordBtn.disabled = true;
+
+            try {
+                currentUser.completeNewPasswordChallenge(newPassword, {}, {
+                    onSuccess: function(result) {
+                        console.log('Password changed successfully');
+                        
+                        // Get user attributes
+                        currentUser.getUserAttributes(function(err, attributes) {
+                            if (err) {
+                                console.error('Error getting user attributes:', err);
+                                showAlert('Password updated but failed to get user details');
+                                return;
+                            }
+
+                            const vendorCode = attributes.find(attr => attr.Name === 'custom:vendor_code')?.Value;
+                            const username = attributes.find(attr => attr.Name === 'preferred_username')?.Value || 
+                                           document.getElementById('username').value;
+
+                            // Store auth info and redirect
+                            localStorage.setItem('vendor_token', result.getAccessToken().getJwtToken());
+                            localStorage.setItem('vendor_code', vendorCode || '');
+                            localStorage.setItem('vendor_username', username);
+                            
+                            showAlert('Password updated successfully! Redirecting...', 'success');
+                            setTimeout(() => {
+                                window.location.href = 'vendor-dashboard.html';
+                            }, 1500);
+                        });
+                    },
+
+                    onFailure: function(err) {
+                        console.error('Password change failed:', err);
+                        let message = 'Failed to update password. Please try again.';
+                        
+                        if (err.code === 'InvalidPasswordException') {
+                            message = 'Password does not meet security requirements.';
+                        }
+                        
+                        showAlert(message);
+                    }
+                });
+
+            } catch (error) {
+                console.error('Password change error:', error);
+                showAlert('An error occurred while updating password. Please try again.');
+            } finally {
+                // Reset button
+                changePasswordBtn.innerHTML = 'Update Password';
+                changePasswordBtn.disabled = false;
+            }
+        });
+
+        // Forgot password handler
+        document.getElementById('forgot-password-link').addEventListener('click', function(e) {
+            e.preventDefault();
+            showAlert('Please contact your account manager for password reset assistance.', 'success');
+        });
+
+        // Check if user is already logged in
+        window.addEventListener('load', function() {
+            const token = localStorage.getItem('vendor_token');
+            if (token) {
+                // Verify token is still valid
+                try {
+                    const payload = JSON.parse(atob(token.split('.')[1]));
+                    const currentTime = Math.floor(Date.now() / 1000);
+                    
+                    if (payload.exp > currentTime) {
+                        // Token is still valid, redirect to dashboard
+                        window.location.href = 'vendor-dashboard.html';
+                        return;
+                    }
+                } catch (error) {
+                    console.log('Invalid token, staying on login page');
+                }
+                
+                // Clear invalid token
+                localStorage.removeItem('vendor_token');
+                localStorage.removeItem('vendor_code');
+                localStorage.removeItem('vendor_username');
+            }
+        });
+    </script>
+</body>
+</html> 

@@ -12,6 +12,129 @@
  * - Single point of configuration management
  */
 
+// Detect current environment
+const getEnvironment = () => {
+    const hostname = window.location.hostname;
+    
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.includes('192.168')) {
+        return 'development';
+    } else if (hostname.includes('staging') || hostname.includes('test')) {
+        return 'staging';
+    } else {
+        return 'production';
+    }
+};
+
+// Environment-specific configurations
+const environments = {
+    development: {
+        apiEndpoint: 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod',
+        cognitoUserPoolId: 'us-east-1_lhc964tLD',
+        cognitoClientId: '5t6mane4fnvineksoqb4ta0iu1',
+        debug: true,
+        logLevel: 'debug',
+        cacheTimeout: 1000 * 60 * 5, // 5 minutes
+        features: {
+            darkMode: true,
+            tooltips: true,
+            animations: true,
+            debugPanel: true
+        }
+    },
+    staging: {
+        apiEndpoint: 'https://staging-api.claimconnectors.com/prod',
+        cognitoUserPoolId: 'us-east-1_lhc964tLD',
+        cognitoClientId: '5t6mane4fnvineksoqb4ta0iu1',
+        debug: true,
+        logLevel: 'info',
+        cacheTimeout: 1000 * 60 * 15, // 15 minutes
+        features: {
+            darkMode: true,
+            tooltips: true,
+            animations: true,
+            debugPanel: false
+        }
+    },
+    production: {
+        apiEndpoint: 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod',
+        cognitoUserPoolId: 'us-east-1_lhc964tLD',
+        cognitoClientId: '5t6mane4fnvineksoqb4ta0iu1',
+        debug: false,
+        logLevel: 'error',
+        cacheTimeout: 1000 * 60 * 30, // 30 minutes
+        features: {
+            darkMode: true,
+            tooltips: true,
+            animations: true,
+            debugPanel: false
+        }
+    }
+};
+
+// Get current environment
+const currentEnvironment = getEnvironment();
+
+// Export configuration
+window.APP_CONFIG = {
+    ...environments[currentEnvironment],
+    environment: currentEnvironment,
+    version: '2.0.0',
+    buildDate: new Date().toISOString(),
+    
+    // Override with any URL parameters (for testing)
+    ...((() => {
+        const params = new URLSearchParams(window.location.search);
+        const overrides = {};
+        
+        if (params.get('debug') === 'true') {
+            overrides.debug = true;
+            overrides.logLevel = 'debug';
+        }
+        
+        if (params.get('api')) {
+            overrides.apiEndpoint = params.get('api');
+        }
+        
+        return overrides;
+    })()),
+    
+    // Helper methods
+    log: function(level, ...args) {
+        const levels = ['debug', 'info', 'warn', 'error'];
+        const configLevel = levels.indexOf(this.logLevel);
+        const messageLevel = levels.indexOf(level);
+        
+        if (messageLevel >= configLevel) {
+            console[level](...args);
+        }
+    },
+    
+    isFeatureEnabled: function(feature) {
+        return this.features[feature] || false;
+    },
+    
+    getApiUrl: function(endpoint) {
+        return `${this.apiEndpoint}${endpoint}`;
+    }
+};
+
+// Log configuration on load
+if (window.APP_CONFIG.debug) {
+    console.log('🔧 App Configuration:', {
+        environment: window.APP_CONFIG.environment,
+        apiEndpoint: window.APP_CONFIG.apiEndpoint,
+        version: window.APP_CONFIG.version,
+        features: window.APP_CONFIG.features
+    });
+}
+
+// Make config immutable in production
+if (window.APP_CONFIG.environment === 'production') {
+    Object.freeze(window.APP_CONFIG);
+}
+
+export default window.APP_CONFIG;
+
 class AppConfig {
     constructor() {
         this._config = null;

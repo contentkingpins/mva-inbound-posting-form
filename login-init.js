@@ -44,9 +44,11 @@ async function getUsernameByEmail(email) {
 // User sign-in function - modified to look up username by email first
 async function signIn(email, password) {
   try {
+    console.log('🔐 Starting authentication for:', email);
+    
     // First find the username for this email using backend API
     const username = await getUsernameByEmail(email);
-    console.log('Found username for login:', username);
+    console.log('✅ Found username for login:', username);
     
     // Proceed with authentication using the found username
     const authenticationData = {
@@ -66,6 +68,7 @@ async function signIn(email, password) {
     return new Promise((resolve, reject) => {
       cognitoUser.authenticateUser(authenticationDetails, {
         onSuccess: (result) => {
+          console.log('🎉 Authentication successful');
           // Successfully authenticated
           const tokens = {
             accessToken: result.getAccessToken().getJwtToken(),
@@ -81,10 +84,11 @@ async function signIn(email, password) {
           // For backward compatibility with our code
           localStorage.setItem('auth_token', tokens.idToken);
           
+          console.log('💾 Tokens stored successfully');
           resolve(result);
         },
         onFailure: (err) => {
-          console.error('Authentication failed:', err);
+          console.error('❌ Authentication failed:', err.code, '-', err.message);
           
           // Special handling for common Cognito errors
           if (err.code === 'UserNotConfirmedException') {
@@ -96,7 +100,7 @@ async function signIn(email, password) {
         },
         newPasswordRequired: (userAttributes, requiredAttributes) => {
           // Handle new password required challenge
-          console.log('User needs to set a new password');
+          console.log('🔑 User needs to set a new password');
           
           // Store user data in sessionStorage (never store in localStorage for security)
           sessionStorage.setItem('cognitoUser', username);
@@ -114,7 +118,7 @@ async function signIn(email, password) {
       });
     });
   } catch (error) {
-    console.error('Error during login:', error);
+    console.error('💥 Error during login process:', error);
     throw error;
   }
 }
@@ -278,12 +282,40 @@ async function completePasswordReset() {
             // Redirect after a delay based on role
             setTimeout(() => {
               const userData = JSON.parse(localStorage.getItem('user') || '{}');
-              const userRole = userData['custom:role'] || userData.role || 'agent'; // Default to agent if no role
               
-              if (userRole === 'admin') {
-                window.location.href = 'admin.html';
+              // Enhanced admin role detection - FIXED
+              const userRole = userData['custom:role'] || userData.role || 'agent';
+              const userEmail = (userData.email || '').toLowerCase().trim();
+              
+              // Define admin emails clearly
+              const adminEmails = ['george@contentkingpins.com', 'admin@contentkingpins.com'];
+              
+              console.log('🔍 Role detection details:', {
+                email: userEmail,
+                customRole: userData['custom:role'],
+                role: userData.role,
+                detectedRole: userRole,
+                isAdminEmail: adminEmails.includes(userEmail)
+              });
+              
+              // Force admin access for known admin emails
+              const isAdmin = userRole === 'admin' || adminEmails.includes(userEmail);
+              
+              if (isAdmin) {
+                // Ensure admin role is properly set
+                userData.role = 'admin';
+                userData['custom:role'] = 'admin';
+                localStorage.setItem('user', JSON.stringify(userData));
+                
+                console.log('🔒 ADMIN ACCESS GRANTED - Redirecting to admin.html');
+                setTimeout(() => {
+                  window.location.href = 'admin.html';
+                }, 500);
               } else {
-                window.location.href = 'agent-aurora.html';
+                console.log('👥 Agent access - Redirecting to agent-aurora.html');
+                setTimeout(() => {
+                  window.location.href = 'agent-aurora.html';
+                }, 500);
               }
             }, 2000);
             
@@ -326,6 +358,38 @@ function cancelPasswordReset() {
   // Show login form
   document.getElementById('passwordResetForm').style.display = 'none';
   document.getElementById('loginForm').style.display = 'block';
+}
+
+// Clear authentication data function
+function clearAuthData() {
+  console.log('🧹 Clearing all authentication data...');
+  
+  // Clear localStorage
+  const authKeys = ['auth_token', 'user', 'accessToken', 'idToken', 'refreshToken'];
+  authKeys.forEach(key => {
+    if (localStorage.getItem(key)) {
+      localStorage.removeItem(key);
+      console.log('Removed localStorage:', key);
+    }
+  });
+  
+  // Clear sessionStorage
+  const sessionKeys = ['cognitoUser', 'userEmail', 'userAttributes'];
+  sessionKeys.forEach(key => {
+    if (sessionStorage.getItem(key)) {
+      sessionStorage.removeItem(key);
+      console.log('Removed sessionStorage:', key);
+    }
+  });
+  
+  // Sign out Cognito user
+  const cognitoUser = userPool.getCurrentUser();
+  if (cognitoUser) {
+    cognitoUser.signOut();
+    console.log('Cognito user signed out');
+  }
+  
+  console.log('✅ Authentication data cleared');
 }
 
 // Initialize login functionality
@@ -378,7 +442,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('User already logged in with valid data, redirecting...');
             // Check user role and redirect appropriately
             const userData = JSON.parse(localStorage.getItem('user') || '{}');
-            const userRole = userData['custom:role'] || userData.role || 'agent'; // Default to agent if no role
+            const userRole = userData['custom:role'] || userData.role || 'agent';
             
             if (userRole === 'admin') {
               window.location.href = 'admin.html';
@@ -456,6 +520,9 @@ document.addEventListener('DOMContentLoaded', function() {
       loginForm.addEventListener('submit', async function(event) {
         event.preventDefault();
         
+        // Clear any existing authentication data first
+        clearAuthData();
+        
         // Clear previous error/success messages
         errorMessage.style.display = 'none';
         errorMessage.textContent = '';
@@ -468,6 +535,8 @@ document.addEventListener('DOMContentLoaded', function() {
           // Get form values
           const email = emailInput.value.trim();
           const password = passwordInput.value;
+          
+          console.log('🔑 Attempting login for:', email);
           
           // Sign in using Cognito
           const result = await signIn(email, password);
@@ -508,12 +577,8 @@ document.addEventListener('DOMContentLoaded', function() {
                       const name = attr.getName();
                       const value = attr.getValue();
                       
-                      // Handle custom attributes
-                      if (name === 'custom:role') {
-                        user.role = value;
-                      } else {
-                        user[name] = value;
-                      }
+                      // Store all attributes with their original names
+                      user[name] = value;
                     });
                   }
                   
@@ -526,12 +591,40 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Check user role and redirect appropriately
                 console.log('User data saved, redirecting based on role...');
                 const userData = JSON.parse(localStorage.getItem('user'));
-                const userRole = userData.role || 'agent';
                 
-                if (userRole === 'admin') {
-                  window.location.href = 'admin.html';
+                // Enhanced admin role detection - FIXED
+                const userRole = userData['custom:role'] || userData.role || 'agent';
+                const userEmail = (userData.email || '').toLowerCase().trim();
+                
+                // Define admin emails clearly
+                const adminEmails = ['george@contentkingpins.com', 'admin@contentkingpins.com'];
+                
+                console.log('🔍 Role detection details:', {
+                  email: userEmail,
+                  customRole: userData['custom:role'],
+                  role: userData.role,
+                  detectedRole: userRole,
+                  isAdminEmail: adminEmails.includes(userEmail)
+                });
+                
+                // Force admin access for known admin emails
+                const isAdmin = userRole === 'admin' || adminEmails.includes(userEmail);
+                
+                if (isAdmin) {
+                  // Ensure admin role is properly set
+                  userData.role = 'admin';
+                  userData['custom:role'] = 'admin';
+                  localStorage.setItem('user', JSON.stringify(userData));
+                  
+                  console.log('🔒 ADMIN ACCESS GRANTED - Redirecting to admin.html');
+                  setTimeout(() => {
+                    window.location.href = 'admin.html';
+                  }, 500);
                 } else {
-                  window.location.href = 'agent-aurora.html';
+                  console.log('👥 Agent access - Redirecting to agent-aurora.html');
+                  setTimeout(() => {
+                    window.location.href = 'agent-aurora.html';
+                  }, 500);
                 }
               });
             });

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Component Test - MVA CRM</title>
+    <link rel="stylesheet" href="admin.css">
+    <style>
+        body {
+            padding: 20px;
+            background: #0f172a;
+            color: #f1f5f9;
+        }
+        .test-section {
+            margin-bottom: 40px;
+            padding: 20px;
+            background: #1e293b;
+            border-radius: 8px;
+        }
+        .test-section h2 {
+            margin-bottom: 20px;
+            color: #4299e1;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .success { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+        .error { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        .warning { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+        .info { background: rgba(66, 153, 225, 0.2); color: #4299e1; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Component Testing Dashboard</h1>
+    
+    <!-- Mock API Tests -->
+    <div class="test-section">
+        <h2>1. Mock API Tests</h2>
+        <button class="btn btn-primary" onclick="testMockAPI()">Run API Tests</button>
+        <div id="api-test-results"></div>
+    </div>
+    
+    <!-- Lead Assignment Tests -->
+    <div class="test-section">
+        <h2>2. Lead Assignment Component</h2>
+        <button class="btn btn-primary" onclick="testLeadAssignment()">Test Assignment Modal</button>
+        <div id="assignment-test-results"></div>
+    </div>
+    
+    <!-- Advanced Filters Tests -->
+    <div class="test-section">
+        <h2>3. Advanced Filters Component</h2>
+        <button class="btn btn-primary" onclick="testAdvancedFilters()">Test Filter Panel</button>
+        <div id="filter-test-results"></div>
+    </div>
+    
+    <!-- Integration Test -->
+    <div class="test-section">
+        <h2>4. Integration Test</h2>
+        <button class="btn btn-primary" onclick="runIntegrationTest()">Run Full Integration Test</button>
+        <div id="integration-test-results"></div>
+    </div>
+    
+    <!-- Test Lead Display -->
+    <div class="test-section">
+        <h2>5. Test Leads Display</h2>
+        <div id="test-leads-container" style="display: grid; gap: 10px; margin-top: 20px;">
+            <!-- Test leads will be inserted here -->
+        </div>
+    </div>
+
+    <!-- Load all required scripts -->
+    <script src="js/app-config.js"></script>
+    <script src="js/mock-api.js"></script>
+    <script src="js/lead-assignment.js"></script>
+    <script src="js/advanced-filters.js"></script>
+    
+    <script>
+        // Test functions
+        async function testMockAPI() {
+            const results = document.getElementById('api-test-results');
+            results.innerHTML = '';
+            
+            const tests = [
+                {
+                    name: 'Lead Assignment',
+                    endpoint: '/api/leads/lead_123/assign',
+                    method: 'POST',
+                    body: { agentId: 'agent_1', priority: 'high' }
+                },
+                {
+                    name: 'Bulk Update',
+                    endpoint: '/api/leads/bulk-update',
+                    method: 'POST',
+                    body: { leadIds: ['lead_1', 'lead_2'], updates: { status: 'qualified' } }
+                },
+                {
+                    name: 'Advanced Search',
+                    endpoint: '/api/leads/advanced-search',
+                    method: 'POST',
+                    body: { filters: { status: ['new'] }, pagination: { page: 1, limit: 10 } }
+                }
+            ];
+            
+            for (const test of tests) {
+                try {
+                    const response = await fetch(test.endpoint, {
+                        method: test.method,
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(test.body)
+                    });
+                    const data = await response.json();
+                    
+                    results.innerHTML += `
+                        <div class="test-result success">
+                            ✅ ${test.name}: ${response.status} OK
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } catch (error) {
+                    results.innerHTML += `
+                        <div class="test-result error">
+                            ❌ ${test.name}: ${error.message}
+                        </div>
+                    `;
+                }
+            }
+        }
+        
+        function testLeadAssignment() {
+            const results = document.getElementById('assignment-test-results');
+            results.innerHTML = '';
+            
+            try {
+                // Add test leads to page
+                const container = document.getElementById('test-leads-container');
+                container.innerHTML = `
+                    <div class="lead-card" data-lead-id="test_lead_1" style="padding: 15px; background: #0f172a; border-radius: 8px;">
+                        <h4>Test Lead 1</h4>
+                        <p>John Doe - john@example.com</p>
+                    </div>
+                    <div class="lead-card" data-lead-id="test_lead_2" style="padding: 15px; background: #0f172a; border-radius: 8px;">
+                        <h4>Test Lead 2</h4>
+                        <p>Jane Smith - jane@example.com</p>
+                    </div>
+                `;
+                
+                // Initialize checkboxes
+                leadAssignment.addLeadCheckboxes();
+                
+                // Simulate selection
+                const checkbox = document.querySelector('.lead-checkbox');
+                if (checkbox) {
+                    checkbox.checked = true;
+                    leadAssignment.handleLeadSelection(checkbox);
+                }
+                
+                results.innerHTML = `
+                    <div class="test-result success">
+                        ✅ Lead assignment initialized
+                    </div>
+                    <div class="test-result info">
+                        ℹ️ Selected ${leadAssignment.selectedLeads.size} leads
+                    </div>
+                    <div class="test-result info">
+                        ℹ️ Click "Assign Selected" in the bulk action bar above the test leads
+                    </div>
+                `;
+                
+                // Open assignment modal
+                setTimeout(() => {
+                    leadAssignment.openAssignmentModal();
+                }, 1000);
+                
+            } catch (error) {
+                results.innerHTML = `<div class="test-result error">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        function testAdvancedFilters() {
+            const results = document.getElementById('filter-test-results');
+            results.innerHTML = '';
+            
+            try {
+                // Toggle filter panel
+                advancedFilters.toggleFilterPanel();
+                
+                // Set some test filters
+                advancedFilters.setDateRange('today');
+                advancedFilters.filters.status = ['new', 'contacted'];
+                advancedFilters.updateFilterCount();
+                
+                results.innerHTML = `
+                    <div class="test-result success">
+                        ✅ Advanced filters initialized
+                    </div>
+                    <div class="test-result info">
+                        ℹ️ Filter panel is ${advancedFilters.isOpen ? 'open' : 'closed'}
+                    </div>
+                    <div class="test-result info">
+                        ℹ️ Active filters: ${JSON.stringify(advancedFilters.cleanFilters())}
+                    </div>
+                `;
+            } catch (error) {
+                results.innerHTML = `<div class="test-result error">❌ Error: ${error.message}</div>`;
+            }
+        }
+        
+        async function runIntegrationTest() {
+            const results = document.getElementById('integration-test-results');
+            results.innerHTML = '<div class="test-result info">⏳ Running integration test...</div>';
+            
+            try {
+                // 1. Search for leads
+                const searchResponse = await fetch('/api/leads/advanced-search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        filters: { status: ['new'] },
+                        pagination: { page: 1, limit: 5 }
+                    })
+                });
+                const searchData = await searchResponse.json();
+                
+                results.innerHTML += `
+                    <div class="test-result success">
+                        ✅ Found ${searchData.data.length} leads
+                    </div>
+                `;
+                
+                // 2. Select leads for assignment
+                const leadIds = searchData.data.slice(0, 2).map(lead => lead.id);
+                
+                // 3. Assign to agent
+                const assignResponse = await fetch('/api/leads/bulk-assign', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        leadIds: leadIds,
+                        agentId: 'agent_1'
+                    })
+                });
+                const assignData = await assignResponse.json();
+                
+                results.innerHTML += `
+                    <div class="test-result success">
+                        ✅ Assigned ${assignData.assigned} leads to agent
+                    </div>
+                `;
+                
+                // 4. Export leads
+                const exportResponse = await fetch('/api/leads/bulk-export', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ leadIds: leadIds })
+                });
+                const exportData = await exportResponse.json();
+                
+                results.innerHTML += `
+                    <div class="test-result success">
+                        ✅ Export initiated: ${exportData.exportId}
+                    </div>
+                `;
+                
+                results.innerHTML += `
+                    <div class="test-result success">
+                        🎉 Integration test completed successfully!
+                    </div>
+                `;
+                
+            } catch (error) {
+                results.innerHTML += `
+                    <div class="test-result error">
+                        ❌ Integration test failed: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🧪 Component test page loaded');
+            console.log('Mock API available:', !!window.mockAPI);
+            console.log('Lead Assignment available:', !!window.leadAssignment);
+            console.log('Advanced Filters available:', !!window.advancedFilters);
+        });
+    </script>
+</body>
+</html> 

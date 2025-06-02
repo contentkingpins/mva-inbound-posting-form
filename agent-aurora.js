@@ -1,518 +1,605 @@
-// Professional Agent Dashboard - Legal Lead Management
+// Agent Aurora Dashboard JavaScript
+// Professional Lead Management System for Legal Agents
 
-// Global state
+// Global variables
+let currentUser = null;
+let authToken = null;
 let availableLeads = [];
 let myLeads = [];
-let currentUser = null;
-let API_ENDPOINT = '';
+let refreshInterval = null;
+let searchTimeout = null;
 
-// Initialize on load
-document.addEventListener('DOMContentLoaded', () => {
-    initializeDashboard().catch(error => {
-        console.error('Failed to initialize dashboard:', error);
-    });
+// Initialize dashboard
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Agent Aurora Dashboard Initializing...');
     
-    // Set up auto-refresh for real-time updates
-    setInterval(refreshDashboard, 15000); // Refresh every 15 seconds
+    // Check authentication first
+    checkAuth().then(() => {
+        initializeDashboard();
+        setupEventListeners();
+        loadDashboardData();
+        startAutoRefresh();
+    }).catch(error => {
+        console.error('Authentication failed:', error);
+        redirectToLogin();
+    });
 });
 
-// Initialize dashboard features
-async function initializeDashboard() {
+/**
+ * Authentication Functions
+ */
+async function checkAuth() {
     try {
-        // Get API endpoint from config
-        API_ENDPOINT = window.APP_CONFIG.apiEndpoint;
-        
-        // Get current user data
+        // Get auth token from localStorage
+        authToken = localStorage.getItem('auth_token');
         const userStr = localStorage.getItem('user');
-        if (!userStr) {
-            throw new Error('User data not found');
-        }
-        currentUser = JSON.parse(userStr);
-
-        // Initialize components
-        initializeEventListeners();
-        await loadDashboardData();
         
-        // Set up auto-refresh for real-time updates
-        setInterval(refreshDashboard, 15000); // Refresh every 15 seconds
-    } catch (error) {
-        console.error('Failed to initialize dashboard:', error);
-        showError('Failed to initialize dashboard components');
-    }
-}
-
-// Initialize event listeners
-function initializeEventListeners() {
-    // Logout button
-    const logoutBtn = document.getElementById('logout-btn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', () => {
-            window.authService.signOut();
-        });
-    }
-
-    // Tab switching
-    const tabButtons = document.querySelectorAll('.tab-button');
-    tabButtons.forEach(button => {
-        button.addEventListener('click', (e) => {
-            const tabId = e.target.getAttribute('data-tab');
-            switchTab(tabId);
-        });
-    });
-
-    // Lead action buttons
-    document.addEventListener('click', (e) => {
-        if (e.target.matches('.claim-lead-btn')) {
-            const leadId = e.target.getAttribute('data-lead-id');
-            claimLead(leadId);
-        } else if (e.target.matches('.update-status-btn')) {
-            const leadId = e.target.getAttribute('data-lead-id');
-            updateLeadStatus(leadId);
+        if (!authToken || !userStr) {
+            throw new Error('No authentication data found');
         }
-    });
-}
-
-// Load dashboard data
-async function loadDashboardData() {
-    try {
-        await Promise.all([
-            loadAvailableLeads(),
-            loadMyLeads()
-        ]);
-        updateDashboardUI();
-    } catch (error) {
-        console.error('Failed to load dashboard data:', error);
-        showError('Failed to load leads data');
-    }
-}
-
-// Refresh dashboard
-async function refreshDashboard() {
-    try {
-        // Verify auth is still valid
-        const authResult = await window.authService.checkAuth();
-        if (!authResult.isAuthenticated) {
-            throw new Error('Session expired');
+        
+        // Parse user data
+        currentUser = JSON.parse(userStr);
+        
+        // Verify user has agent role
+        if (currentUser.role !== 'agent' && currentUser['custom:role'] !== 'agent') {
+            throw new Error('Access denied: Agent role required');
         }
-
-        // Refresh data
-        await loadDashboardData();
+        
+        console.log('✅ Authentication verified for agent:', currentUser.email);
+        
+        // Update UI with user info
+        document.getElementById('agent-name').textContent = currentUser.name || currentUser.email.split('@')[0];
+        
+        return true;
     } catch (error) {
-        console.error('Dashboard refresh failed:', error);
-        showError('Failed to refresh dashboard data');
-    }
-}
-
-// Load available leads
-async function loadAvailableLeads() {
-    try {
-        const response = await fetch(`${API_ENDPOINT}/leads?status=new`, {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to fetch available leads');
-        }
-
-        const data = await response.json();
-        availableLeads = data.leads || [];
-    } catch (error) {
-        console.error('Failed to load available leads:', error);
+        console.error('Auth check failed:', error);
         throw error;
     }
 }
 
-// Load my leads
-async function loadMyLeads() {
-    try {
-        const response = await fetch(`${API_ENDPOINT}/leads?assigned_to=${currentUser.email}`, {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to fetch my leads');
-        }
-
-        const data = await response.json();
-        myLeads = data.leads || [];
-    } catch (error) {
-        console.error('Failed to load my leads:', error);
-        throw error;
-    }
-}
-
-// Update dashboard UI
-function updateDashboardUI() {
-    updateAvailableLeadsUI();
-    updateMyLeadsUI();
-    updateStatistics();
-}
-
-// Show error message
-function showError(message) {
-    const errorContainer = document.getElementById('errorContainer');
-    if (errorContainer) {
-        errorContainer.textContent = message;
-        errorContainer.style.display = 'block';
-        setTimeout(() => {
-            errorContainer.style.display = 'none';
-        }, 5000);
-    }
-}
-
-// Switch between tabs
-function switchTab(tabId) {
-    // Update tab buttons
-    document.querySelectorAll('.tab-button').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
-    
-    // Update tab content
-    document.querySelectorAll('.tab-content').forEach(content => {
-        content.classList.remove('active');
-    });
-    document.getElementById(tabId).classList.add('active');
-}
-
-// Update available leads UI
-function updateAvailableLeadsUI() {
-    const container = document.getElementById('available-leads');
-    if (!container) return;
-
-    container.innerHTML = availableLeads.map(lead => `
-        <div class="lead-card">
-            <h3>${lead.first_name} ${lead.last_name}</h3>
-            <p>${lead.email}</p>
-            <p>${lead.phone}</p>
-            <button class="claim-lead-btn" data-lead-id="${lead.lead_id}">Claim Lead</button>
-        </div>
-    `).join('');
-}
-
-// Update my leads UI
-function updateMyLeadsUI() {
-    const container = document.getElementById('my-leads');
-    if (!container) return;
-
-    container.innerHTML = myLeads.map(lead => `
-        <div class="lead-card">
-            <h3>${lead.first_name} ${lead.last_name}</h3>
-            <p>Status: ${lead.disposition}</p>
-            <p>${lead.email}</p>
-            <p>${lead.phone}</p>
-            <button class="update-status-btn" data-lead-id="${lead.lead_id}">Update Status</button>
-        </div>
-    `).join('');
-
-    // Update badge count
-    const badge = document.getElementById('my-leads-count');
-    if (badge) {
-        badge.textContent = myLeads.length;
-    }
-}
-
-// Update statistics
-function updateStatistics() {
-    const closedLeads = myLeads.filter(lead => lead.disposition === 'Closed').length;
-    const conversionRate = myLeads.length ? (closedLeads / myLeads.length * 100).toFixed(1) : 0;
-
-    document.getElementById('total-leads').textContent = myLeads.length;
-    document.getElementById('closed-leads').textContent = closedLeads;
-    document.getElementById('conversion-rate').textContent = `${conversionRate}%`;
-}
-
-// Claim a lead
-async function claimLead(leadId) {
-    try {
-        const response = await fetch(`${API_ENDPOINT}/leads/${leadId}`, {
-            method: 'PATCH',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                assigned_to: currentUser.email,
-                disposition: 'Assigned'
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to claim lead');
-        }
-
-        // Refresh dashboard data
-        await loadDashboardData();
-    } catch (error) {
-        console.error('Failed to claim lead:', error);
-        showError('Failed to claim lead');
-    }
-}
-
-// Update lead status
-async function updateLeadStatus(leadId) {
-    try {
-        const lead = myLeads.find(l => l.lead_id === leadId);
-        if (!lead) {
-            throw new Error('Lead not found');
-        }
-
-        const newStatus = prompt('Enter new status:', lead.disposition);
-        if (!newStatus) return;
-
-        const response = await fetch(`${API_ENDPOINT}/leads/${leadId}`, {
-            method: 'PATCH',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                disposition: newStatus
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to update lead status');
-        }
-
-        // Refresh dashboard data
-        await loadDashboardData();
-    } catch (error) {
-        console.error('Failed to update lead status:', error);
-        showError('Failed to update lead status');
-    }
-}
-
-// Utility Functions
-function formatPhone(phone) {
-    if (!phone) return '';
-    const cleaned = phone.replace(/\D/g, '');
-    if (cleaned.length === 10) {
-        return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
-    }
-    return phone;
-}
-
-function formatDate(dateString) {
-    if (!dateString) return '';
-    return new Date(dateString).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
-
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-function getStatusClass(disposition) {
-    const statusMap = {
-        'New': 'new',
-        'Contacted': 'contacted',
-        'Qualified': 'qualified',
-        'Retained for Firm': 'retained',
-        'Docs Sent': 'qualified',
-        'Awaiting Proof of Claim': 'contacted',
-        'Not Interested': 'lost',
-        'Not Qualified Lead': 'lost'
-    };
-    return statusMap[disposition] || 'new';
-}
-
-// Notifications
-function showNotification(message, type = 'info') {
-    const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
-    notification.style.cssText = `
-        position: fixed;
-        top: 2rem;
-        right: 2rem;
-        background: var(--glass-white);
-        backdrop-filter: blur(12px);
-        border: 1px solid var(--glass-border);
-        border-radius: 8px;
-        padding: 1rem 1.5rem;
-        color: var(--text-primary);
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-        z-index: 9999;
-        animation: slideIn 0.3s ease-out;
-        max-width: 400px;
-    `;
-    
-    // Add type-specific styling
-    if (type === 'success') {
-        notification.style.borderColor = 'rgba(16, 185, 129, 0.3)';
-        notification.style.background = 'rgba(16, 185, 129, 0.1)';
-    } else if (type === 'error') {
-        notification.style.borderColor = 'rgba(239, 68, 68, 0.3)';
-        notification.style.background = 'rgba(239, 68, 68, 0.1)';
-    }
-    
-    notification.textContent = message;
-    document.body.appendChild(notification);
-    
-    // Auto remove
-    setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease-out';
-        setTimeout(() => notification.remove(), 300);
-    }, 3000);
-}
-
-// Loading States
-function showLoadingState() {
-    document.querySelectorAll('.leads-grid').forEach(grid => {
-        grid.innerHTML = `
-            <div style="grid-column: 1 / -1; padding: 2rem;">
-                <div class="loading-skeleton" style="width: 100%; height: 120px; margin-bottom: 1rem;"></div>
-                <div class="loading-skeleton" style="width: 100%; height: 120px; margin-bottom: 1rem;"></div>
-                <div class="loading-skeleton" style="width: 100%; height: 120px;"></div>
-            </div>
-        `;
-    });
-}
-
-function hideLoadingState() {
-    // Loading state will be replaced by actual content
-}
-
-// Logout
 function logout() {
+    // Clear all stored data
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('idToken');
+    sessionStorage.clear();
+    
+    // Stop refresh interval
+    if (refreshInterval) {
+        clearInterval(refreshInterval);
+    }
+    
+    // Redirect to login
+    window.location.href = 'login.html';
+}
+
+function redirectToLogin() {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user');
     window.location.href = 'login.html';
 }
 
-// Mock Data Generators
-function generateMockAvailableLeads() {
-    return [
-        {
-            lead_id: 'lead-001',
-            first_name: 'John',
-            last_name: 'Smith',
-            email: 'john.smith@email.com',
-            phone_home: '5551234567',
-            city: 'Miami',
-            state: 'FL',
-            zip_code: '33101',
-            incident_type: 'MVA',
-            accident_location: 'I-95 and SW 8th St',
-            caller_at_fault: 'no',
-            has_attorney: 'no',
-            was_injured: 'yes',
-            medical_within_30_days: 'yes',
-            notes: 'Rear-ended at traffic light',
-            created_at: new Date(Date.now() - 3600000).toISOString()
+/**
+ * API Functions
+ */
+async function makeAuthenticatedRequest(endpoint, options = {}) {
+    const config = {
+        headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json',
+            ...options.headers
         },
-        {
-            lead_id: 'lead-002',
-            first_name: 'Sarah',
-            last_name: 'Johnson',
-            email: 'sarah.j@email.com',
-            phone_home: '5559876543',
-            city: 'Orlando',
-            state: 'FL',
-            zip_code: '32801',
-            incident_type: 'CMVA',
-            accident_location: 'Turnpike Mile Marker 254',
-            caller_at_fault: 'no',
-            has_attorney: 'no',
-            was_injured: 'yes',
-            medical_within_30_days: 'yes',
-            notes: 'Hit by commercial truck',
-            created_at: new Date(Date.now() - 7200000).toISOString()
-        },
-        {
-            lead_id: 'lead-003',
-            first_name: 'Michael',
-            last_name: 'Davis',
-            email: 'mdavis@email.com',
-            phone_home: '5555551212',
-            city: 'Tampa',
-            state: 'FL',
-            zip_code: '33602',
-            incident_type: 'PI',
-            accident_location: 'Walmart on Dale Mabry',
-            caller_at_fault: 'no',
-            has_attorney: 'no',
-            was_injured: 'yes',
-            medical_within_30_days: 'yes',
-            notes: 'Slip and fall in store',
-            created_at: new Date(Date.now() - 10800000).toISOString()
+        ...options
+    };
+    
+    try {
+        const response = await fetch(`${window.APP_CONFIG.apiEndpoint}${endpoint}`, config);
+        
+        if (response.status === 401) {
+            console.warn('Authentication expired, redirecting to login');
+            redirectToLogin();
+            return;
         }
-    ];
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        return await response.json();
+    } catch (error) {
+        console.error(`API request failed for ${endpoint}:`, error);
+        throw error;
+    }
 }
 
-function generateMockMyLeads() {
-    return [
-        {
-            lead_id: 'my-lead-001',
-            first_name: 'Emily',
-            last_name: 'Wilson',
-            email: 'emily.w@email.com',
-            phone_home: '5553334444',
-            city: 'Fort Lauderdale',
-            state: 'FL',
-            zip_code: '33301',
-            incident_type: 'MVA',
-            accident_location: 'I-595 and University Dr',
-            caller_at_fault: 'no',
-            has_attorney: 'no',
-            was_injured: 'yes',
-            medical_within_30_days: 'yes',
-            disposition: 'Contacted',
-            notes: 'Spoke with client, very interested in representation',
-            claimedAt: new Date(Date.now() - 86400000).toISOString(),
-            claimedBy: currentUser?.email || 'agent@example.com'
-        },
-        {
-            lead_id: 'my-lead-002',
-            first_name: 'Robert',
-            last_name: 'Brown',
-            email: 'rbrown@email.com',
-            phone_home: '5557778888',
-            city: 'Jacksonville',
-            state: 'FL',
-            zip_code: '32202',
-            incident_type: 'PFAS',
-            accident_location: 'Naval Air Station Jacksonville',
-            caller_at_fault: 'no',
-            has_attorney: 'no',
-            was_injured: 'yes',
-            medical_within_30_days: 'yes',
-            disposition: 'Retained for Firm',
-            notes: 'Client signed retainer, gathering medical records',
-            claimedAt: new Date(Date.now() - 172800000).toISOString(),
-            claimedBy: currentUser?.email || 'agent@example.com',
-            docusign_info: {
-                status: 'completed',
-                sentAt: new Date(Date.now() - 86400000).toISOString(),
-                completedAt: new Date(Date.now() - 43200000).toISOString()
-            }
-        }
-    ];
+/**
+ * Dashboard Initialization
+ */
+function initializeDashboard() {
+    console.log('📊 Initializing dashboard components...');
+    
+    // Initialize stats with loading state
+    updateStats({
+        available: '-',
+        active: '-',
+        retained: '-',
+        conversionRate: '-%'
+    });
+    
+    // Show loading states
+    showLoadingState('available-leads-grid');
+    showLoadingState('my-leads-grid');
 }
 
-// Add CSS animations
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideIn {
-        from { transform: translateX(100%); opacity: 0; }
-        to { transform: translateX(0); opacity: 1; }
+function setupEventListeners() {
+    // Search functionality
+    const searchInput = document.getElementById('search-leads');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            if (searchTimeout) clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                filterLeads(e.target.value);
+            }, 300);
+        });
     }
     
-    @keyframes slideOut {
-        from { transform: translateX(0); opacity: 1; }
-        to { transform: translateX(100%); opacity: 0; }
+    // Status filter
+    const statusFilter = document.getElementById('filter-status');
+    if (statusFilter) {
+        statusFilter.addEventListener('change', (e) => {
+            filterMyLeads(e.target.value);
+        });
     }
-`;
-document.head.appendChild(style); 
+    
+    // Modal close
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('modal-overlay')) {
+            closeLeadModal();
+        }
+    });
+    
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeLeadModal();
+        }
+        if (e.key === 'F5' || (e.ctrlKey && e.key === 'r')) {
+            e.preventDefault();
+            refreshLeads();
+        }
+    });
+}
+
+/**
+ * Data Loading Functions
+ */
+async function loadDashboardData() {
+    try {
+        console.log('📥 Loading dashboard data...');
+        
+        // Load leads data
+        await Promise.all([
+            loadAvailableLeads(),
+            loadMyLeads(),
+            loadStats()
+        ]);
+        
+        console.log('✅ Dashboard data loaded successfully');
+    } catch (error) {
+        console.error('Failed to load dashboard data:', error);
+        showToast('Failed to load dashboard data', 'error');
+    }
+}
+
+async function loadAvailableLeads() {
+    try {
+        const response = await makeAuthenticatedRequest('/leads?status=new&unassigned=true&limit=50');
+        availableLeads = response.leads || [];
+        
+        console.log(`📋 Loaded ${availableLeads.length} available leads`);
+        renderAvailableLeads(availableLeads);
+        
+        return availableLeads;
+    } catch (error) {
+        console.error('Failed to load available leads:', error);
+        showEmptyState('available-leads-grid', 'Failed to load available leads');
+        return [];
+    }
+}
+
+async function loadMyLeads() {
+    try {
+        const response = await makeAuthenticatedRequest(`/leads?assigned_agent=${currentUser.email}&limit=100`);
+        myLeads = response.leads || [];
+        
+        console.log(`👤 Loaded ${myLeads.length} assigned leads`);
+        renderMyLeads(myLeads);
+        
+        return myLeads;
+    } catch (error) {
+        console.error('Failed to load my leads:', error);
+        showEmptyState('my-leads-grid', 'Failed to load your leads');
+        return [];
+    }
+}
+
+async function loadStats() {
+    try {
+        // Calculate stats from loaded data
+        const availableCount = availableLeads.length;
+        const activeCount = myLeads.filter(lead => 
+            lead.disposition && !['Closed', 'Rejected'].includes(lead.disposition)
+        ).length;
+        const retainedCount = myLeads.filter(lead => 
+            lead.disposition === 'Retained for Firm' || lead.disposition === 'Closed'
+        ).length;
+        const conversionRate = myLeads.length > 0 ? 
+            Math.round((retainedCount / myLeads.length) * 100) : 0;
+        
+        updateStats({
+            available: availableCount,
+            active: activeCount,
+            retained: retainedCount,
+            conversionRate: `${conversionRate}%`
+        });
+        
+    } catch (error) {
+        console.error('Failed to calculate stats:', error);
+    }
+}
+
+/**
+ * Rendering Functions
+ */
+function renderAvailableLeads(leads) {
+    const container = document.getElementById('available-leads-grid');
+    
+    if (!leads || leads.length === 0) {
+        showEmptyState('available-leads-grid', 'No available leads at the moment');
+        return;
+    }
+    
+    container.innerHTML = leads.map(lead => createLeadCard(lead, 'available')).join('');
+}
+
+function renderMyLeads(leads) {
+    const container = document.getElementById('my-leads-grid');
+    
+    if (!leads || leads.length === 0) {
+        showEmptyState('my-leads-grid', 'No leads assigned to you yet');
+        return;
+    }
+    
+    container.innerHTML = leads.map(lead => createLeadCard(lead, 'assigned')).join('');
+}
+
+function createLeadCard(lead, type) {
+    const createdDate = new Date(lead.created_date || lead.timestamp);
+    const timeAgo = getTimeAgo(createdDate);
+    const leadValue = lead.lead_value || 35;
+    const status = lead.disposition || 'New';
+    
+    return `
+        <div class="lead-card" onclick="openLeadModal('${lead.lead_id}', '${type}')">
+            <div class="lead-header">
+                <h3 class="lead-name">${lead.first_name} ${lead.last_name}</h3>
+                <span class="lead-value">$${leadValue}</span>
+            </div>
+            
+            <div class="lead-details">
+                <div class="lead-detail">
+                    <span>📧</span>
+                    <span>${lead.email}</span>
+                </div>
+                <div class="lead-detail">
+                    <span>📞</span>
+                    <span>${lead.phone}</span>
+                </div>
+                ${lead.vendor_code ? `
+                <div class="lead-detail">
+                    <span>🏢</span>
+                    <span>${lead.vendor_code}</span>
+                </div>
+                ` : ''}
+            </div>
+            
+            <div class="lead-footer">
+                <span class="lead-status ${status.toLowerCase().replace(/\s+/g, '-')}">${status}</span>
+                <span class="lead-time">${timeAgo}</span>
+            </div>
+        </div>
+    `;
+}
+
+function updateStats(stats) {
+    document.getElementById('available-count').textContent = stats.available;
+    document.getElementById('active-count').textContent = stats.active;
+    document.getElementById('retained-count').textContent = stats.retained;
+    document.getElementById('conversion-rate').textContent = stats.conversionRate;
+}
+
+/**
+ * Lead Management Functions
+ */
+async function claimLead(leadId) {
+    try {
+        showToast('Claiming lead...', 'info');
+        
+        await makeAuthenticatedRequest(`/leads/${leadId}`, {
+            method: 'PUT',
+            body: JSON.stringify({
+                assigned_agent: currentUser.email,
+                disposition: 'Contacted',
+                notes: 'Lead claimed by agent'
+            })
+        });
+        
+        showToast('Lead claimed successfully!', 'success');
+        
+        // Refresh data
+        await loadDashboardData();
+        closeLeadModal();
+        
+    } catch (error) {
+        console.error('Failed to claim lead:', error);
+        showToast('Failed to claim lead', 'error');
+    }
+}
+
+async function updateLeadStatus(leadId, newStatus, notes = '') {
+    try {
+        showToast('Updating lead...', 'info');
+        
+        const updateData = {
+            disposition: newStatus
+        };
+        
+        if (notes) {
+            updateData.notes = notes;
+        }
+        
+        if (newStatus === 'Closed' || newStatus === 'Retained for Firm') {
+            updateData.closed_date = new Date().toISOString();
+        }
+        
+        await makeAuthenticatedRequest(`/leads/${leadId}`, {
+            method: 'PUT',
+            body: JSON.stringify(updateData)
+        });
+        
+        showToast('Lead updated successfully!', 'success');
+        
+        // Refresh data
+        await loadDashboardData();
+        closeLeadModal();
+        
+    } catch (error) {
+        console.error('Failed to update lead:', error);
+        showToast('Failed to update lead', 'error');
+    }
+}
+
+/**
+ * Modal Functions
+ */
+function openLeadModal(leadId, type) {
+    const lead = type === 'available' ? 
+        availableLeads.find(l => l.lead_id === leadId) :
+        myLeads.find(l => l.lead_id === leadId);
+    
+    if (!lead) {
+        showToast('Lead not found', 'error');
+        return;
+    }
+    
+    const modal = document.getElementById('lead-modal');
+    const title = document.getElementById('modal-title');
+    const content = document.getElementById('lead-details');
+    const actionBtn = document.getElementById('modal-action-btn');
+    
+    title.textContent = `${lead.first_name} ${lead.last_name}`;
+    
+    content.innerHTML = `
+        <div style="display: grid; gap: 1rem;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div>
+                    <strong>Email:</strong><br>
+                    <span style="color: var(--text-secondary);">${lead.email}</span>
+                </div>
+                <div>
+                    <strong>Phone:</strong><br>
+                    <span style="color: var(--text-secondary);">${lead.phone}</span>
+                </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div>
+                    <strong>Status:</strong><br>
+                    <span class="lead-status ${(lead.disposition || 'new').toLowerCase().replace(/\s+/g, '-')}">${lead.disposition || 'New'}</span>
+                </div>
+                <div>
+                    <strong>Value:</strong><br>
+                    <span style="color: var(--accent); font-weight: 600;">$${lead.lead_value || 35}</span>
+                </div>
+            </div>
+            
+            ${lead.vendor_code ? `
+            <div>
+                <strong>Vendor:</strong><br>
+                <span style="color: var(--text-secondary);">${lead.vendor_code}</span>
+            </div>
+            ` : ''}
+            
+            <div>
+                <strong>Created:</strong><br>
+                <span style="color: var(--text-secondary);">${new Date(lead.created_date || lead.timestamp).toLocaleString()}</span>
+            </div>
+            
+            ${lead.notes ? `
+            <div>
+                <strong>Notes:</strong><br>
+                <span style="color: var(--text-secondary);">${lead.notes}</span>
+            </div>
+            ` : ''}
+            
+            ${type === 'assigned' ? `
+            <div>
+                <label for="status-select" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Update Status:</label>
+                <select id="status-select" class="glass-input" style="width: 100%;">
+                    <option value="New" ${lead.disposition === 'New' ? 'selected' : ''}>New</option>
+                    <option value="Contacted" ${lead.disposition === 'Contacted' ? 'selected' : ''}>Contacted</option>
+                    <option value="Qualified" ${lead.disposition === 'Qualified' ? 'selected' : ''}>Qualified</option>
+                    <option value="Retained for Firm" ${lead.disposition === 'Retained for Firm' ? 'selected' : ''}>Retained for Firm</option>
+                    <option value="Docs Sent" ${lead.disposition === 'Docs Sent' ? 'selected' : ''}>Docs Sent</option>
+                    <option value="Closed" ${lead.disposition === 'Closed' ? 'selected' : ''}>Closed</option>
+                    <option value="Rejected" ${lead.disposition === 'Rejected' ? 'selected' : ''}>Rejected</option>
+                </select>
+            </div>
+            
+            <div>
+                <label for="notes-input" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Add Notes:</label>
+                <textarea id="notes-input" class="glass-input" placeholder="Enter notes about this lead..." style="width: 100%; min-height: 80px; resize: vertical;"></textarea>
+            </div>
+            ` : ''}
+        </div>
+    `;
+    
+    // Setup action button
+    if (type === 'available') {
+        actionBtn.textContent = 'Claim Lead';
+        actionBtn.style.display = 'block';
+        actionBtn.onclick = () => claimLead(leadId);
+    } else {
+        actionBtn.textContent = 'Update Lead';
+        actionBtn.style.display = 'block';
+        actionBtn.onclick = () => {
+            const newStatus = document.getElementById('status-select').value;
+            const notes = document.getElementById('notes-input').value;
+            updateLeadStatus(leadId, newStatus, notes);
+        };
+    }
+    
+    modal.style.display = 'flex';
+}
+
+function closeLeadModal() {
+    const modal = document.getElementById('lead-modal');
+    modal.style.display = 'none';
+}
+
+/**
+ * Filter Functions
+ */
+function filterLeads(searchTerm) {
+    if (!searchTerm) {
+        renderAvailableLeads(availableLeads);
+        return;
+    }
+    
+    const filtered = availableLeads.filter(lead => 
+        lead.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        lead.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        lead.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        lead.phone.includes(searchTerm) ||
+        (lead.vendor_code && lead.vendor_code.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+    
+    renderAvailableLeads(filtered);
+}
+
+function filterMyLeads(status) {
+    if (status === 'all') {
+        renderMyLeads(myLeads);
+        return;
+    }
+    
+    const filtered = myLeads.filter(lead => 
+        (lead.disposition || 'new').toLowerCase() === status.toLowerCase()
+    );
+    
+    renderMyLeads(filtered);
+}
+
+/**
+ * Refresh Functions
+ */
+async function refreshLeads() {
+    console.log('🔄 Refreshing leads data...');
+    showToast('Refreshing data...', 'info');
+    
+    try {
+        await loadDashboardData();
+        showToast('Data refreshed successfully!', 'success');
+    } catch (error) {
+        console.error('Failed to refresh data:', error);
+        showToast('Failed to refresh data', 'error');
+    }
+}
+
+function startAutoRefresh() {
+    // Refresh data every 2 minutes
+    refreshInterval = setInterval(() => {
+        console.log('🔄 Auto-refreshing data...');
+        loadDashboardData();
+    }, 120000);
+}
+
+/**
+ * Utility Functions
+ */
+function showLoadingState(containerId) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = `
+        <div class="loading-state">
+            <div class="loading-spinner"></div>
+            <p>Loading...</p>
+        </div>
+    `;
+}
+
+function showEmptyState(containerId, message) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = `
+        <div class="empty-state">
+            <div class="empty-state-icon">📭</div>
+            <p>${message}</p>
+        </div>
+    `;
+}
+
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    
+    container.appendChild(toast);
+    
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 3000);
+}
+
+function getTimeAgo(date) {
+    const now = new Date();
+    const diffInSeconds = Math.floor((now - date) / 1000);
+    
+    if (diffInSeconds < 60) return 'Just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    
+    return date.toLocaleDateString();
+}
+
+// Export functions for global access
+window.refreshLeads = refreshLeads;
+window.openLeadModal = openLeadModal;
+window.closeLeadModal = closeLeadModal;
+window.logout = logout;
+
+console.log('✅ Agent Aurora Dashboard JavaScript loaded successfully'); 

@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance Analytics & Insights Test</title>
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+    <div class="admin-container">
+        <header class="admin-header">
+            <div class="header-content">
+                <div class="header-left">
+                    <h1>📊 Analytics & Insights Test</h1>
+                </div>
+                <div class="header-right">
+                    <!-- Header actions -->
+                </div>
+            </div>
+        </header>
+        
+        <main class="admin-main">
+            <section class="glass-card">
+                <h2>Test Performance Analytics Features</h2>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
+                    <!-- KPI Simulation -->
+                    <div class="glass-card" style="padding: 1.5rem;">
+                        <h3>📈 Simulate KPI Changes</h3>
+                        <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem;">
+                            <button class="btn btn-success" onclick="simulateHighPerformance()">
+                                🚀 High Performance
+                            </button>
+                            <button class="btn btn-warning" onclick="simulateAveragePerformance()">
+                                📊 Average Performance
+                            </button>
+                            <button class="btn btn-danger" onclick="simulateLowPerformance()">
+                                📉 Low Performance
+                            </button>
+                            <button class="btn btn-primary" onclick="simulateAnomaly()">
+                                ⚡ Trigger Anomaly
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Insights Generation -->
+                    <div class="glass-card" style="padding: 1.5rem;">
+                        <h3>💡 Generate Insights</h3>
+                        <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem;">
+                            <button class="btn btn-primary" onclick="generateCustomInsight('success')">
+                                ✅ Success Insight
+                            </button>
+                            <button class="btn btn-primary" onclick="generateCustomInsight('warning')">
+                                ⚠️ Warning Insight
+                            </button>
+                            <button class="btn btn-primary" onclick="generateCustomInsight('alert')">
+                                🚨 Alert Insight
+                            </button>
+                            <button class="btn btn-secondary" onclick="clearInsights()">
+                                🗑️ Clear All Insights
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Report Testing -->
+                    <div class="glass-card" style="padding: 1.5rem;">
+                        <h3>📄 Report Generation</h3>
+                        <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem;">
+                            <button class="btn btn-primary" onclick="generateTestReport('executive')">
+                                👔 Executive Summary
+                            </button>
+                            <button class="btn btn-primary" onclick="generateTestReport('detailed')">
+                                📋 Detailed Report
+                            </button>
+                            <button class="btn btn-primary" onclick="generateTestReport('forecast')">
+                                🔮 Forecast Report
+                            </button>
+                            <button class="btn btn-secondary" onclick="window.analyticsInsights.openReportBuilder()">
+                                🛠️ Custom Report Builder
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Interactive Controls -->
+                <div class="glass-card" style="margin-top: 2rem; padding: 1.5rem;">
+                    <h3>🎮 Interactive Controls</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-top: 1rem;">
+                        <!-- Manual KPI Update -->
+                        <div>
+                            <h4>Update KPI Manually</h4>
+                            <select id="kpi-selector" class="form-input">
+                                <option value="revenue">Revenue</option>
+                                <option value="leads">New Leads</option>
+                                <option value="conversion">Conversion Rate</option>
+                                <option value="avgDealSize">Avg Deal Size</option>
+                                <option value="responseTime">Response Time</option>
+                                <option value="customerSatisfaction">CSAT Score</option>
+                            </select>
+                            <input type="number" id="kpi-value" class="form-input" placeholder="Enter value" style="margin-top: 0.5rem;">
+                            <button class="btn btn-primary" onclick="updateKPIManually()" style="margin-top: 0.5rem; width: 100%;">
+                                Update KPI
+                            </button>
+                        </div>
+                        
+                        <!-- Period Selection -->
+                        <div>
+                            <h4>Change Time Period</h4>
+                            <select id="period-test" class="form-input" onchange="changePeriod(this.value)">
+                                <option value="today">Today</option>
+                                <option value="week" selected>This Week</option>
+                                <option value="month">This Month</option>
+                                <option value="quarter">This Quarter</option>
+                                <option value="year">This Year</option>
+                            </select>
+                            <div style="margin-top: 0.5rem; font-size: 0.875rem; color: var(--text-secondary);">
+                                Changing period will regenerate all data
+                            </div>
+                        </div>
+                        
+                        <!-- Forecast Controls -->
+                        <div>
+                            <h4>Forecast Settings</h4>
+                            <label>Forecast Periods:</label>
+                            <input type="number" id="forecast-periods" class="form-input" value="6" min="1" max="12">
+                            <button class="btn btn-primary" onclick="updateForecastPeriods()" style="margin-top: 0.5rem; width: 100%;">
+                                Update Forecast
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Data Export -->
+                <div class="glass-card" style="margin-top: 2rem; padding: 1.5rem;">
+                    <h3>💾 Data Export Testing</h3>
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <button class="btn btn-secondary" onclick="exportCurrentData('csv')">
+                            📊 Export to CSV
+                        </button>
+                        <button class="btn btn-secondary" onclick="exportCurrentData('json')">
+                            📄 Export to JSON
+                        </button>
+                        <button class="btn btn-secondary" onclick="exportCurrentData('pdf')">
+                            📑 Export to PDF (Mock)
+                        </button>
+                        <button class="btn btn-primary" onclick="window.analyticsInsights.saveData()">
+                            💾 Save to LocalStorage
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+    
+    <script src="js/app-config.js"></script>
+    <script src="js/notification-system.js" type="module"></script>
+    <script src="js/analytics-insights.js" type="module"></script>
+    
+    <script>
+        // Test Functions
+        function simulateHighPerformance() {
+            if (window.analyticsInsights) {
+                window.analyticsInsights.updateKPI('revenue', 125000);
+                window.analyticsInsights.updateKPI('leads', 650);
+                window.analyticsInsights.updateKPI('conversion', 22);
+                window.analyticsInsights.updateKPI('avgDealSize', 6500);
+                window.analyticsInsights.updateKPI('responseTime', 15);
+                window.analyticsInsights.updateKPI('customerSatisfaction', 95);
+                
+                showToast('High performance metrics applied', 'success');
+            }
+        }
+        
+        function simulateAveragePerformance() {
+            if (window.analyticsInsights) {
+                window.analyticsInsights.updateKPI('revenue', 85000);
+                window.analyticsInsights.updateKPI('leads', 450);
+                window.analyticsInsights.updateKPI('conversion', 14);
+                window.analyticsInsights.updateKPI('avgDealSize', 4800);
+                window.analyticsInsights.updateKPI('responseTime', 35);
+                window.analyticsInsights.updateKPI('customerSatisfaction', 85);
+                
+                showToast('Average performance metrics applied', 'info');
+            }
+        }
+        
+        function simulateLowPerformance() {
+            if (window.analyticsInsights) {
+                window.analyticsInsights.updateKPI('revenue', 55000);
+                window.analyticsInsights.updateKPI('leads', 250);
+                window.analyticsInsights.updateKPI('conversion', 8);
+                window.analyticsInsights.updateKPI('avgDealSize', 3200);
+                window.analyticsInsights.updateKPI('responseTime', 55);
+                window.analyticsInsights.updateKPI('customerSatisfaction', 72);
+                
+                showToast('Low performance metrics applied', 'warning');
+            }
+        }
+        
+        function simulateAnomaly() {
+            if (window.analyticsInsights) {
+                // Simulate a massive spike in revenue
+                window.analyticsInsights.updateKPI('revenue', 350000);
+                
+                // Or a dramatic drop in leads
+                setTimeout(() => {
+                    window.analyticsInsights.updateKPI('leads', 25);
+                }, 1000);
+                
+                showToast('Anomaly triggered - watch for alerts!', 'alert');
+            }
+        }
+        
+        function generateCustomInsight(type) {
+            if (window.analyticsInsights) {
+                const insights = {
+                    success: {
+                        type: 'success',
+                        category: 'test',
+                        title: 'Test Success Insight',
+                        description: 'This is a test success insight showing positive performance',
+                        action: 'Continue current strategies and optimize further',
+                        priority: 'medium'
+                    },
+                    warning: {
+                        type: 'warning',
+                        category: 'test',
+                        title: 'Test Warning Insight',
+                        description: 'This is a test warning requiring attention',
+                        action: 'Review processes and implement improvements',
+                        priority: 'high'
+                    },
+                    alert: {
+                        type: 'alert',
+                        category: 'test',
+                        title: 'Test Alert Insight',
+                        description: 'This is a critical test alert requiring immediate action',
+                        action: 'Take immediate corrective measures',
+                        priority: 'high'
+                    }
+                };
+                
+                window.analyticsInsights.insights.push(insights[type]);
+                window.analyticsInsights.updateInsightsDisplay();
+                
+                showToast(`${type} insight generated`, type);
+            }
+        }
+        
+        function clearInsights() {
+            if (window.analyticsInsights) {
+                window.analyticsInsights.insights = [];
+                window.analyticsInsights.updateInsightsDisplay();
+                showToast('All insights cleared', 'info');
+            }
+        }
+        
+        function generateTestReport(type) {
+            if (window.analyticsInsights) {
+                const config = {
+                    name: `Test ${type.charAt(0).toUpperCase() + type.slice(1)} Report`,
+                    type: type,
+                    period: 'month',
+                    metrics: ['revenue', 'leads', 'conversion'],
+                    includeInsights: true,
+                    includeForecast: true,
+                    includeCharts: true
+                };
+                
+                const report = window.analyticsInsights.generateReport(config);
+                
+                showToast(`${config.name} generated`, 'success');
+                
+                // Simulate download after 1 second
+                setTimeout(() => {
+                    window.analyticsInsights.exportReport(report.id, 'csv');
+                }, 1000);
+            }
+        }
+        
+        function updateKPIManually() {
+            const kpiId = document.getElementById('kpi-selector').value;
+            const value = parseFloat(document.getElementById('kpi-value').value);
+            
+            if (!isNaN(value) && window.analyticsInsights) {
+                window.analyticsInsights.updateKPI(kpiId, value);
+                showToast(`${kpiId} updated to ${value}`, 'success');
+                document.getElementById('kpi-value').value = '';
+            } else {
+                showToast('Please enter a valid number', 'error');
+            }
+        }
+        
+        function changePeriod(period) {
+            showToast(`Period changed to ${period}`, 'info');
+            // In a real implementation, this would reload data for the selected period
+            window.analyticsInsights.refreshData();
+        }
+        
+        function updateForecastPeriods() {
+            const periods = parseInt(document.getElementById('forecast-periods').value);
+            if (periods > 0 && periods <= 12) {
+                // Update forecast with new period count
+                window.analyticsInsights.updateForecast();
+                showToast(`Forecast updated for ${periods} periods`, 'success');
+            } else {
+                showToast('Please enter a value between 1 and 12', 'error');
+            }
+        }
+        
+        function exportCurrentData(format) {
+            if (window.analyticsInsights) {
+                // Create a summary report for export
+                const report = window.analyticsInsights.generateReport({
+                    name: 'Current Analytics Data',
+                    type: 'detailed',
+                    period: 'current',
+                    metrics: Array.from(window.analyticsInsights.kpis.keys())
+                });
+                
+                window.analyticsInsights.exportReport(report.id, format);
+                showToast(`Data exported as ${format.toUpperCase()}`, 'success');
+            }
+        }
+        
+        function showToast(message, type) {
+            if (window.notificationSystem) {
+                window.notificationSystem.showToast({
+                    type: 'analytics_test',
+                    title: 'Analytics Test',
+                    message: message
+                });
+            } else {
+                console.log(`[${type}] ${message}`);
+            }
+        }
+        
+        // Initialize with some random variations
+        setTimeout(() => {
+            if (window.analyticsInsights) {
+                // Add some variations to make it interesting
+                const kpis = ['revenue', 'leads', 'conversion'];
+                setInterval(() => {
+                    const randomKpi = kpis[Math.floor(Math.random() * kpis.length)];
+                    const kpi = window.analyticsInsights.kpis.get(randomKpi);
+                    if (kpi) {
+                        const variation = 0.9 + Math.random() * 0.2; // ±10%
+                        window.analyticsInsights.updateKPI(randomKpi, kpi.current * variation);
+                    }
+                }, 8000);
+            }
+        }, 2000);
+    </script>
+</body>
+</html> 

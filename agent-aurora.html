@@ -5,236 +5,266 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Agent Dashboard - Legal Lead Management</title>
     
-    <!-- Fonts -->
+    <!-- Preconnect to CDNs -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <!-- Professional Dashboard Styles -->
+    <link rel="stylesheet" href="css/unified-dark-theme.css">
+    <link rel="stylesheet" href="css/agent-aurora-unified.css">
+    <link rel="stylesheet" href="css/notification-center.css">
+    <link rel="stylesheet" href="css/data-export.css">
+    <link rel="stylesheet" href="css/keyboard-shortcuts.css">
+    <link rel="stylesheet" href="css/performance-monitor.css">
+    <link rel="stylesheet" href="css/virtual-scroll.css">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Legacy CSS kept as fallback -->
     <link rel="stylesheet" href="agent-aurora.css">
 
-    <!-- Loading State -->
-    <style>
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(255, 255, 255, 0.9);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-        }
-        .loading-spinner {
-            width: 50px;
-            height: 50px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #3498db;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .loading-message {
-            margin-top: 20px;
-            font-family: 'Inter', sans-serif;
-            color: #333;
-        }
-        .error-message {
-            color: #e74c3c;
-            text-align: center;
-            padding: 20px;
-            font-family: 'Inter', sans-serif;
-        }
-    </style>
+    <!-- Build-Time Injected Configuration -->
+    <script src="/js/app-config.js?v=1748481232267"></script>
 
-    <!-- AppConfig -->
-    <script src="/js/app-config.js"></script>
+    <!-- Build-Time Injected Configuration -->
     <script>
+    /**
+     * Application Configuration - Injected at Build Time
+     */
     window.APP_CONFIG = {
-        "userPoolId": "us-east-1_lhc964tLD",
-        "clientId": "5t6mane4fnvineksoqb4ta0iu1",
-        "apiEndpoint": "https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod",
-        "apiUrl": "https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod",
-        "apiKey": "",
-        "buildTime": "2025-05-29T01:13:52.266Z",
-        "buildEnv": "production"
+      "userPoolId": "us-east-1_lhc964tLD",
+      "clientId": "5t6mane4fnvineksoqb4ta0iu1",
+      "apiEndpoint": "https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod",
+      "identityPoolId": "us-east-1:your-identity-pool-id",
+      "region": "us-east-1"
     };
-    window.preloadedConfig = window.APP_CONFIG;
     </script>
 
-    <!-- Amazon Cognito SDK -->
-    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1001.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.3.7/dist/amazon-cognito-identity.min.js"></script>
-
-    <!-- Auth Service -->
-    <script src="/js/auth-service.js"></script>
+    <meta property="og:image" content="https://claimconnectors.com/images/claim_connectors_blue_transparent_300.png">
 </head>
 <body>
-    <!-- Loading Overlay -->
-    <div id="loadingOverlay" class="loading-overlay">
-        <div>
-            <div class="loading-spinner"></div>
-            <div id="loadingMessage" class="loading-message">Initializing dashboard...</div>
-        </div>
-    </div>
-
-    <!-- Error Message Container -->
-    <div id="errorContainer" class="error-message" style="display: none;"></div>
-
-    <!-- Main Dashboard Content -->
-    <div id="dashboardContent" style="display: none;">
-        <!-- Professional Background -->
-        <div class="gradient-bg"></div>
-        
-        <!-- Dashboard Container -->
-        <div class="dashboard-container">
-            <!-- Tab Navigation -->
-            <div class="tab-navigation">
-                <button class="tab-button active" onclick="switchTab('live-dashboard')">
-                    <span class="tab-icon">📊</span>
-                    Live Dashboard
-                </button>
-                <button class="tab-button" onclick="switchTab('my-leads')">
-                    <span class="tab-icon">👤</span>
-                    My Leads
-                    <span class="badge" id="my-leads-count">0</span>
-                </button>
-            </div>
-
-            <!-- Live Dashboard Tab -->
-            <div class="tab-content active" id="live-dashboard">
-                <!-- Stats Grid -->
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <h3>Available Leads</h3>
-                        <div class="stat-value" id="available-count">0</div>
-                        <div class="stat-trend positive">Live Updates Every 15s</div>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Active Leads</h3>
-                        <div class="stat-value" id="active-count">0</div>
-                        <div class="stat-trend">Total Active Cases</div>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Retained</h3>
-                        <div class="stat-value" id="retained-count">0</div>
-                        <div class="stat-trend">Successfully Retained</div>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Conversion Rate</h3>
-                        <div class="stat-value" id="conversion-rate">0%</div>
-                        <div class="stat-trend">Overall Success Rate</div>
-                    </div>
+    <!-- Professional Background -->
+    <div class="gradient-bg"></div>
+    
+    <!-- Dashboard Container -->
+    <div class="dashboard-container">
+        <!-- Glass Header -->
+        <header class="glass-header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1 class="dashboard-title">Legal Lead Management</h1>
+                    <p style="color: var(--text-secondary); margin-top: 0.5rem;">
+                        Welcome back, <span id="agent-name" style="color: var(--primary-light);">Agent</span>
+                    </p>
                 </div>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <button class="btn btn-secondary" onclick="window.location.href='agent-analytics.html'">
+                        📊 My Analytics
+                    </button>
+                    <button class="btn btn-secondary" onclick="logout()">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </header>
 
-                <!-- Available Leads Section -->
-                <section class="glass-section">
-                    <div class="section-header">
-                        <h2 class="section-title">New Available Leads</h2>
-                        <div class="section-actions">
-                            <input type="text" class="glass-input" id="search-leads" placeholder="Search leads...">
-                            <button class="btn" onclick="refreshLeads()">
-                                <span class="btn-icon">🔄</span> Refresh
-                            </button>
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="glass-stat">
+                <div class="stat-icon icon-3d">
+                    <div class="glass-icon-3d icon-chart">
+                        <div class="glass-base"></div>
+                        <div class="chart-bars">
+                            <div class="bar"></div>
+                            <div class="bar"></div>
+                            <div class="bar"></div>
+                            <div class="bar"></div>
+                            <div class="bar"></div>
                         </div>
                     </div>
-                    <div class="leads-grid" id="available-leads-grid">
-                        <!-- Lead cards will be inserted here -->
-                    </div>
-                </section>
+                </div>
+                <div class="stat-value" id="available-count">-</div>
+                <div class="stat-label">Available Leads</div>
             </div>
+            
+            <div class="glass-stat">
+                <div class="stat-icon icon-3d">
+                    <div class="glass-icon-3d icon-laptop">
+                        <div class="laptop-screen">
+                            <div class="screen-content">
+                                <div class="code-line"></div>
+                                <div class="code-line"></div>
+                                <div class="code-line"></div>
+                            </div>
+                        </div>
+                        <div class="laptop-base"></div>
+                        <div class="power-light"></div>
+                    </div>
+                </div>
+                <div class="stat-value" id="active-count">-</div>
+                <div class="stat-label">My Active Leads</div>
+            </div>
+            
+            <div class="glass-stat">
+                <div class="stat-icon icon-3d">
+                    <div class="glass-icon-3d icon-contract">
+                        <div class="glass-sphere">
+                            <div class="document"></div>
+                            <div class="seal"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="stat-value" id="retained-count">-</div>
+                <div class="stat-label">Retained</div>
+            </div>
+            
+            <div class="glass-stat">
+                <div class="stat-icon icon-3d">
+                    <div class="glass-icon-3d icon-gavel">
+                        <div class="gavel-head"></div>
+                        <div class="gavel-handle"></div>
+                        <div class="sound-block"></div>
+                        <div class="impact-ring"></div>
+                    </div>
+                </div>
+                <div class="stat-value" id="conversion-rate">-%</div>
+                <div class="stat-label">Conversion Rate</div>
+            </div>
+        </div>
 
-            <!-- My Leads Tab -->
-            <div class="tab-content" id="my-leads">
-                <div class="my-leads-header">
-                    <h2>My Active Leads</h2>
-                    <div class="lead-filters">
-                        <select class="glass-input" id="filter-status">
-                            <option value="all">All Status</option>
-                            <option value="new">New</option>
-                            <option value="contacted">Contacted</option>
-                            <option value="qualified">Qualified</option>
-                            <option value="retained-for-firm">Retained for Firm</option>
-                            <option value="docs-sent">Docs Sent</option>
-                        </select>
-                        <button class="btn btn-secondary" onclick="refreshMyLeads()">
-                            <span class="btn-icon">🔄</span> Refresh
+        <!-- Leads Container -->
+        <div class="leads-container">
+            <!-- Available Leads Section -->
+            <section class="glass-section">
+                <div class="section-header">
+                    <h2 class="section-title">Available Leads</h2>
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <input type="text" class="glass-input" id="search-leads" placeholder="Search leads...">
+                        <button class="btn" onclick="refreshLeads()">
+                            Refresh
                         </button>
                     </div>
                 </div>
-                <div class="leads-grid" id="my-leads-grid">
-                    <!-- My lead cards will be inserted here -->
+                
+                <div class="leads-grid" id="available-leads-grid">
+                    <div class="loading-state">
+                        <div class="loading-spinner"></div>
+                        <p>Loading available leads...</p>
+                    </div>
                 </div>
-            </div>
-        </div>
+            </section>
 
-        <!-- Lead Details Modal -->
-        <div class="modal-overlay" id="lead-modal" style="display: none;">
-            <div class="glass-modal">
-                <div class="modal-header">
-                    <h3 class="modal-title" id="modal-title">Lead Details</h3>
-                    <button class="close-btn" onclick="closeLeadModal()">×</button>
+            <!-- My Leads Section -->
+            <section class="glass-section">
+                <div class="section-header">
+                    <h2 class="section-title">My Active Leads</h2>
+                    <select class="glass-input" id="filter-status" style="width: auto;">
+                        <option value="all">All Status</option>
+                        <option value="new">New</option>
+                        <option value="contacted">Contacted</option>
+                        <option value="qualified">Qualified</option>
+                        <option value="retained">Retained for Firm</option>
+                        <option value="docs-sent">Docs Sent</option>
+                    </select>
                 </div>
-                <div class="modal-content" id="lead-details">
-                    <!-- Lead details will be inserted here -->
+                
+                <div class="leads-grid" id="my-leads-grid">
+                    <div class="loading-state">
+                        <div class="loading-spinner"></div>
+                        <p>Loading your leads...</p>
+                    </div>
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" onclick="closeLeadModal()">Close</button>
-                    <button class="btn" id="modal-action-btn" style="display: none;">Save Changes</button>
-                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Lead Details Modal -->
+    <div class="modal-overlay" id="lead-modal" style="display: none;">
+        <div class="glass-modal">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modal-title">Lead Details</h3>
+                <button class="close-btn" onclick="closeLeadModal()">×</button>
+            </div>
+            <div class="modal-content" id="lead-details">
+                <!-- Lead details will be inserted here -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeLeadModal()">Close</button>
+                <button class="btn" id="modal-action-btn" style="display: none;">Save Changes</button>
             </div>
         </div>
     </div>
 
-    <!-- Initialize App -->
-    <script>
-    async function initializeApp() {
-        const loadingOverlay = document.getElementById('loadingOverlay');
-        const loadingMessage = document.getElementById('loadingMessage');
-        const errorContainer = document.getElementById('errorContainer');
-        const dashboardContent = document.getElementById('dashboardContent');
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="toast-container"></div>
 
-        try {
-            // Initialize auth service
-            loadingMessage.textContent = 'Checking authentication...';
-            const authResult = await window.authService.checkAuth();
-
-            if (!authResult.isAuthenticated) {
-                throw new Error(authResult.error || 'Authentication failed');
-            }
-
-            // Check if user is an agent
-            const userData = JSON.parse(localStorage.getItem('user'));
-            if (userData.role === 'admin') {
-                window.location.href = 'admin.html';
-                return;
-            }
-
-            // Show dashboard
-            loadingOverlay.style.display = 'none';
-            dashboardContent.style.display = 'block';
-
-            // Initialize dashboard features
-            initializeDashboard();
-
-        } catch (error) {
-            console.error('Initialization error:', error);
-            loadingOverlay.style.display = 'none';
-            errorContainer.style.display = 'block';
-            errorContainer.textContent = 'Failed to initialize dashboard. Please try refreshing the page.';
-        }
-    }
-
-    // Start initialization when page loads
-    window.addEventListener('load', initializeApp);
-    </script>
-
-    <!-- Dashboard Functionality -->
+    <!-- Professional Dashboard JS -->
     <script src="agent-aurora.js"></script>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/modules/aurora-design.js"></script>
+    <script src="js/modules/utils.js"></script>
+    <script src="js/modules/api.js"></script>
+    <script src="js/modules/navigation.js"></script>
+    <script src="js/modules/lead-management.js"></script>
+    <script src="js/modules/add-lead.js"></script>
+    <script src="agent-analytics.js"></script>
+    <script src="agent-aurora.js"></script>
+    
+    <!-- Phase 2-3 Feature Scripts -->
+    <script src="js/notification-center.js"></script>
+    <script src="js/data-export.js"></script>
+    <script src="js/keyboard-shortcuts.js"></script>
+    <script src="js/performance-monitor.js"></script>
+    <script src="js/virtual-scroll.js"></script>
+    <script src="js/global-search.js"></script>
+    <script src="js/data-visualization.js"></script>
+    <script src="js/service-worker-registration.js"></script>
+    
+    <!-- Error tracking -->
+    <script src="js/error-tracker.js"></script>
+    <script src="js/feedback-widget.js"></script>
+    <script src="js/health-monitor.js"></script>
+    <script src="js/analytics-tracker.js"></script>
+    <script>
+        // Initialize monitoring systems for agent dashboard
+        console.log('🚀 Initializing agent monitoring...');
+        
+        // Track agent-specific features
+        if (window.analyticsTracker) {
+            window.analyticsTracker.trackFeature('agent_dashboard_loaded');
+            
+            // Track lead interactions
+            document.addEventListener('click', (e) => {
+                const leadAction = e.target.closest('[data-lead-action]');
+                if (leadAction) {
+                    window.analyticsTracker.trackFeature(
+                        `lead_action_${leadAction.dataset.leadAction}`,
+                        { leadId: leadAction.dataset.leadId }
+                    );
+                }
+            });
+            
+            // Track conversion funnel
+            window.trackLeadConversion = (step, leadId) => {
+                window.analyticsTracker.trackConversion(step, null, { leadId });
+            };
+        }
+        
+        // Monitor agent-specific metrics
+        if (window.healthMonitor) {
+            // Agents should see simplified health status
+            window.healthMonitor.addEventListener('performanceIssue', (issue) => {
+                console.warn('⚡ Performance issue:', issue);
+            });
+        }
+        
+        console.log('✅ Agent monitoring initialized');
+    </script>
 </body>
 </html> 

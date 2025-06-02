@@ -1,0 +1,494 @@
+/* =====================================================
+   VENDOR DASHBOARD STYLES
+   Vendor-specific styling extending unified dark theme
+   ===================================================== */
+
+/* Import Unified Dark Theme */
+@import url('./unified-dark-theme.css');
+
+/* Vendor Dashboard Layout */
+.vendor-dashboard {
+    display: grid;
+    grid-template-areas: 
+        "header header"
+        "sidebar main";
+    grid-template-columns: var(--sidebar-width) 1fr;
+    grid-template-rows: var(--header-height) 1fr;
+    min-height: 100vh;
+    background: var(--bg-primary);
+}
+
+/* Vendor Header */
+.vendor-header {
+    grid-area: header;
+    background: var(--glass-bg);
+    backdrop-filter: var(--backdrop-blur-heavy);
+    border-bottom: 1px solid var(--glass-border);
+    padding: 0 var(--content-padding);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: var(--z-sticky);
+    box-shadow: var(--glass-shadow);
+}
+
+.vendor-header-title {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.vendor-header-title h1 {
+    font-size: 1.5rem;
+    font-weight: var(--font-bold);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.vendor-header-title p {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.vendor-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.vendor-info {
+    text-align: right;
+}
+
+.vendor-name {
+    font-weight: var(--font-semibold);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+}
+
+.vendor-code {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+}
+
+/* Vendor Sidebar */
+.vendor-sidebar {
+    grid-area: sidebar;
+    background: var(--glass-bg);
+    backdrop-filter: var(--backdrop-blur);
+    border-right: 1px solid var(--glass-border);
+    padding: var(--content-padding) 0;
+}
+
+.vendor-nav {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.vendor-nav-item {
+    margin-bottom: 0.25rem;
+}
+
+.vendor-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem var(--content-padding);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: var(--font-medium);
+    transition: all var(--transition-fast);
+    position: relative;
+    border-left: 3px solid transparent;
+}
+
+.vendor-nav-link:hover {
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--text-primary);
+}
+
+.vendor-nav-link.active {
+    background: rgba(99, 102, 241, 0.15);
+    color: var(--primary);
+    border-left-color: var(--primary);
+}
+
+.vendor-nav-icon {
+    width: 20px;
+    height: 20px;
+    opacity: 0.8;
+}
+
+/* Vendor Main Content */
+.vendor-main {
+    grid-area: main;
+    padding: var(--content-padding);
+    overflow-y: auto;
+    max-height: calc(100vh - var(--header-height));
+}
+
+.vendor-section {
+    display: none;
+    animation: fadeIn var(--transition-base);
+}
+
+.vendor-section.active {
+    display: block;
+}
+
+/* Vendor Metrics */
+.vendor-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--card-gap);
+    margin-bottom: var(--section-gap);
+}
+
+.vendor-metric-card {
+    background: var(--glass-bg);
+    backdrop-filter: var(--backdrop-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--glass-shadow);
+    transition: all var(--transition-base);
+}
+
+.vendor-metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--primary), transparent);
+    opacity: 0;
+    transition: opacity var(--transition-base);
+}
+
+.vendor-metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--glass-shadow-hover);
+}
+
+.vendor-metric-card:hover::before {
+    opacity: 1;
+}
+
+.vendor-metric-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.vendor-metric-title {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    font-weight: var(--font-medium);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.vendor-metric-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    font-size: 1.25rem;
+    transition: all var(--transition-base);
+}
+
+.vendor-metric-icon.blue {
+    background: rgba(59, 130, 246, 0.2);
+    color: var(--info);
+}
+
+.vendor-metric-icon.green {
+    background: rgba(16, 185, 129, 0.2);
+    color: var(--success);
+}
+
+.vendor-metric-icon.yellow {
+    background: rgba(245, 158, 11, 0.2);
+    color: var(--warning);
+}
+
+.vendor-metric-icon.red {
+    background: rgba(239, 68, 68, 0.2);
+    color: var(--danger);
+}
+
+.vendor-metric-value {
+    font-size: 2rem;
+    font-weight: var(--font-bold);
+    color: var(--text-primary);
+    line-height: 1;
+    margin-bottom: 0.5rem;
+}
+
+.vendor-metric-change {
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.vendor-metric-change.positive {
+    color: var(--success);
+}
+
+.vendor-metric-change.negative {
+    color: var(--danger);
+}
+
+/* Vendor Charts */
+.vendor-chart-container {
+    background: var(--glass-bg);
+    backdrop-filter: var(--backdrop-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    margin-bottom: var(--section-gap);
+    box-shadow: var(--glass-shadow);
+}
+
+.vendor-chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.vendor-chart-title {
+    font-size: 1.25rem;
+    font-weight: var(--font-semibold);
+    color: var(--text-primary);
+}
+
+.vendor-date-range {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.vendor-date-input {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    padding: 0.5rem 1rem;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    transition: all var(--transition-fast);
+}
+
+.vendor-date-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+/* Vendor Leads Table */
+.vendor-leads-table {
+    background: var(--glass-bg);
+    backdrop-filter: var(--backdrop-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--glass-shadow);
+}
+
+.vendor-table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.vendor-table-title {
+    font-size: 1.25rem;
+    font-weight: var(--font-semibold);
+    color: var(--text-primary);
+}
+
+.vendor-table-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.vendor-table-content {
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+/* Custom scrollbar for vendor dashboard */
+.vendor-table-content::-webkit-scrollbar,
+.vendor-main::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.vendor-table-content::-webkit-scrollbar-track,
+.vendor-main::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+}
+
+.vendor-table-content::-webkit-scrollbar-thumb,
+.vendor-main::-webkit-scrollbar-thumb {
+    background: var(--glass-border);
+    border-radius: var(--radius-sm);
+}
+
+.vendor-table-content::-webkit-scrollbar-thumb:hover,
+.vendor-main::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
+}
+
+/* Vendor Status Badges */
+.vendor-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: var(--font-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.vendor-status.new {
+    background: rgba(59, 130, 246, 0.2);
+    color: var(--info);
+}
+
+.vendor-status.contacted {
+    background: rgba(245, 158, 11, 0.2);
+    color: var(--warning);
+}
+
+.vendor-status.qualified {
+    background: rgba(16, 185, 129, 0.2);
+    color: var(--success);
+}
+
+.vendor-status.closed {
+    background: rgba(99, 102, 241, 0.2);
+    color: var(--primary);
+}
+
+.vendor-status.rejected {
+    background: rgba(239, 68, 68, 0.2);
+    color: var(--danger);
+}
+
+/* Vendor Loading States */
+.vendor-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    color: var(--text-secondary);
+}
+
+.vendor-loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--glass-border);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+}
+
+/* Vendor Empty States */
+.vendor-empty {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-secondary);
+}
+
+.vendor-empty-icon {
+    font-size: 3rem;
+    opacity: 0.5;
+    margin-bottom: 1rem;
+}
+
+.vendor-empty-text {
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Vendor Error States */
+.vendor-error {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: var(--danger);
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    margin: 1rem 0;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .vendor-dashboard {
+        grid-template-columns: 240px 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .vendor-dashboard {
+        grid-template-areas: 
+            "header"
+            "main";
+        grid-template-columns: 1fr;
+    }
+    
+    .vendor-sidebar {
+        display: none;
+    }
+    
+    .vendor-metrics-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .vendor-chart-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .vendor-table-content {
+        overflow-x: auto;
+    }
+}
+
+/* Animation for section transitions */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+} 

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - Lead Management System</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
     
     <!-- Preconnect to CDNs -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,7 +12,7 @@
     <link rel="preconnect" href="https://unpkg.com">
     
     <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- Icons -->
     <link rel="stylesheet" href="https://unpkg.com/lucide@latest/dist/lucide.css">
@@ -24,6 +25,20 @@
     
     <!-- Custom Styles -->
     <link rel="stylesheet" href="admin.css">
+
+    <!-- Phase 1-3 Optimizations: Unified Dark Theme and Features -->
+    <link rel="stylesheet" href="css/unified-dark-theme.css">
+    <link rel="stylesheet" href="css/notification-center.css">
+    <link rel="stylesheet" href="css/data-export.css">
+    <link rel="stylesheet" href="css/keyboard-shortcuts.css">
+    <link rel="stylesheet" href="css/performance-monitor.css">
+    <link rel="stylesheet" href="css/virtual-scroll.css">
+    <link rel="stylesheet" href="css/unified-features.css">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Modern icon library -->
 
 <!-- Build-Time Injected Configuration -->
 
@@ -74,142 +89,163 @@ console.log('🔧 Configuration injected at build time - no external loading nee
                 </div>
             </div>
             <div class="header-right">
-                <div class="header-date" id="current-date"></div>
-                <div class="theme-toggle">
-                    <button class="theme-btn active" data-theme="light" title="Light mode">☀️</button>
-                    <button class="theme-btn" data-theme="auto" title="Auto">◐</button>
-                    <button class="theme-btn" data-theme="dark" title="Dark mode">☾</button>
-                </div>
-                <a href="index.html" class="btn btn-secondary">Back to Dashboard</a>
+                <div class="header-date"></div>
             </div>
         </div>
     </header>
 
     <!-- Main Content -->
     <main class="admin-main">
-        <!-- Stats Cards -->
-        <div class="stats-grid">
-            <div class="stat-card glass-card">
-                <div class="stat-icon">💰</div>
-                <div class="stat-content">
-                    <div class="stat-label">Revenue</div>
-                    <div class="stat-value">$<span id="revenue-stat">0</span></div>
-                    <div class="stat-change positive">↑ <span id="revenue-change">0</span>% vs last month</div>
-                </div>
-            </div>
-            
-            <div class="stat-card glass-card">
-                <div class="stat-icon">📈</div>
-                <div class="stat-content">
-                    <div class="stat-label">Avg CPA</div>
-                    <div class="stat-value">$<span id="cpa-stat">0</span></div>
-                    <div class="stat-change positive">↓ <span id="cpa-change">0</span>% improvement</div>
-                </div>
-            </div>
-            
-            <div class="stat-card glass-card">
-                <div class="stat-icon">⚡</div>
-                <div class="stat-content">
-                    <div class="stat-label">Active Agents</div>
-                    <div class="stat-value"><span id="agents-stat">0</span></div>
-                    <div class="stat-subtext"><span id="agents-online">0</span> online now</div>
-                </div>
-            </div>
-            
-            <div class="stat-card glass-card">
-                <div class="stat-icon">🎯</div>
-                <div class="stat-content">
-                    <div class="stat-label">Conversion Rate</div>
-                    <div class="stat-value"><span id="conversion-stat">0</span>%</div>
-                    <div class="stat-change positive">↑ <span id="conversion-change">0</span>% vs last month</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Live Performance Chart -->
-        <div class="chart-section glass-card">
+        <!-- System Overview Stats -->
+        <section class="stats-section">
             <div class="section-header">
-                <h2 class="section-title">📊 Live Performance</h2>
-                <div class="chart-controls">
-                    <button class="period-btn active" data-period="today">Today</button>
-                    <button class="period-btn" data-period="week">Week</button>
-                    <button class="period-btn" data-period="month">Month</button>
+                <h2 class="section-title">📊 System Overview</h2>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" id="refresh-dashboard">🔄 Refresh</button>
+                    <span class="last-updated" id="last-updated">Last updated: --:--</span>
                 </div>
             </div>
-            <div class="chart-container">
-                <canvas id="performance-chart"></canvas>
-            </div>
-        </div>
-
-        <!-- Pricing Control -->
-        <div class="pricing-section glass-card">
-            <div class="section-header">
-                <h2 class="section-title">💵 Lead Pricing Control</h2>
-            </div>
-            <div class="pricing-content">
-                <div class="default-pricing">
-                    <label for="default-price">Default Price per Lead</label>
-                    <div class="price-input-group">
-                        <span class="currency">$</span>
-                        <input type="number" id="default-price" value="35" min="10" max="100">
-                        <button class="btn btn-primary" id="update-default-price">Update</button>
-                    </div>
-                    <input type="range" id="price-slider" min="10" max="100" value="35" class="price-slider">
-                    <div class="price-range">
-                        <span>$10</span>
-                        <span>$100</span>
+            
+            <div class="stats-grid">
+                <div class="stat-card glass-card">
+                    <div class="stat-icon" data-tooltip="Total revenue from all closed leads" data-tooltip-theme="success">💰</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Total Revenue</div>
+                        <div class="stat-value" id="total-revenue">$0</div>
+                        <div class="stat-change positive" id="revenue-change" data-tooltip="Compared to last period">
+                            <span>↑ 0%</span>
+                        </div>
                     </div>
                 </div>
                 
-                <div class="smart-pricing">
-                    <div class="feature-badge">Beta</div>
-                    <h3>🎯 Smart Pricing</h3>
-                    <p>Let AI optimize prices based on demand and performance</p>
-                    <div class="smart-pricing-controls">
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="smart-pricing-toggle">
-                            <span class="toggle-slider"></span>
-                        </label>
-                        <button class="btn btn-link">Learn More</button>
+                <div class="stat-card glass-card">
+                    <div class="stat-icon" data-tooltip="Cost Per Acquisition - Average cost per lead" data-tooltip-theme="primary">📊</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Average CPA</div>
+                        <div class="stat-value" id="average-cpa">$0</div>
+                        <div class="stat-change negative" id="cpa-change" data-tooltip="Lower is better">
+                            <span>↓ 0%</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="stat-card glass-card">
+                    <div class="stat-icon" data-tooltip="Number of agents currently online" data-tooltip-theme="success">👥</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Active Agents</div>
+                        <div class="stat-value" id="active-agents">0</div>
+                        <div class="stat-subtext" id="total-agents">of 0 total</div>
+                    </div>
+                </div>
+                
+                <div class="stat-card glass-card">
+                    <div class="stat-icon" data-tooltip="Percentage of leads converted to customers" data-tooltip-theme="warning">🎯</div>
+                    <div class="stat-content">
+                        <div class="stat-label">Conversion Rate</div>
+                        <div class="stat-value" id="conversion-rate">0%</div>
+                        <div class="stat-change positive" id="conversion-change" data-tooltip="Conversion trend">
+                            <span>↑ 0%</span>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <!-- Agency Performance -->
-        <div class="agencies-section">
+        <!-- Dashboard Widgets Section -->
+        <section class="dashboard-widgets-section">
+            <!-- Widget controls and grid will be automatically inserted here by dashboard-widgets.js -->
+        </section>
+
+        <!-- Live Activity Feed -->
+        <section class="activity-section glass-card">
             <div class="section-header">
-                <h2 class="section-title">🏢 Agency Performance</h2>
-                <button class="btn btn-primary" id="custom-pricing-btn">Set Custom Pricing</button>
+                <h2 class="section-title">🔴 Live Activity Feed</h2>
+                <div class="activity-controls">
+                    <button class="btn btn-sm btn-secondary" id="pause-activity">⏸️ Pause</button>
+                    <button class="btn btn-sm btn-secondary" id="clear-activity">🗑️ Clear</button>
+                </div>
             </div>
             
-            <div class="agencies-grid" id="agencies-grid">
-                <!-- Agency cards will be inserted here -->
+            <div class="activity-feed" id="activity-feed">
+                <!-- Live activities will be populated here -->
             </div>
-        </div>
+        </section>
 
-        <!-- Agents Management -->
-        <div class="agents-section glass-card">
+        <!-- Enhanced Agent Management -->
+        <section class="agents-management glass-card">
             <div class="section-header">
-                <h2 class="section-title">👥 Team Management</h2>
-                <button class="btn btn-primary" id="add-agent-btn">
-                    <span class="btn-icon">+</span>
-                    Add Agent
-                </button>
+                <h2 class="section-title">👥 Agent Command Center</h2>
+                <div class="management-controls">
+                    <div class="search-filters">
+                        <input type="text" id="agent-search" placeholder="🔍 Search agents..." class="search-input">
+                        <select id="agent-status-filter" class="select-input">
+                            <option value="all">All Status</option>
+                            <option value="online">Online</option>
+                            <option value="offline">Offline</option>
+                            <option value="invited">Invited</option>
+                        </select>
+                        <select id="agent-role-filter" class="select-input">
+                            <option value="all">All Roles</option>
+                            <option value="admin">Admin</option>
+                            <option value="agent">Agent</option>
+                            <option value="viewer">Viewer</option>
+                        </select>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="btn btn-secondary" id="bulk-actions-btn">📋 Bulk Actions</button>
+                        <button class="btn btn-primary" id="add-agent-btn">
+                            <span class="btn-icon">+</span>
+                            Add Agent
+                        </button>
+                    </div>
+                </div>
             </div>
             
+            <!-- Agent Performance Leaderboard -->
+            <div class="leaderboard-section">
+                <h3>🏆 Top Performers This Month</h3>
+                <div class="leaderboard-grid" id="agent-leaderboard">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+            </div>
+            
+            <!-- Advanced Agent Table -->
             <div class="agents-table-container">
-                <div class="table-search">
-                    <input type="text" id="agent-search" placeholder="🔍 Search agents..." class="search-input">
+                <div class="bulk-actions-bar" id="bulk-actions-bar" style="display: none;">
+                    <div class="selected-count">
+                        <span id="selected-agent-count">0</span> agents selected
+                    </div>
+                    <div class="bulk-buttons">
+                        <button class="btn btn-sm btn-secondary" id="bulk-enable">✅ Enable</button>
+                        <button class="btn btn-sm btn-secondary" id="bulk-disable">❌ Disable</button>
+                        <button class="btn btn-sm btn-danger" id="bulk-delete">🗑️ Delete</button>
+                    </div>
                 </div>
                 
-                <table class="data-table" id="agents-table">
+                <table class="data-table enhanced-table" id="agents-table">
                     <thead>
                         <tr>
-                            <th>Agent</th>
-                            <th>Status</th>
-                            <th>Leads</th>
-                            <th>Conv %</th>
+                            <th>
+                                <input type="checkbox" id="select-all-agents" class="bulk-checkbox">
+                            </th>
+                            <th class="sortable" data-sort="name">
+                                Agent <span class="sort-indicator">↕️</span>
+                            </th>
+                            <th class="sortable" data-sort="status">
+                                Status <span class="sort-indicator">↕️</span>
+                            </th>
+                            <th class="sortable" data-sort="role">
+                                Role <span class="sort-indicator">↕️</span>
+                            </th>
+                            <th class="sortable" data-sort="leads">
+                                Leads <span class="sort-indicator">↕️</span>
+                            </th>
+                            <th class="sortable" data-sort="conversion">
+                                Conversion <span class="sort-indicator">↕️</span>
+                            </th>
+                            <th class="sortable" data-sort="lastActive">
+                                Last Active <span class="sort-indicator">↕️</span>
+                            </th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -218,131 +254,131 @@ console.log('🔧 Configuration injected at build time - no external loading nee
                     </tbody>
                 </table>
             </div>
-        </div>
+        </section>
 
-        <!-- Reports Section -->
-        <div class="reports-section glass-card">
+        <!-- Publisher Analytics & Management -->
+        <section class="analytics-section">
             <div class="section-header">
-                <h2 class="section-title">📊 Reports Center</h2>
-                <div class="report-controls">
-                    <select id="report-agency" class="select-input">
-                        <option value="all">All Agencies</option>
-                    </select>
-                    <select id="report-period" class="select-input">
-                        <option value="today">Today</option>
-                        <option value="week">This Week</option>
-                        <option value="month" selected>This Month</option>
-                        <option value="custom">Custom Range</option>
-                    </select>
-                    <button class="btn btn-secondary" id="export-report">
-                        <span class="btn-icon">📥</span>
-                        Export
-                    </button>
+                <h2 class="section-title">🏢 Publisher Management</h2>
+                <div class="header-actions">
+                    <button class="btn btn-primary" id="add-publisher-btn">➕ Add Publisher</button>
+                    <button class="btn btn-secondary" id="bulk-publisher-actions">📋 Bulk Actions</button>
                 </div>
             </div>
             
-            <div class="report-summary" id="report-summary">
-                <!-- Report data will be inserted here -->
-            </div>
-        </div>
-
-        <!-- DocuSign Templates -->
-        <div class="docusign-section glass-card">
-            <div class="section-header">
-                <h2 class="section-title">📄 DocuSign Templates</h2>
-            </div>
-            <div class="docusign-content">
-                <div class="current-template">
-                    <h3>Current Template</h3>
-                    <div class="template-info">
-                        <span class="template-name">Standard Retainer Agreement v2</span>
-                        <span class="template-date">Last updated: <span id="template-date">May 15, 2024</span></span>
+            <div class="analytics-grid">
+                <!-- Publisher Search & Filters -->
+                <div class="analytics-card full-width">
+                    <div class="card-header">
+                        <h3>🔍 Publisher Search & Management</h3>
+                        <div class="search-filters">
+                            <input type="text" class="search-input" id="publisher-search" placeholder="Search publishers...">
+                            <select class="filter-select" id="publisher-status-filter">
+                                <option value="">All Status</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                                <option value="pending">Pending</option>
+                            </select>
+                            <select class="filter-select" id="publisher-sort">
+                                <option value="name">Sort by Name</option>
+                                <option value="leads">Sort by Leads</option>
+                                <option value="revenue">Sort by Revenue</option>
+                                <option value="date">Sort by Date Added</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="template-actions">
-                        <button class="btn btn-secondary">Upload New</button>
-                        <button class="btn btn-secondary">Preview</button>
-                        <button class="btn btn-secondary">Test Send</button>
+                    
+                    <div class="table-container">
+                        <table class="data-table" id="publishers-table">
+                            <thead>
+                                <tr>
+                                    <th><input type="checkbox" id="select-all-publishers"></th>
+                                    <th class="sortable" data-sort="name">Publisher Name</th>
+                                    <th class="sortable" data-sort="status">Status</th>
+                                    <th class="sortable" data-sort="api">API Key</th>
+                                    <th class="sortable" data-sort="leads">Total Leads</th>
+                                    <th class="sortable" data-sort="revenue">Revenue</th>
+                                    <th class="sortable" data-sort="lastActivity">Last Activity</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="publishers-table-body">
+                                <!-- Publishers will be loaded here -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
                 
-                <div class="docusign-automation">
-                    <h3>Automation</h3>
-                    <div class="automation-options">
-                        <button class="btn btn-primary">Bulk Send Retainers</button>
-                        <button class="btn btn-secondary">Auto-Send Settings</button>
+                <!-- Publisher Performance Chart -->
+                <div class="analytics-card">
+                    <div class="card-header">
+                        <h3>📈 Publisher Performance</h3>
+                    </div>
+                    <canvas id="publisher-chart"></canvas>
+                </div>
+                
+                <!-- Top Publishers -->
+                <div class="analytics-card">
+                    <div class="card-header">
+                        <h3>🏆 Top Publishers</h3>
+                    </div>
+                    <div class="top-list" id="top-publishers-list">
+                        <!-- Top publishers will be loaded here -->
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- Vendor Management Section -->
-        <section class="vendor-management glass-card">
-            <div class="section-header">
-                <h2 class="section-title">🏢 Vendor Management</h2>
-                <button class="btn btn-primary" id="add-vendor-btn">
-                    <span class="btn-icon">+</span>
-                    Add Vendor
-                </button>
-            </div>
-
-            <!-- Vendor Metrics -->
-            <div id="vendor-metrics" class="metrics-grid">
-                <!-- Metrics will be populated by JS -->
-            </div>
-
-            <!-- Add Vendor Form -->
-            <form id="add-vendor-form" class="glass-form" style="display: none;">
-                <div class="form-group">
-                    <label for="vendorName">Vendor Name</label>
-                    <input type="text" id="vendorName" name="vendorName" required class="form-input">
+                
+                <!-- API Generation Panel -->
+                <div class="analytics-card">
+                    <div class="card-header">
+                        <h3>🔑 API Management</h3>
+                    </div>
+                    <div class="api-panel">
+                        <div class="api-stats">
+                            <div class="api-stat">
+                                <span class="api-stat-number" id="active-apis">0</span>
+                                <span class="api-stat-label">Active APIs</span>
+                            </div>
+                            <div class="api-stat">
+                                <span class="api-stat-number" id="api-calls-today">0</span>
+                                <span class="api-stat-label">Calls Today</span>
+                            </div>
+                        </div>
+                        <button class="btn btn-success" id="generate-api-key">🔑 Generate New API Key</button>
+                        <button class="btn btn-secondary" id="api-documentation">📖 API Documentation</button>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="vendorEmail">Contact Email</label>
-                    <input type="email" id="vendorEmail" name="vendorEmail" required class="form-input">
-                </div>
-                <div class="form-group">
-                    <label for="vendorPhone">Contact Phone</label>
-                    <input type="tel" id="vendorPhone" name="vendorPhone" class="form-input">
-                </div>
-                <div class="form-group">
-                    <label for="vendorWebsite">Website</label>
-                    <input type="url" id="vendorWebsite" name="vendorWebsite" class="form-input">
-                </div>
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary">Create Vendor</button>
-                    <button type="button" class="btn" onclick="this.form.style.display='none'">Cancel</button>
-                </div>
-            </form>
 
-            <!-- Vendor Search -->
-            <div class="search-container">
-                <input type="text" id="vendor-search" placeholder="Search vendors..." class="search-input">
-            </div>
-
-            <!-- Vendor List -->
-            <div id="vendor-list" class="vendor-grid">
-                <!-- Vendors will be populated by JS -->
+                <div class="smart-pricing-controls">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="smart-pricing">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span>Enable Smart Pricing</span>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="openVendorPricingModal()">
+                        💵 Manage Vendor Pricing
+                    </button>
+                </div>
             </div>
         </section>
     </main>
 
     <!-- Floating Action Button -->
     <div class="fab-container">
-        <button class="fab" id="fab-button">
+        <button class="fab" id="mainFab" data-tooltip="Quick Actions" data-tooltip-position="left">
             <span class="fab-icon">+</span>
         </button>
-        <div class="fab-menu" id="fab-menu">
-            <button class="fab-action" data-action="report">
-                <span>📊</span>
-                Report
+        <div class="fab-menu" id="fabMenu">
+            <button class="fab-action" id="newLeadBtn" data-tooltip="Create a new lead" data-tooltip-position="left">
+                <span>📋</span> New Lead
             </button>
-            <button class="fab-action" data-action="agent">
-                <span>👥</span>
-                Agent
+            <button class="fab-action" id="newAgentBtn" data-tooltip="Add a new agent" data-tooltip-position="left">
+                <span>👤</span> New Agent
             </button>
-            <button class="fab-action" data-action="pricing">
-                <span>💵</span>
-                Pricing
+            <button class="fab-action" id="newVendorBtn" data-tooltip="Register a new vendor" data-tooltip-position="left">
+                <span>🏢</span> New Vendor
+            </button>
+            <button class="fab-action" id="exportDataBtn" data-tooltip="Export data to CSV/PDF" data-tooltip-position="left">
+                <span>📤</span> Export Data
             </button>
         </div>
     </div>
@@ -415,13 +451,221 @@ console.log('🔧 Configuration injected at build time - no external loading nee
         </div>
     </div>
 
+    <!-- Add Publisher Modal -->
+    <div id="publisherModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="publisher-modal-title">Add New Publisher</h3>
+                <span class="close" id="close-publisher-modal">&times;</span>
+            </div>
+            <form id="publisher-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="publisher-name">Publisher Name *</label>
+                        <input type="text" id="publisher-name" name="name" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="publisher-email">Contact Email *</label>
+                        <input type="email" id="publisher-email" name="email" class="form-input" required>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="publisher-phone">Phone Number</label>
+                        <input type="tel" id="publisher-phone" name="phone" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="publisher-website">Website</label>
+                        <input type="url" id="publisher-website" name="website" class="form-input" placeholder="https://">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="publisher-status">Status</label>
+                        <select id="publisher-status" name="status" class="form-input">
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                            <option value="pending">Pending</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="publisher-commission">Commission Rate (%)</label>
+                        <input type="number" id="publisher-commission" name="commission" class="form-input" min="0" max="100" step="0.1">
+                    </div>
+                </div>
+                
+                <div class="form-group full-width">
+                    <label for="publisher-description">Description</label>
+                    <textarea id="publisher-description" name="description" class="form-input" rows="3" placeholder="Brief description of the publisher..."></textarea>
+                </div>
+                
+                <!-- API Configuration -->
+                <div class="api-config-section">
+                    <h4>🔑 API Configuration</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="generate-api">
+                                <input type="checkbox" id="generate-api" name="generateApi" checked>
+                                Generate API Key for Lead Submission
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label for="api-rate-limit">API Rate Limit (calls/hour)</label>
+                            <input type="number" id="api-rate-limit" name="rateLimit" class="form-input" value="1000" min="1">
+                        </div>
+                    </div>
+                    
+                    <div class="api-info" id="api-info" style="display: none;">
+                        <div class="api-key-display">
+                            <label>Generated API Key:</label>
+                            <div class="api-key-container">
+                                <input type="text" id="generated-api-key" class="form-input" readonly>
+                                <button type="button" class="btn btn-secondary" id="copy-api-key">📋 Copy</button>
+                            </div>
+                        </div>
+                        
+                        <div class="api-endpoints">
+                            <label>Lead Submission Endpoint:</label>
+                            <code id="api-endpoint">POST /api/v1/leads/submit</code>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="cancel-publisher">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="save-publisher">
+                        <span class="btn-loader" style="display: none;">⏳</span>
+                        Save Publisher
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- API Documentation Modal -->
+    <div id="apiDocModal" class="modal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h3>📖 Publisher API Documentation</h3>
+                <span class="close" id="close-api-doc-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="api-docs">
+                    <h4>Lead Submission API</h4>
+                    <p>Publishers can submit leads directly to our system using these endpoints:</p>
+                    
+                    <div class="api-section">
+                        <h5>Authentication</h5>
+                        <p>Include your API key in the Authorization header:</p>
+                        <pre><code>Authorization: Bearer YOUR_API_KEY</code></pre>
+                    </div>
+                    
+                    <div class="api-section">
+                        <h5>Submit Lead</h5>
+                        <div class="endpoint">
+                            <span class="method post">POST</span>
+                            <span class="url">/api/v1/leads/submit</span>
+                        </div>
+                        
+                        <h6>Request Body:</h6>
+                        <pre><code>{
+  "firstName": "John",
+  "lastName": "Doe",
+  "email": "john@example.com",
+  "phone": "+1234567890",
+  "leadType": "motor_vehicle_accident",
+  "incidentDate": "2024-05-30",
+  "description": "Rear-end collision",
+  "injuries": true,
+  "location": {
+    "city": "Los Angeles",
+    "state": "CA",
+    "zipCode": "90210"
+  },
+  "metadata": {
+    "source": "web_form",
+    "campaign": "summer_2024"
+  }
+}</code></pre>
+                        
+                        <h6>Response:</h6>
+                        <pre><code>{
+  "success": true,
+  "leadId": "lead_12345",
+  "message": "Lead submitted successfully",
+  "timestamp": "2024-05-30T14:30:00Z"
+}</code></pre>
+                    </div>
+                    
+                    <div class="api-section">
+                        <h5>Lead Status</h5>
+                        <div class="endpoint">
+                            <span class="method get">GET</span>
+                            <span class="url">/api/v1/leads/{leadId}/status</span>
+                        </div>
+                        
+                        <h6>Response:</h6>
+                        <pre><code>{
+  "leadId": "lead_12345",
+  "status": "processing",
+  "assignedTo": "agent_456",
+  "lastUpdated": "2024-05-30T14:35:00Z"
+}</code></pre>
+                    </div>
+                    
+                    <div class="api-section">
+                        <h5>Rate Limits</h5>
+                        <p>API calls are limited based on your publisher plan:</p>
+                        <ul>
+                            <li>Standard: 1,000 calls/hour</li>
+                            <li>Premium: 5,000 calls/hour</li>
+                            <li>Enterprise: Unlimited</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="api-section">
+                        <h5>Error Codes</h5>
+                        <table class="error-codes-table">
+                            <tr><td>400</td><td>Bad Request - Invalid data format</td></tr>
+                            <tr><td>401</td><td>Unauthorized - Invalid API key</td></tr>
+                            <tr><td>429</td><td>Rate Limited - Too many requests</td></tr>
+                            <tr><td>500</td><td>Server Error - Contact support</td></tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Container -->
     <div class="toast-container" id="toast-container"></div>
 
     <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="admin.js"></script>
-
-    <!-- Include Vendor Control Module -->
+    <script src="js/dashboard-widgets.js" type="module"></script>
+    <script src="js/notification-system.js" type="module"></script>
+    <script src="js/search-system.js" type="module"></script>
+    <script src="js/workflow-engine.js" type="module"></script>
+    <script src="js/collaboration-engine.js" type="module"></script>
+    <script src="js/lead-scoring-engine.js" type="module"></script>
+    <script src="js/analytics-insights.js" type="module"></script>
+    <script src="js/workflow-automation.js" type="module"></script>
+    <script src="js/data-visualization.js" type="module"></script>
+    
+    <!-- Phase 2-3 Feature Scripts -->
+    <script src="js/notification-center.js"></script>
+    <script src="js/data-export.js"></script>
+    <script src="js/keyboard-shortcuts.js"></script>
+    <script src="js/performance-monitor.js"></script>
+    <script src="js/virtual-scroll.js"></script>
+    <script src="js/unified-widgets.js"></script>
+    <script src="js/global-search.js"></script>
+    <script src="js/service-worker-registration.js"></script>
+    
+    <!-- Vendor controls -->
     <script src="admin-vendor-controls.js"></script>
     <script>
         // Initialize vendor controls when document loads
@@ -433,6 +677,63 @@ console.log('🔧 Configuration injected at build time - no external loading nee
                 document.getElementById('add-vendor-form').style.display = 'block';
             });
         });
+    </script>
+    
+    <!-- Error Tracking & Monitoring System -->
+    <script src="js/error-tracker.js"></script>
+    <script src="js/feedback-widget.js"></script>
+    <script src="js/health-monitor.js"></script>
+    <script src="js/analytics-tracker.js"></script>
+    
+    <!-- Mock API for Development -->
+    <script src="js/mock-api.js"></script>
+    
+    <!-- Lead Assignment Module -->
+    <script src="js/lead-assignment.js"></script>
+    
+    <!-- Advanced Filters Module -->
+    <script src="js/advanced-filters.js"></script>
+    
+    <script>
+        // Initialize monitoring systems
+        console.log('🚀 Initializing monitoring systems...');
+        
+        // Track admin-specific features
+        if (window.analyticsTracker) {
+            window.analyticsTracker.trackFeature('admin_dashboard_loaded');
+            
+            // Track admin actions
+            document.addEventListener('click', (e) => {
+                const adminAction = e.target.closest('[data-admin-action]');
+                if (adminAction) {
+                    window.analyticsTracker.trackFeature(
+                        `admin_action_${adminAction.dataset.adminAction}`
+                    );
+                }
+            });
+        }
+        
+        // Monitor admin-specific health metrics
+        if (window.healthMonitor) {
+            window.healthMonitor.addEventListener('healthUpdate', (data) => {
+                // Update admin UI with health status if needed
+                if (data.overall === 'down' || data.overall === 'degraded') {
+                    console.warn('⚠️ System health issue detected:', data);
+                }
+            });
+        }
+        
+        // Enhanced error tracking for admin
+        if (window.errorTracker) {
+            window.errorTracker.addEventListener('error', (error) => {
+                // Critical errors in admin should be more visible
+                if (error.severity === 'critical') {
+                    console.error('🚨 Critical error in admin dashboard:', error);
+                }
+            });
+        }
+        
+        console.log('✅ All monitoring systems initialized');
     </script>
 </body>
 </html> 

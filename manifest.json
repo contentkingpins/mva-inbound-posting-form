@@ -1,0 +1,88 @@
+{
+  "name": "Claim Connectors CRM",
+  "short_name": "ClaimCRM",
+  "description": "Professional CRM system for managing leads and claims",
+  "theme_color": "#4299e1",
+  "background_color": "#1a1a2e",
+  "display": "standalone",
+  "orientation": "portrait",
+  "start_url": "/",
+  "scope": "./",
+  "lang": "en-US",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "/images/claim_connectors_blue_transparent_150.png",
+      "sizes": "150x150",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/claim_connectors_blue_transparent_300.png",
+      "sizes": "300x300",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./images/claim_connectors_blue_transparent_150.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./images/claim_connectors_blue_transparent_300.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "View Leads",
+      "short_name": "Leads",
+      "description": "View and manage client leads",
+      "url": "./",
+      "icons": [
+        {
+          "src": "./images/claim_connectors_blue_transparent_150.png",
+          "sizes": "150x150"
+        }
+      ]
+    },
+    {
+      "name": "Admin Panel",
+      "short_name": "Admin",
+      "description": "Access admin dashboard",
+      "url": "./admin.html",
+      "icons": [
+        {
+          "src": "./images/claim_connectors_blue_transparent_150.png",
+          "sizes": "150x150"
+        }
+      ]
+    },
+    {
+      "name": "Analytics",
+      "short_name": "Stats",
+      "description": "View performance analytics",
+      "url": "./stats.html",
+      "icons": [
+        {
+          "src": "./images/claim_connectors_blue_transparent_150.png",
+          "sizes": "150x150"
+        }
+      ]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "screenshots": [
+    {
+      "src": "./images/claim_connectors_blue_transparent_300.png",
+      "sizes": "300x300",
+      "type": "image/png",
+      "platform": "wide",
+      "label": "Claim Connectors CRM Dashboard"
+    }
+  ]
+} 

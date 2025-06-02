@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Widget System Test - MVA Lead Management</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/unified-dark-theme.css">
+    <link rel="stylesheet" href="css/unified-features.css">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        /* Test page specific styles */
+        .test-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .test-header {
+            background: var(--glass-bg);
+            backdrop-filter: var(--backdrop-blur-heavy);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-xl);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--glass-shadow);
+        }
+        
+        .test-title {
+            font-size: 2rem;
+            font-weight: var(--font-bold);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 0 0 0.5rem 0;
+        }
+        
+        .test-description {
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+        }
+        
+        .test-actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .info-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-md);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .info-card h3 {
+            color: var(--text-primary);
+            margin-top: 0;
+        }
+        
+        .shortcuts-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .shortcuts-list li {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.5rem 0;
+            color: var(--text-secondary);
+        }
+        
+        .shortcut-key {
+            background: var(--bg-secondary);
+            padding: 0.25rem 0.5rem;
+            border-radius: var(--radius-sm);
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            color: var(--primary);
+            border: 1px solid var(--glass-border);
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1 class="test-title">Widget System Test</h1>
+            <p class="test-description">
+                Test the new unified widget system with drag-and-drop functionality, 
+                resizable widgets, and a comprehensive widget library.
+            </p>
+            <div class="test-actions">
+                <button class="btn btn-primary" onclick="widgetSystem.openWidgetLibrary()">
+                    <i class="fas fa-plus"></i> Open Widget Library
+                </button>
+                <button class="btn btn-secondary" onclick="addRandomWidget()">
+                    <i class="fas fa-random"></i> Add Random Widget
+                </button>
+                <button class="btn btn-secondary" onclick="clearAllWidgets()">
+                    <i class="fas fa-trash"></i> Clear All Widgets
+                </button>
+                <button class="btn btn-secondary" onclick="saveCurrentLayout()">
+                    <i class="fas fa-save"></i> Save Layout
+                </button>
+                <button class="btn btn-secondary" onclick="loadSampleLayout()">
+                    <i class="fas fa-folder-open"></i> Load Sample Layout
+                </button>
+            </div>
+        </div>
+
+        <div class="info-card">
+            <h3>How to Use</h3>
+            <ul class="shortcuts-list">
+                <li>
+                    <span class="shortcut-key">Ctrl/Cmd + W</span>
+                    <span>Open widget library</span>
+                </li>
+                <li>
+                    <span class="shortcut-key">Drag Header</span>
+                    <span>Move widgets around</span>
+                </li>
+                <li>
+                    <span class="shortcut-key">Drag Corner</span>
+                    <span>Resize widgets</span>
+                </li>
+                <li>
+                    <span class="shortcut-key">Settings Icon</span>
+                    <span>Configure widget settings</span>
+                </li>
+                <li>
+                    <span class="shortcut-key">Minimize/Maximize</span>
+                    <span>Toggle widget states</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/unified-widgets.js"></script>
+    <script>
+        // Test functions
+        function addRandomWidget() {
+            const widgetTypes = Object.keys(widgetSystem.widgetLibrary);
+            const randomType = widgetTypes[Math.floor(Math.random() * widgetTypes.length)];
+            const randomPosition = {
+                x: Math.floor(Math.random() * (window.innerWidth - 400)),
+                y: Math.floor(Math.random() * (window.innerHeight - 300))
+            };
+            widgetSystem.createWidget(randomType, { position: randomPosition });
+        }
+
+        function clearAllWidgets() {
+            if (confirm('Are you sure you want to remove all widgets?')) {
+                widgetSystem.widgets.forEach((widget) => {
+                    widgetSystem.removeWidget(widget.id);
+                });
+            }
+        }
+
+        function saveCurrentLayout() {
+            widgetSystem.saveLayout();
+            alert('Layout saved successfully!');
+        }
+
+        function loadSampleLayout() {
+            // Create a sample layout
+            clearAllWidgets();
+            
+            // Add sample widgets
+            setTimeout(() => {
+                widgetSystem.createWidget('stats-overview', {
+                    position: { x: 50, y: 200 },
+                    size: { width: 400, height: 300 }
+                });
+                
+                widgetSystem.createWidget('real-time-metrics', {
+                    position: { x: 500, y: 200 },
+                    size: { width: 350, height: 250 }
+                });
+                
+                widgetSystem.createWidget('quick-actions', {
+                    position: { x: 900, y: 200 },
+                    size: { width: 300, height: 400 }
+                });
+                
+                widgetSystem.createWidget('activity-feed', {
+                    position: { x: 50, y: 550 },
+                    size: { width: 350, height: 300 }
+                });
+                
+                widgetSystem.createWidget('revenue-tracker', {
+                    position: { x: 450, y: 500 },
+                    size: { width: 400, height: 350 }
+                });
+            }, 100);
+        }
+
+        // Initialize with some sample widgets
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                // Add a few widgets to demonstrate
+                widgetSystem.createWidget('stats-overview', {
+                    position: { x: 100, y: 250 }
+                });
+                
+                widgetSystem.createWidget('real-time-metrics', {
+                    position: { x: 550, y: 250 }
+                });
+                
+                widgetSystem.createWidget('quick-actions', {
+                    position: { x: 950, y: 250 }
+                });
+            }, 500);
+        });
+    </script>
+</body>
+</html> 

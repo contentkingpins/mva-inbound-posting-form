@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integration Test - MVA CRM</title>
+    
+    <!-- All CSS files -->
+    <link rel="stylesheet" href="css/unified-dark-theme.css">
+    <link rel="stylesheet" href="css/notification-center.css">
+    <link rel="stylesheet" href="css/data-export.css">
+    <link rel="stylesheet" href="css/keyboard-shortcuts.css">
+    <link rel="stylesheet" href="css/performance-monitor.css">
+    <link rel="stylesheet" href="css/virtual-scroll.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        .test-results {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+        .test-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            margin: 10px 0;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+        .test-item.success {
+            border-color: var(--success);
+        }
+        .test-item.error {
+            border-color: var(--danger);
+        }
+        .status {
+            font-weight: 600;
+        }
+        .status.success {
+            color: var(--success);
+        }
+        .status.error {
+            color: var(--danger);
+        }
+        .status.pending {
+            color: var(--warning);
+        }
+    </style>
+</head>
+<body>
+    <div class="test-results">
+        <h1>Integration Test Results</h1>
+        <p>Testing all Phase 1-3 integrations...</p>
+        
+        <div id="test-container"></div>
+    </div>
+
+    <!-- All JS files -->
+    <script src="js/notification-center.js"></script>
+    <script src="js/data-export.js"></script>
+    <script src="js/keyboard-shortcuts.js"></script>
+    <script src="js/performance-monitor.js"></script>
+    <script src="js/virtual-scroll.js"></script>
+    <script src="js/global-search.js"></script>
+    <script src="js/data-visualization.js"></script>
+    <script src="js/unified-widgets.js"></script>
+    <script src="js/service-worker-registration.js"></script>
+
+    <script>
+        const tests = [
+            {
+                name: 'Unified Dark Theme',
+                test: () => {
+                    const styles = getComputedStyle(document.documentElement);
+                    return styles.getPropertyValue('--bg-primary') === '#1a1a2e';
+                }
+            },
+            {
+                name: 'Notification Center',
+                test: () => window.notificationCenter && typeof window.notificationCenter.notify === 'function'
+            },
+            {
+                name: 'Data Export Module',
+                test: () => window.dataExport && typeof window.dataExport.export === 'function'
+            },
+            {
+                name: 'Keyboard Shortcuts',
+                test: () => window.keyboardShortcuts && typeof window.keyboardShortcuts.register === 'function'
+            },
+            {
+                name: 'Performance Monitor',
+                test: () => window.performanceMonitor && typeof window.performanceMonitor.getCurrentMetrics === 'function'
+            },
+            {
+                name: 'Virtual Scroll',
+                test: () => window.VirtualScroll && window.VirtualTable
+            },
+            {
+                name: 'Global Search',
+                test: () => window.GlobalSearch && typeof window.GlobalSearch === 'function'
+            },
+            {
+                name: 'Data Visualization',
+                test: () => window.DataVisualization && typeof window.DataVisualization.createChart === 'function'
+            },
+            {
+                name: 'Unified Widgets',
+                test: () => window.UnifiedWidgets && typeof window.UnifiedWidgets === 'function'
+            },
+            {
+                name: 'Service Worker',
+                test: () => window.serviceWorkerManager && navigator.serviceWorker
+            }
+        ];
+
+        const container = document.getElementById('test-container');
+
+        tests.forEach(({ name, test }) => {
+            const item = document.createElement('div');
+            item.className = 'test-item';
+            item.innerHTML = `
+                <span>${name}</span>
+                <span class="status pending">Testing...</span>
+            `;
+            container.appendChild(item);
+
+            setTimeout(() => {
+                try {
+                    const result = test();
+                    const status = item.querySelector('.status');
+                    if (result) {
+                        item.classList.add('success');
+                        status.className = 'status success';
+                        status.textContent = '✓ Loaded';
+                    } else {
+                        item.classList.add('error');
+                        status.className = 'status error';
+                        status.textContent = '✗ Failed';
+                    }
+                } catch (error) {
+                    const status = item.querySelector('.status');
+                    item.classList.add('error');
+                    status.className = 'status error';
+                    status.textContent = '✗ Error: ' + error.message;
+                }
+            }, 100);
+        });
+
+        // Test a notification after 2 seconds
+        setTimeout(() => {
+            if (window.notificationCenter) {
+                window.notificationCenter.notify({
+                    type: 'success',
+                    title: 'Integration Test',
+                    message: 'All systems are operational!'
+                });
+            }
+        }, 2000);
+    </script>
+</body>
+</html> 

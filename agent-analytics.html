@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Performance Analytics - Agent Dashboard</title>
+    
+    <!-- Preconnect to CDNs -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com">
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://unpkg.com/lucide@latest/dist/lucide.css">
+    
+    <!-- Chart.js for advanced visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    
+    <!-- CountUp.js for number animations -->
+    <script src="https://unpkg.com/countup.js@2.8.0/dist/countUp.umd.js"></script>
+    
+    <!-- Phase 1-3 Optimizations: Unified Dark Theme and Features -->
+    <link rel="stylesheet" href="css/unified-dark-theme.css">
+    <link rel="stylesheet" href="css/agent-analytics-unified.css">
+    <link rel="stylesheet" href="css/notification-center.css">
+    <link rel="stylesheet" href="css/data-export.css">
+    <link rel="stylesheet" href="css/keyboard-shortcuts.css">
+    <link rel="stylesheet" href="css/performance-monitor.css">
+    <link rel="stylesheet" href="css/virtual-scroll.css">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="agent-analytics.css">
+
+    <!-- AppConfig Module Reference -->
+    <script src="/js/app-config.js?v=1748481232267"></script>
+
+    <!-- Build-Time Injected Configuration -->
+    <script>
+    window.APP_CONFIG = {
+      "userPoolId": "us-east-1_lhc964tLD",
+      "clientId": "5t6mane4fnvineksoqb4ta0iu1",
+      "apiEndpoint": "https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod",
+      "apiUrl": "https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod",
+      "apiKey": "",
+      "buildTime": "2025-05-29T01:13:52.266Z",
+      "buildEnv": "production"
+    };
+    window.preloadedConfig = window.APP_CONFIG;
+    console.log('🔧 Configuration injected at build time - no external loading needed');
+    </script>
+</head>
+<body>
+    <!-- Header Navigation -->
+    <header class="agent-analytics-header">
+        <div class="header-content">
+            <div class="header-left">
+                <h1 class="header-title">
+                    <span class="header-icon">📊</span>
+                    My Performance Analytics
+                </h1>
+                <div class="header-subtitle">
+                    Personal Performance Dashboard & Insights
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="header-controls">
+                    <select id="date-range-selector" class="control-select">
+                        <option value="7">Last 7 Days</option>
+                        <option value="30" selected>Last 30 Days</option>
+                        <option value="90">Last 90 Days</option>
+                        <option value="365">Last Year</option>
+                    </select>
+                    <button class="btn btn-secondary" id="refresh-analytics">🔄 Refresh</button>
+                    <button class="btn btn-secondary" id="export-report">📤 Export My Data</button>
+                </div>
+                <div class="nav-links">
+                    <a href="agent-aurora.html" class="nav-link">🏠 Dashboard</a>
+                    <a href="login.html" class="nav-link" id="logout-link">🚪 Logout</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Analytics Content -->
+    <main class="agent-analytics-main">
+        <!-- Personal KPI Cards -->
+        <section class="kpi-section">
+            <div class="section-header">
+                <h2 class="section-title">🎯 My Performance Overview</h2>
+                <div class="kpi-controls">
+                    <div class="performance-badge">
+                        <span class="badge-label">Performance Rating:</span>
+                        <span class="badge-value" id="performance-rating">Excellent</span>
+                    </div>
+                    <div class="live-indicator">
+                        <span class="pulse-dot"></span>
+                        Live Data
+                    </div>
+                </div>
+            </div>
+            
+            <div class="kpi-grid">
+                <div class="kpi-card glass-card">
+                    <div class="kpi-header">
+                        <div class="kpi-icon leads">📋</div>
+                        <div class="kpi-trend positive" id="my-leads-trend">+8.3%</div>
+                    </div>
+                    <div class="kpi-content">
+                        <div class="kpi-value" id="my-leads-handled">--</div>
+                        <div class="kpi-label">Leads Handled</div>
+                        <div class="kpi-detail">
+                            <span id="leads-this-week">--</span> this week
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kpi-card glass-card">
+                    <div class="kpi-header">
+                        <div class="kpi-icon conversion">🎯</div>
+                        <div class="kpi-trend positive" id="my-conversion-trend">+12.1%</div>
+                    </div>
+                    <div class="kpi-content">
+                        <div class="kpi-value" id="my-conversion-rate">--</div>
+                        <div class="kpi-label">Conversion Rate</div>
+                        <div class="kpi-detail">
+                            Company avg: <span class="benchmark">65.2%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kpi-card glass-card">
+                    <div class="kpi-header">
+                        <div class="kpi-icon revenue">💰</div>
+                        <div class="kpi-trend positive" id="my-revenue-trend">+18.7%</div>
+                    </div>
+                    <div class="kpi-content">
+                        <div class="kpi-value" id="my-total-revenue">--</div>
+                        <div class="kpi-label">Revenue Generated</div>
+                        <div class="kpi-detail">
+                            Goal: <span id="revenue-goal">$15,000</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kpi-card glass-card">
+                    <div class="kpi-header">
+                        <div class="kpi-icon response">⚡</div>
+                        <div class="kpi-trend positive" id="my-response-trend">-15.2%</div>
+                    </div>
+                    <div class="kpi-content">
+                        <div class="kpi-value" id="my-response-time">--</div>
+                        <div class="kpi-label">Avg Response Time</div>
+                        <div class="kpi-detail">
+                            Target: <span class="target">< 2 hours</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kpi-card glass-card">
+                    <div class="kpi-header">
+                        <div class="kpi-icon satisfaction">⭐</div>
+                        <div class="kpi-trend positive" id="my-satisfaction-trend">+4.2%</div>
+                    </div>
+                    <div class="kpi-content">
+                        <div class="kpi-value" id="my-satisfaction-score">--</div>
+                        <div class="kpi-label">Client Satisfaction</div>
+                        <div class="kpi-detail">
+                            <span id="satisfaction-count">--</span> reviews
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kpi-card glass-card">
+                    <div class="kpi-header">
+                        <div class="kpi-icon ranking">🏆</div>
+                        <div class="kpi-trend neutral" id="my-ranking-trend">+2</div>
+                    </div>
+                    <div class="kpi-content">
+                        <div class="kpi-value" id="my-team-ranking">--</div>
+                        <div class="kpi-label">Team Ranking</div>
+                        <div class="kpi-detail">
+                            of <span id="total-agents">--</span> agents
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Personal Analytics Grid -->
+        <section class="analytics-grid-section">
+            <div class="analytics-grid">
+                <!-- Personal Goals Progress -->
+                <div class="analytics-card">
+                    <div class="card-header">
+                        <h3>🎯 My Goals Progress</h3>
+                        <div class="card-controls">
+                            <select class="mini-select" id="goal-period">
+                                <option value="month" selected>This Month</option>
+                                <option value="quarter">This Quarter</option>
+                                <option value="year">This Year</option>
+                            </select>
+                            <button class="btn-icon" id="edit-goals">⚙️</button>
+                        </div>
+                    </div>
+                    <div class="goals-container">
+                        <div class="goal-item">
+                            <div class="goal-header">
+                                <span class="goal-title">Lead Conversions</span>
+                                <span class="goal-progress-text" id="conversions-progress">12/15</span>
+                            </div>
+                            <div class="goal-progress-bar">
+                                <div class="goal-progress-fill" id="conversions-fill" style="width: 80%"></div>
+                            </div>
+                            <div class="goal-status achieved">80% Complete - On Track!</div>
+                        </div>
+
+                        <div class="goal-item">
+                            <div class="goal-header">
+                                <span class="goal-title">Revenue Target</span>
+                                <span class="goal-progress-text" id="revenue-progress">$12,450/$15,000</span>
+                            </div>
+                            <div class="goal-progress-bar">
+                                <div class="goal-progress-fill" id="revenue-fill" style="width: 83%"></div>
+                            </div>
+                            <div class="goal-status achieved">83% Complete - Excellent!</div>
+                        </div>
+
+                        <div class="goal-item">
+                            <div class="goal-header">
+                                <span class="goal-title">Response Time</span>
+                                <span class="goal-progress-text" id="response-progress">1.2h/2.0h</span>
+                            </div>
+                            <div class="goal-progress-bar">
+                                <div class="goal-progress-fill achieved" id="response-fill" style="width: 100%"></div>
+                            </div>
+                            <div class="goal-status achieved">✅ Goal Exceeded!</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- My Lead Conversion Funnel -->
+                <div class="analytics-card">
+                    <div class="card-header">
+                        <h3>🎯 My Conversion Funnel</h3>
+                        <div class="funnel-stats">
+                            <span class="funnel-stat">Overall: <strong id="overall-conversion">68%</strong></span>
+                        </div>
+                    </div>
+                    <div class="funnel-container">
+                        <div class="funnel-stages">
+                            <div class="funnel-stage" data-stage="assigned">
+                                <div class="stage-header">
+                                    <div class="stage-title">Leads Assigned</div>
+                                    <div class="stage-count" id="funnel-assigned">--</div>
+                                </div>
+                                <div class="stage-bar">
+                                    <div class="stage-fill" style="width: 100%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="funnel-stage" data-stage="contacted">
+                                <div class="stage-header">
+                                    <div class="stage-title">Contacted</div>
+                                    <div class="stage-count" id="funnel-contacted">--</div>
+                                </div>
+                                <div class="stage-bar">
+                                    <div class="stage-fill" style="width: 85%"></div>
+                                </div>
+                                <div class="conversion-rate">85% contact rate</div>
+                            </div>
+                            
+                            <div class="funnel-stage" data-stage="interested">
+                                <div class="stage-header">
+                                    <div class="stage-title">Interested</div>
+                                    <div class="stage-count" id="funnel-interested">--</div>
+                                </div>
+                                <div class="stage-bar">
+                                    <div class="stage-fill" style="width: 72%"></div>
+                                </div>
+                                <div class="conversion-rate">72% interest rate</div>
+                            </div>
+                            
+                            <div class="funnel-stage" data-stage="converted">
+                                <div class="stage-header">
+                                    <div class="stage-title">Converted</div>
+                                    <div class="stage-count" id="funnel-converted">--</div>
+                                </div>
+                                <div class="stage-bar">
+                                    <div class="stage-fill converted" style="width: 68%"></div>
+                                </div>
+                                <div class="conversion-rate">68% conversion rate</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- My Lead Sources Performance -->
+                <div class="analytics-card">
+                    <div class="card-header">
+                        <h3>📊 My Best Lead Sources</h3>
+                        <div class="performance-legend">
+                            <span class="legend-item">
+                                <span class="legend-dot high"></span>My Strengths
+                            </span>
+                            <span class="legend-item">
+                                <span class="legend-dot low"></span>Focus Areas
+                            </span>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="myLeadSourcesChart"></canvas>
+                    </div>
+                    <div class="source-insights">
+                        <div class="insight-item">
+                            <span class="insight-icon">🔥</span>
+                            <span class="insight-text">You excel with referral leads - 78% conversion!</span>
+                        </div>
+                        <div class="insight-item">
+                            <span class="insight-icon">💡</span>
+                            <span class="insight-text">Try scheduling calls for web leads within 30 minutes</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- My Revenue Trends -->
+                <div class="analytics-card">
+                    <div class="card-header">
+                        <h3>💹 My Revenue Trends</h3>
+                        <div class="trend-controls">
+                            <button class="trend-btn active" data-period="daily">Daily</button>
+                            <button class="trend-btn" data-period="weekly">Weekly</button>
+                            <button class="trend-btn" data-period="monthly">Monthly</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="myRevenueTrendsChart"></canvas>
+                    </div>
+                    <div class="revenue-insights">
+                        <div class="revenue-item">
+                            <span class="revenue-label">This Month:</span>
+                            <span class="revenue-value">$12,450</span>
+                            <span class="revenue-change positive">+18.7%</span>
+                        </div>
+                        <div class="revenue-item">
+                            <span class="revenue-label">Best Day:</span>
+                            <span class="revenue-value">$2,100</span>
+                            <span class="revenue-date">March 15th</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity Timeline -->
+                <div class="analytics-card">
+                    <div class="card-header">
+                        <h3>📅 My Recent Activity</h3>
+                        <div class="activity-controls">
+                            <select class="mini-select" id="activity-filter">
+                                <option value="all">All Activities</option>
+                                <option value="calls">Calls</option>
+                                <option value="emails">Emails</option>
+                                <option value="conversions">Conversions</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="activity-timeline" id="activity-timeline">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Personal Insights & Recommendations -->
+                <div class="analytics-card full-width">
+                    <div class="card-header">
+                        <h3>🧠 Personalized Insights & Recommendations</h3>
+                        <div class="ai-indicator">
+                            <span class="ai-badge">AI-Powered</span>
+                            <span class="model-info">Based on your performance data</span>
+                        </div>
+                    </div>
+                    <div class="insights-grid">
+                        <div class="insight-card success">
+                            <div class="insight-header">
+                                <span class="insight-icon">🎉</span>
+                                <span class="insight-title">You're Excelling!</span>
+                                <span class="insight-priority">Celebration</span>
+                            </div>
+                            <div class="insight-content">
+                                <p>Your conversion rate is 5% above company average! You're particularly strong with referral leads. Keep focusing on this lead source.</p>
+                                <div class="insight-actions">
+                                    <button class="btn btn-success btn-sm">View Referral Strategy</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="insight-card opportunity">
+                            <div class="insight-header">
+                                <span class="insight-icon">💡</span>
+                                <span class="insight-title">Growth Opportunity</span>
+                                <span class="insight-priority">Medium Priority</span>
+                            </div>
+                            <div class="insight-content">
+                                <p>Web leads have 23% lower conversion for you. Try calling within 15 minutes instead of 45 minutes - data shows this improves conversion by 34%.</p>
+                                <div class="insight-actions">
+                                    <button class="btn btn-primary btn-sm">Set Call Reminders</button>
+                                    <button class="btn btn-secondary btn-sm">Learn More</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="insight-card optimization">
+                            <div class="insight-header">
+                                <span class="insight-icon">⚡</span>
+                                <span class="insight-title">Timing Optimization</span>
+                                <span class="insight-priority">Low Priority</span>
+                            </div>
+                            <div class="insight-content">
+                                <p>Your best conversion time is 2-4 PM (78% success rate). Consider scheduling more calls during this window when possible.</p>
+                                <div class="insight-actions">
+                                    <button class="btn btn-secondary btn-sm">View Schedule</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Goal Setting Modal -->
+    <div class="modal-overlay" id="goals-modal">
+        <div class="modal glass-modal">
+            <div class="modal-header">
+                <h3 class="modal-title">🎯 Set My Goals</h3>
+                <button class="modal-close" data-modal="goals-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="goals-form">
+                    <div class="goal-input-section">
+                        <h4>Monthly Targets</h4>
+                        <div class="input-group">
+                            <label>Lead Conversions Goal</label>
+                            <input type="number" id="conversions-goal" class="form-input" value="15" min="1" max="100">
+                        </div>
+                        <div class="input-group">
+                            <label>Revenue Goal ($)</label>
+                            <input type="number" id="revenue-goal-input" class="form-input" value="15000" min="1000" step="500">
+                        </div>
+                        <div class="input-group">
+                            <label>Max Response Time (hours)</label>
+                            <input type="number" id="response-goal" class="form-input" value="2" min="0.5" max="24" step="0.5">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-modal="goals-modal">Cancel</button>
+                <button class="btn btn-primary" id="save-goals">Save Goals</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Modal -->
+    <div class="modal-overlay" id="export-modal">
+        <div class="modal glass-modal">
+            <div class="modal-header">
+                <h3 class="modal-title">📤 Export My Performance Data</h3>
+                <button class="modal-close" data-modal="export-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="export-options">
+                    <div class="export-section">
+                        <h4>Report Type</h4>
+                        <div class="checkbox-group">
+                            <label><input type="checkbox" checked> My Performance Summary</label>
+                            <label><input type="checkbox" checked> My Lead Analytics</label>
+                            <label><input type="checkbox"> Goal Progress Report</label>
+                            <label><input type="checkbox"> Activity Timeline</label>
+                            <label><input type="checkbox"> Personal Insights</label>
+                        </div>
+                    </div>
+                    
+                    <div class="export-section">
+                        <h4>Format</h4>
+                        <div class="radio-group">
+                            <label><input type="radio" name="format" value="pdf" checked> PDF Report</label>
+                            <label><input type="radio" name="format" value="excel"> Excel Spreadsheet</label>
+                            <label><input type="radio" name="format" value="csv"> CSV Data</label>
+                        </div>
+                    </div>
+                    
+                    <div class="export-section">
+                        <h4>Date Range</h4>
+                        <select class="form-input">
+                            <option>Last 30 Days</option>
+                            <option>Last 90 Days</option>
+                            <option>Last Year</option>
+                            <option>Custom Range</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-modal="export-modal">Cancel</button>
+                <button class="btn btn-primary" id="generate-my-export">Generate My Report</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="agent-analytics.js"></script>
+    
+    <!-- Phase 2-3 Feature Scripts -->
+    <script src="js/notification-center.js"></script>
+    <script src="js/data-export.js"></script>
+    <script src="js/keyboard-shortcuts.js"></script>
+    <script src="js/performance-monitor.js"></script>
+    <script src="js/virtual-scroll.js"></script>
+    <script src="js/global-search.js"></script>
+    <script src="js/data-visualization.js"></script>
+    <script src="js/unified-widgets.js"></script>
+    <script src="js/service-worker-registration.js"></script>
+</body>
+</html> 

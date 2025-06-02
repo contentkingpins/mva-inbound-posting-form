@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lead Scoring & Qualification Test</title>
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+    <div class="admin-container">
+        <header class="admin-header">
+            <div class="header-content">
+                <div class="header-left">
+                    <h1>🎯 Lead Scoring Engine Test</h1>
+                </div>
+                <div class="header-right">
+                    <!-- Header actions -->
+                </div>
+            </div>
+        </header>
+        
+        <main class="admin-main">
+            <section class="glass-card">
+                <h2>Test Lead Scoring & Qualification</h2>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
+                    <!-- Generate Test Leads -->
+                    <div class="glass-card" style="padding: 1.5rem;">
+                        <h3>📊 Generate Test Leads</h3>
+                        <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem;">
+                            <button class="btn btn-primary" onclick="generateHighQualityLead()">
+                                High Quality Lead (Score 80+)
+                            </button>
+                            <button class="btn btn-primary" onclick="generateMediumQualityLead()">
+                                Medium Quality Lead (Score 50-80)
+                            </button>
+                            <button class="btn btn-primary" onclick="generateLowQualityLead()">
+                                Low Quality Lead (Score &lt; 50)
+                            </button>
+                            <button class="btn btn-secondary" onclick="generateRandomLeads(10)">
+                                Generate 10 Random Leads
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Score Calculation Demo -->
+                    <div class="glass-card" style="padding: 1.5rem;">
+                        <h3>🎯 Score Calculation Demo</h3>
+                        <form id="lead-form" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                            <div>
+                                <label>Location Type:</label>
+                                <select id="locationType" class="form-input">
+                                    <option value="urban">Urban</option>
+                                    <option value="suburban">Suburban</option>
+                                    <option value="rural">Rural</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Age:</label>
+                                <input type="number" id="age" value="35" class="form-input">
+                            </div>
+                            <div>
+                                <label>Urgency:</label>
+                                <select id="urgency" class="form-input">
+                                    <option value="immediate">Immediate</option>
+                                    <option value="soon">Soon</option>
+                                    <option value="exploring">Exploring</option>
+                                    <option value="future">Future</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Source Type:</label>
+                                <select id="sourceType" class="form-input">
+                                    <option value="referral">Referral</option>
+                                    <option value="organic">Organic</option>
+                                    <option value="paid">Paid</option>
+                                    <option value="social">Social</option>
+                                    <option value="direct">Direct</option>
+                                </select>
+                            </div>
+                            <button type="button" class="btn btn-primary" onclick="calculateDemoScore()">
+                                Calculate Score
+                            </button>
+                        </form>
+                        <div id="score-result" style="margin-top: 1rem; display: none;">
+                            <!-- Score result will appear here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Predictions Demo -->
+                    <div class="glass-card" style="padding: 1.5rem;">
+                        <h3>🔮 AI Predictions</h3>
+                        <div id="predictions-demo" style="margin-top: 1rem;">
+                            <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                                Generate some leads to see AI predictions
+                            </p>
+                            <div id="prediction-results">
+                                <!-- Predictions will appear here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Lead List with Scores -->
+                <div class="glass-card" style="margin-top: 2rem; padding: 1.5rem;">
+                    <h3>📋 Generated Leads</h3>
+                    <div style="overflow-x: auto;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Lead ID</th>
+                                    <th>Score</th>
+                                    <th>Stage</th>
+                                    <th>Conversion %</th>
+                                    <th>Est. Revenue</th>
+                                    <th>Best Contact Time</th>
+                                    <th>Top Agent Match</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leads-table-body">
+                                <!-- Leads will be displayed here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+    
+    <script src="js/app-config.js"></script>
+    <script src="js/notification-system.js" type="module"></script>
+    <script src="js/lead-scoring-engine.js" type="module"></script>
+    
+    <script>
+        // Test data generators
+        let leadCounter = 1000;
+        
+        function generateHighQualityLead() {
+            const lead = {
+                id: `lead_${leadCounter++}`,
+                name: `Premium Lead ${leadCounter}`,
+                email: `premium${leadCounter}@example.com`,
+                phone: `555-0${leadCounter}`,
+                company: `Enterprise Corp ${leadCounter}`,
+                
+                // Demographics
+                locationType: 'urban',
+                age: 35,
+                incomeLevel: 'high',
+                occupationType: 'professional',
+                
+                // Behavioral
+                emailOpens: 5,
+                linkClicks: 3,
+                pageViews: 15,
+                formSubmissions: 2,
+                interactionCount: 8,
+                firstResponseTime: 30, // 30 minutes
+                preferredChannel: 'phone',
+                
+                // Source
+                source: 'referral',
+                sourceType: 'referral',
+                sourceQuality: 'verified',
+                campaign: { isTargeted: true },
+                
+                // Intent
+                urgency: 'immediate',
+                budget: 50000,
+                isDecisionMaker: true,
+                estimatedValue: 50000,
+                
+                // Bonuses
+                isReferral: true,
+                responseTime: 60 // 1 minute
+            };
+            
+            scoreLead(lead);
+        }
+        
+        function generateMediumQualityLead() {
+            const lead = {
+                id: `lead_${leadCounter++}`,
+                name: `Standard Lead ${leadCounter}`,
+                email: `standard${leadCounter}@example.com`,
+                phone: `555-0${leadCounter}`,
+                company: `Business Inc ${leadCounter}`,
+                
+                // Demographics
+                locationType: 'suburban',
+                age: 42,
+                incomeLevel: 'medium',
+                occupationType: 'business',
+                
+                // Behavioral
+                emailOpens: 2,
+                linkClicks: 1,
+                pageViews: 5,
+                formSubmissions: 1,
+                interactionCount: 3,
+                firstResponseTime: 1440, // 1 day
+                preferredChannel: 'email',
+                
+                // Source
+                source: 'organic',
+                sourceType: 'organic',
+                sourceQuality: 'trusted',
+                campaign: { isWarm: true },
+                
+                // Intent
+                urgency: 'soon',
+                budget: 10000,
+                isDecisionMaker: false,
+                hasInfluence: true,
+                estimatedValue: 10000
+            };
+            
+            scoreLead(lead);
+        }
+        
+        function generateLowQualityLead() {
+            const lead = {
+                id: `lead_${leadCounter++}`,
+                name: `Basic Lead ${leadCounter}`,
+                email: `basic${leadCounter}@example.com`,
+                
+                // Demographics
+                locationType: 'rural',
+                age: 22,
+                incomeLevel: 'low',
+                occupationType: 'student',
+                
+                // Behavioral
+                emailOpens: 0,
+                linkClicks: 0,
+                pageViews: 1,
+                interactionCount: 1,
+                firstResponseTime: 5760, // 4 days
+                
+                // Source
+                source: 'direct',
+                sourceType: 'direct',
+                sourceQuality: 'new',
+                campaign: { },
+                
+                // Intent
+                urgency: 'future',
+                isDecisionMaker: false,
+                
+                // Penalties
+                spamScore: 0.8
+            };
+            
+            scoreLead(lead);
+        }
+        
+        function generateRandomLeads(count) {
+            for (let i = 0; i < count; i++) {
+                const quality = Math.random();
+                if (quality > 0.7) {
+                    generateHighQualityLead();
+                } else if (quality > 0.3) {
+                    generateMediumQualityLead();
+                } else {
+                    generateLowQualityLead();
+                }
+            }
+        }
+        
+        function calculateDemoScore() {
+            const lead = {
+                id: `demo_${Date.now()}`,
+                name: 'Demo Lead',
+                email: 'demo@example.com',
+                phone: '555-0000',
+                
+                locationType: document.getElementById('locationType').value,
+                age: parseInt(document.getElementById('age').value),
+                urgency: document.getElementById('urgency').value,
+                sourceType: document.getElementById('sourceType').value,
+                source: document.getElementById('sourceType').value,
+                
+                // Some default values
+                incomeLevel: 'medium',
+                emailOpens: 2,
+                interactionCount: 3,
+                sourceQuality: 'trusted'
+            };
+            
+            if (window.leadScoringEngine) {
+                const scoreData = window.leadScoringEngine.calculateLeadScore(lead);
+                displayScoreResult(scoreData);
+            }
+        }
+        
+        function displayScoreResult(scoreData) {
+            const resultDiv = document.getElementById('score-result');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = `
+                <div style="background: var(--bg-primary); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <div style="text-align: center; margin-bottom: 1rem;">
+                        <div style="font-size: 3rem; font-weight: bold; color: ${getScoreColor(scoreData.score)};">
+                            ${scoreData.score}
+                        </div>
+                        <div style="color: var(--text-secondary);">Lead Score</div>
+                    </div>
+                    <div style="font-size: 0.875rem;">
+                        <h4 style="margin-bottom: 0.5rem;">Score Breakdown:</h4>
+                        <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                            <div>Demographic: ${scoreData.breakdown.demographic.toFixed(1)}</div>
+                            <div>Behavioral: ${scoreData.breakdown.behavioral.toFixed(1)}</div>
+                            <div>Source: ${scoreData.breakdown.source.toFixed(1)}</div>
+                            <div>Intent: ${scoreData.breakdown.intent.toFixed(1)}</div>
+                            ${scoreData.breakdown.bonus > 0 ? `<div style="color: var(--success);">Bonuses: +${scoreData.breakdown.bonus}</div>` : ''}
+                            ${scoreData.breakdown.penalties > 0 ? `<div style="color: var(--danger);">Penalties: -${scoreData.breakdown.penalties}</div>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function scoreLead(lead) {
+            if (window.leadScoringEngine) {
+                const scoreData = window.leadScoringEngine.calculateLeadScore(lead);
+                const predictions = window.leadScoringEngine.predictions.get(lead.id);
+                displayLead(lead, scoreData, predictions);
+                
+                // Update predictions demo
+                updatePredictionsDemo();
+                
+                showToast(`Lead scored: ${scoreData.score} points`, 'success');
+            }
+        }
+        
+        function displayLead(lead, scoreData, predictions) {
+            const tbody = document.getElementById('leads-table-body');
+            const row = document.createElement('tr');
+            
+            const stage = window.leadScoringEngine.getStageByScore(scoreData.score);
+            const topAgent = predictions?.agentMatch?.[0];
+            
+            row.innerHTML = `
+                <td>${lead.id}</td>
+                <td>
+                    <span style="background: ${getScoreColor(scoreData.score)}; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-weight: bold;">
+                        ${scoreData.score}
+                    </span>
+                </td>
+                <td>
+                    <span style="color: ${getStageColor(stage.id)};">
+                        ${stage.name}
+                    </span>
+                </td>
+                <td>${predictions ? Math.round(predictions.conversionProbability * 100) + '%' : '-'}</td>
+                <td>${predictions?.estimatedRevenue ? '$' + predictions.estimatedRevenue.estimated.toLocaleString() : '-'}</td>
+                <td>${predictions?.bestContactTime ? `${predictions.bestContactTime.primary.hour}:00 ${predictions.bestContactTime.primary.day}` : '-'}</td>
+                <td>${topAgent ? `${topAgent.agentName} (${topAgent.matchScore}%)` : '-'}</td>
+                <td>
+                    <button class="btn btn-sm btn-secondary" onclick="viewLeadDetails('${lead.id}')">
+                        View Details
+                    </button>
+                </td>
+            `;
+            
+            tbody.insertBefore(row, tbody.firstChild);
+        }
+        
+        function updatePredictionsDemo() {
+            const predictions = Array.from(window.leadScoringEngine.predictions.values()).slice(-3);
+            if (predictions.length === 0) return;
+            
+            const container = document.getElementById('prediction-results');
+            container.innerHTML = predictions.map((pred, index) => `
+                <div style="background: var(--bg-primary); padding: 1rem; border-radius: 8px; margin-bottom: 0.75rem; border: 1px solid var(--border-color);">
+                    <h4 style="margin: 0 0 0.5rem 0; color: var(--primary);">Lead #${Array.from(window.leadScoringEngine.predictions.keys()).slice(-3)[index]}</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.875rem;">
+                        <div>
+                            <strong>Conversion:</strong> ${Math.round(pred.conversionProbability * 100)}%
+                        </div>
+                        <div>
+                            <strong>Revenue:</strong> $${pred.estimatedRevenue.estimated.toLocaleString()}
+                        </div>
+                        <div>
+                            <strong>Best Time:</strong> ${pred.bestContactTime.primary.hour}:00
+                        </div>
+                        <div>
+                            <strong>Confidence:</strong> ${Math.round(pred.bestContactTime.primary.confidence * 100)}%
+                        </div>
+                    </div>
+                    ${pred.agentMatch?.[0] ? `
+                        <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--border-color);">
+                            <strong>Best Agent:</strong> ${pred.agentMatch[0].agentName} (${pred.agentMatch[0].matchScore}% match)
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+        
+        function viewLeadDetails(leadId) {
+            const scoreData = window.leadScoringEngine.leadScores.get(leadId);
+            const predictions = window.leadScoringEngine.predictions.get(leadId);
+            
+            if (scoreData && predictions) {
+                alert(`Lead Details:\n\nScore: ${scoreData.score}\nConversion Probability: ${Math.round(predictions.conversionProbability * 100)}%\nEstimated Revenue: $${predictions.estimatedRevenue.estimated.toLocaleString()}\n\nTop Factors:\n${scoreData.factors.map(f => `- ${f.category}: ${f.impact} impact`).join('\n')}`);
+            }
+        }
+        
+        function getScoreColor(score) {
+            if (score >= 80) return '#10b981';
+            if (score >= 60) return '#3b82f6';
+            if (score >= 40) return '#f59e0b';
+            if (score >= 20) return '#ef4444';
+            return '#6b7280';
+        }
+        
+        function getStageColor(stageId) {
+            const colors = {
+                new: '#6b7280',
+                contacted: '#3b82f6',
+                qualified: '#8b5cf6',
+                opportunity: '#10b981',
+                negotiation: '#f59e0b',
+                closed: '#10b981'
+            };
+            return colors[stageId] || '#6b7280';
+        }
+        
+        function showToast(message, type) {
+            if (window.notificationSystem) {
+                window.notificationSystem.showToast({
+                    type: 'scoring_test',
+                    title: 'Lead Scoring',
+                    message: message
+                });
+            } else {
+                console.log(`[${type}] ${message}`);
+            }
+        }
+    </script>
+</body>
+</html> 

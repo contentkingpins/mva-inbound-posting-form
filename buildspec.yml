@@ -8,9 +8,11 @@ phases:
   build:
     commands:
       - echo Starting build...
-      - echo "{\"apiKey\":\"${API_KEY}\"}" > dashboard/config.json
+      - echo "{\"apiKey\":\"${API_KEY}\"}" > config.json
       - mkdir -p dist
-      - cp -R dashboard/* dist/
+      - cp *.html *.css *.js *.json dist/ 2>/dev/null || true
+      - cp -R deployment dist/ 2>/dev/null || true
+      - cp -R scripts dist/ 2>/dev/null || true
   post_build:
     commands:
       - echo Build completed on `date`

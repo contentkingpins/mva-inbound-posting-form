@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workflow Engine Test</title>
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+    <div class="admin-container">
+        <header class="admin-header">
+            <div class="header-content">
+                <div class="header-left">
+                    <h1>🤖 Workflow Automation Test</h1>
+                </div>
+                <div class="header-right">
+                    <!-- Header actions -->
+                </div>
+            </div>
+        </header>
+        
+        <main class="admin-main">
+            <!-- Workflow manager will be inserted here -->
+            
+            <section class="glass-card" style="margin-top: 2rem;">
+                <h2>Test Actions</h2>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
+                    <!-- Trigger Events -->
+                    <div class="glass-card" style="padding: 1.5rem;">
+                        <h3>🎯 Trigger Test Events</h3>
+                        <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem;">
+                            <button class="btn btn-primary" onclick="triggerNewLead()">
+                                Trigger New Lead Event
+                            </button>
+                            <button class="btn btn-primary" onclick="triggerStatusChange()">
+                                Trigger Status Change
+                            </button>
+                            <button class="btn btn-primary" onclick="triggerAgentLogin()">
+                                Trigger Agent Login
+                            </button>
+                            <button class="btn btn-secondary" onclick="triggerMultipleEvents()">
+                                Trigger Multiple Events
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Workflow Templates -->
+                    <div class="glass-card" style="padding: 1.5rem;">
+                        <h3>📋 Quick Templates</h3>
+                        <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem;">
+                            <button class="btn btn-secondary" onclick="loadLeadAssignmentTemplate()">
+                                Load Lead Assignment
+                            </button>
+                            <button class="btn btn-secondary" onclick="loadFollowUpTemplate()">
+                                Load Follow-up Reminder
+                            </button>
+                            <button class="btn btn-secondary" onclick="loadPerformanceTemplate()">
+                                Load Performance Alert
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Workflow Tips -->
+                    <div class="glass-card" style="padding: 1.5rem;">
+                        <h3>💡 Workflow Builder Tips</h3>
+                        <ul style="margin-top: 1rem; line-height: 1.8;">
+                            <li>Drag nodes from sidebar to canvas</li>
+                            <li>Click output port → input port to connect</li>
+                            <li>Click nodes to configure settings</li>
+                            <li>Test workflows before activating</li>
+                            <li>View execution history for debugging</li>
+                            <li>Use templates for common patterns</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <!-- Execution Monitor -->
+                <div class="glass-card" style="margin-top: 2rem; padding: 1.5rem;">
+                    <h3>📊 Live Execution Monitor</h3>
+                    <div id="execution-monitor" style="margin-top: 1rem;">
+                        <p style="color: var(--text-secondary);">Waiting for workflow executions...</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+    
+    <script src="js/app-config.js"></script>
+    <script src="js/notification-system.js" type="module"></script>
+    <script src="js/workflow-engine.js" type="module"></script>
+    
+    <script>
+        // Test Functions
+        function triggerNewLead() {
+            const event = new CustomEvent('lead.created', {
+                detail: {
+                    id: 'lead_' + Date.now(),
+                    name: 'Test Lead ' + new Date().toLocaleTimeString(),
+                    value: Math.floor(Math.random() * 10000) + 1000,
+                    status: 'New',
+                    source: 'Website',
+                    timestamp: new Date().toISOString()
+                }
+            });
+            document.dispatchEvent(event);
+            
+            showToast('New lead event triggered', 'success');
+            updateExecutionMonitor('New Lead Created', event.detail);
+        }
+        
+        function triggerStatusChange() {
+            const event = new CustomEvent('lead.status.changed', {
+                detail: {
+                    leadId: 'lead_123',
+                    fromStatus: 'New',
+                    toStatus: 'Contacted',
+                    changedBy: 'agent_456',
+                    timestamp: new Date().toISOString()
+                }
+            });
+            document.dispatchEvent(event);
+            
+            showToast('Status change event triggered', 'success');
+            updateExecutionMonitor('Lead Status Changed', event.detail);
+        }
+        
+        function triggerAgentLogin() {
+            const event = new CustomEvent('agent.login', {
+                detail: {
+                    agentId: 'agent_' + Date.now(),
+                    agentName: 'Test Agent',
+                    loginTime: new Date().toISOString(),
+                    ipAddress: '192.168.1.1'
+                }
+            });
+            document.dispatchEvent(event);
+            
+            showToast('Agent login event triggered', 'success');
+            updateExecutionMonitor('Agent Login', event.detail);
+        }
+        
+        function triggerMultipleEvents() {
+            setTimeout(() => triggerNewLead(), 0);
+            setTimeout(() => triggerStatusChange(), 500);
+            setTimeout(() => triggerAgentLogin(), 1000);
+            setTimeout(() => triggerNewLead(), 1500);
+            
+            showToast('Multiple events triggered', 'info');
+        }
+        
+        function loadLeadAssignmentTemplate() {
+            window.workflowEngine.useTemplate('template_lead_assignment');
+        }
+        
+        function loadFollowUpTemplate() {
+            window.workflowEngine.useTemplate('template_follow_up');
+        }
+        
+        function loadPerformanceTemplate() {
+            window.workflowEngine.useTemplate('template_performance');
+        }
+        
+        function updateExecutionMonitor(eventType, data) {
+            const monitor = document.getElementById('execution-monitor');
+            if (!monitor) return;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.style.cssText = 'padding: 0.75rem; background: var(--bg-primary); border-radius: 6px; margin-bottom: 0.5rem; border-left: 3px solid var(--primary);';
+            entry.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <strong style="color: var(--primary);">${eventType}</strong>
+                    <span style="font-size: 0.75rem; color: var(--text-secondary);">${timestamp}</span>
+                </div>
+                <pre style="font-size: 0.75rem; color: var(--text-secondary); margin: 0; white-space: pre-wrap;">${JSON.stringify(data, null, 2)}</pre>
+            `;
+            
+            // Clear initial message
+            if (monitor.querySelector('p')) {
+                monitor.innerHTML = '';
+            }
+            
+            // Add to top
+            monitor.insertBefore(entry, monitor.firstChild);
+            
+            // Keep only last 10 entries
+            while (monitor.children.length > 10) {
+                monitor.removeChild(monitor.lastChild);
+            }
+        }
+        
+        function showToast(message, type) {
+            if (window.notificationSystem) {
+                window.notificationSystem.showToast({
+                    type: 'system_alert',
+                    title: 'Workflow Test',
+                    message: message
+                });
+            } else {
+                console.log(`[${type}] ${message}`);
+            }
+        }
+        
+        // Monitor workflow executions
+        if (window.workflowEngine) {
+            // Override addToExecutionHistory to update monitor
+            const originalAddToHistory = window.workflowEngine.addToExecutionHistory;
+            window.workflowEngine.addToExecutionHistory = function(execution) {
+                originalAddToHistory.call(this, execution);
+                
+                // Update monitor
+                updateExecutionMonitor(
+                    `Workflow: ${execution.workflowName}`,
+                    {
+                        status: execution.status,
+                        steps: execution.steps?.length || 0,
+                        duration: execution.endTime ? 
+                            window.workflowEngine.calculateDuration(execution.startTime, execution.endTime) : 
+                            'Running...'
+                    }
+                );
+            };
+        }
+    </script>
+</body>
+</html> 

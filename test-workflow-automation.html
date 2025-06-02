@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workflow Automation Test</title>
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+    <div class="admin-container">
+        <header class="admin-header">
+            <div class="header-content">
+                <div class="header-left">
+                    <h1>🤖 Workflow Automation Test</h1>
+                </div>
+                <div class="header-right">
+                    <!-- Header actions -->
+                </div>
+            </div>
+        </header>
+        
+        <main class="admin-main">
+            <section class="glass-card">
+                <h2>Test Workflow Automation Features</h2>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
+                    <!-- Quick Actions -->
+                    <div class="glass-card" style="padding: 1.5rem;">
+                        <h3>⚡ Quick Actions</h3>
+                        <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem;">
+                            <button class="btn btn-primary" onclick="createSampleWorkflow()">
+                                📋 Create Sample Workflow
+                            </button>
+                            <button class="btn btn-secondary" onclick="testDragAndDrop()">
+                                🎯 Test Drag & Drop
+                            </button>
+                            <button class="btn btn-secondary" onclick="simulateExecution()">
+                                ▶️ Simulate Execution
+                            </button>
+                            <button class="btn btn-danger" onclick="clearAllWorkflows()">
+                                🗑️ Clear All Workflows
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Workflow Templates -->
+                    <div class="glass-card" style="padding: 1.5rem;">
+                        <h3>📋 Test Templates</h3>
+                        <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem;">
+                            <button class="btn btn-primary" onclick="createFromTemplate('lead_nurture')">
+                                📧 Lead Nurturing
+                            </button>
+                            <button class="btn btn-primary" onclick="createFromTemplate('lead_assignment')">
+                                👥 Smart Assignment
+                            </button>
+                            <button class="btn btn-primary" onclick="createFromTemplate('abandoned_lead')">
+                                🔄 Abandoned Recovery
+                            </button>
+                            <button class="btn btn-secondary" onclick="workflowAutomation.showTemplates()">
+                                📂 Browse All Templates
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Node Testing -->
+                    <div class="glass-card" style="padding: 1.5rem;">
+                        <h3>🧩 Node Components</h3>
+                        <div style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem;">
+                            <button class="btn btn-secondary" onclick="addTestNodes('trigger')">
+                                ➕ Add Triggers
+                            </button>
+                            <button class="btn btn-secondary" onclick="addTestNodes('action')">
+                                ➕ Add Actions
+                            </button>
+                            <button class="btn btn-secondary" onclick="addTestNodes('condition')">
+                                ➕ Add Conditions
+                            </button>
+                            <button class="btn btn-secondary" onclick="testConnections()">
+                                🔗 Test Connections
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Advanced Testing -->
+                <div class="glass-card" style="margin-top: 2rem; padding: 1.5rem;">
+                    <h3>🔬 Advanced Testing</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-top: 1rem;">
+                        <!-- Trigger Simulation -->
+                        <div>
+                            <h4>Trigger Events</h4>
+                            <select id="trigger-type" class="form-input">
+                                <option value="leadCreated">New Lead Created</option>
+                                <option value="leadUpdated">Lead Updated</option>
+                                <option value="leadStatusChanged">Status Changed</option>
+                                <option value="timeSchedule">Time Schedule</option>
+                                <option value="metricThreshold">Metric Threshold</option>
+                            </select>
+                            <button class="btn btn-primary" onclick="simulateTrigger()" style="margin-top: 0.5rem; width: 100%;">
+                                🎯 Fire Trigger
+                            </button>
+                        </div>
+                        
+                        <!-- Workflow Control -->
+                        <div>
+                            <h4>Workflow Control</h4>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button class="btn btn-success" onclick="activateAllWorkflows()">
+                                    ▶️ Activate All
+                                </button>
+                                <button class="btn btn-warning" onclick="pauseAllWorkflows()">
+                                    ⏸️ Pause All
+                                </button>
+                            </div>
+                            <div style="margin-top: 0.5rem; font-size: 0.875rem; color: var(--text-secondary);">
+                                Active Workflows: <span id="active-count">0</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Execution Monitor -->
+                        <div>
+                            <h4>Execution Monitor</h4>
+                            <div id="execution-stats" style="font-size: 0.875rem;">
+                                <div>Total Executions: <span id="total-exec">0</span></div>
+                                <div>Running: <span id="running-exec">0</span></div>
+                                <div>Completed: <span id="completed-exec">0</span></div>
+                                <div>Failed: <span id="failed-exec">0</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Real-time Log -->
+                <div class="glass-card" style="margin-top: 2rem; padding: 1.5rem;">
+                    <h3>📊 Real-time Activity Log</h3>
+                    <div id="activity-log" style="max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 0.875rem; background: var(--bg-primary); padding: 1rem; border-radius: 6px;">
+                        <!-- Log entries will appear here -->
+                    </div>
+                    <button class="btn btn-sm btn-secondary" onclick="clearLog()" style="margin-top: 0.5rem;">
+                        Clear Log
+                    </button>
+                </div>
+            </section>
+        </main>
+    </div>
+    
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+    
+    <script src="js/app-config.js"></script>
+    <script src="js/notification-system.js" type="module"></script>
+    <script src="js/workflow-automation.js" type="module"></script>
+    
+    <script>
+        // Test Functions
+        let logEntries = 0;
+        
+        function log(message, type = 'info') {
+            const logContainer = document.getElementById('activity-log');
+            const timestamp = new Date().toLocaleTimeString();
+            const typeColors = {
+                info: '#3b82f6',
+                success: '#10b981',
+                warning: '#f59e0b',
+                error: '#ef4444'
+            };
+            
+            const entry = document.createElement('div');
+            entry.style.color = typeColors[type];
+            entry.innerHTML = `[${timestamp}] ${message}`;
+            
+            logContainer.appendChild(entry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            logEntries++;
+            if (logEntries > 100) {
+                logContainer.removeChild(logContainer.firstChild);
+                logEntries--;
+            }
+        }
+        
+        function clearLog() {
+            document.getElementById('activity-log').innerHTML = '';
+            logEntries = 0;
+            log('Log cleared', 'info');
+        }
+        
+        function createSampleWorkflow() {
+            if (window.workflowAutomation) {
+                // Create a sample workflow programmatically
+                const workflow = {
+                    id: `sample_${Date.now()}`,
+                    name: 'Sample Lead Processing',
+                    description: 'Automatically process new leads',
+                    status: 'active',
+                    nodes: [
+                        {
+                            id: 'node_1',
+                            type: 'trigger',
+                            position: { x: 50, y: 100 },
+                            data: { nodeType: 'trigger', trigger: 'leadCreated' }
+                        },
+                        {
+                            id: 'node_2',
+                            type: 'condition',
+                            position: { x: 250, y: 100 },
+                            data: { nodeType: 'condition', field: 'score', operator: '>', value: 50 }
+                        },
+                        {
+                            id: 'node_3',
+                            type: 'action',
+                            position: { x: 450, y: 50 },
+                            data: { nodeType: 'action', action: 'assignLead', priority: 'high' }
+                        },
+                        {
+                            id: 'node_4',
+                            type: 'action',
+                            position: { x: 450, y: 150 },
+                            data: { nodeType: 'action', action: 'sendEmail', template: 'welcome' }
+                        }
+                    ],
+                    connections: [
+                        { id: 'conn_1', start: 'node_1', end: 'node_2' },
+                        { id: 'conn_2', start: 'node_2', end: 'node_3' },
+                        { id: 'conn_3', start: 'node_2', end: 'node_4' }
+                    ],
+                    created: new Date().toISOString(),
+                    modified: new Date().toISOString()
+                };
+                
+                window.workflowAutomation.workflows.set(workflow.id, workflow);
+                window.workflowAutomation.saveWorkflowsToStorage();
+                window.workflowAutomation.renderWorkflowList();
+                
+                log('Sample workflow created: ' + workflow.name, 'success');
+                showToast('Sample workflow created successfully', 'success');
+            }
+        }
+        
+        function testDragAndDrop() {
+            if (window.workflowAutomation) {
+                window.workflowAutomation.createNewWorkflow();
+                log('Opened workflow builder for drag & drop testing', 'info');
+                
+                setTimeout(() => {
+                    log('Try dragging components from the sidebar to the canvas', 'info');
+                }, 1000);
+            }
+        }
+        
+        function simulateExecution() {
+            if (window.workflowAutomation) {
+                const workflows = Array.from(window.workflowAutomation.workflows.values());
+                const activeWorkflow = workflows.find(w => w.status === 'active');
+                
+                if (activeWorkflow) {
+                    window.workflowAutomation.executeWorkflow(activeWorkflow.id, {
+                        trigger: 'manual_test',
+                        data: {
+                            lead: {
+                                id: 'test_lead_' + Date.now(),
+                                name: 'Test Lead',
+                                score: Math.floor(Math.random() * 100)
+                            }
+                        }
+                    });
+                    
+                    log(`Simulated execution for workflow: ${activeWorkflow.name}`, 'success');
+                } else {
+                    log('No active workflows found. Create and activate a workflow first.', 'warning');
+                    showToast('No active workflows to execute', 'warning');
+                }
+            }
+        }
+        
+        function clearAllWorkflows() {
+            if (confirm('Are you sure you want to clear all workflows?')) {
+                if (window.workflowAutomation) {
+                    window.workflowAutomation.workflows.clear();
+                    window.workflowAutomation.saveWorkflowsToStorage();
+                    window.workflowAutomation.renderWorkflowList();
+                    
+                    log('All workflows cleared', 'warning');
+                    showToast('All workflows have been cleared', 'info');
+                }
+            }
+        }
+        
+        function createFromTemplate(templateId) {
+            if (window.workflowAutomation) {
+                window.workflowAutomation.useTemplate(templateId);
+                log(`Creating workflow from template: ${templateId}`, 'info');
+            }
+        }
+        
+        function addTestNodes(type) {
+            if (window.workflowAutomation) {
+                window.workflowAutomation.createNewWorkflow();
+                
+                setTimeout(() => {
+                    const canvas = document.querySelector('.canvas-grid');
+                    if (!canvas) return;
+                    
+                    let nodes = [];
+                    switch (type) {
+                        case 'trigger':
+                            nodes = ['leadCreated', 'timeSchedule', 'metricThreshold'];
+                            break;
+                        case 'action':
+                            nodes = ['sendEmail', 'assignLead', 'createTask'];
+                            break;
+                        case 'condition':
+                            nodes = ['condition'];
+                            break;
+                    }
+                    
+                    nodes.forEach((node, index) => {
+                        const x = 100 + (index * 200);
+                        const y = 100;
+                        
+                        if (type === 'trigger' || type === 'action') {
+                            window.workflowAutomation.addNodeToCanvas(type, { 
+                                [type]: node,
+                                nodeType: type
+                            }, x, y);
+                        } else {
+                            window.workflowAutomation.addNodeToCanvas(type, {
+                                nodeType: type
+                            }, x, y);
+                        }
+                    });
+                    
+                    log(`Added ${nodes.length} ${type} nodes to canvas`, 'success');
+                }, 500);
+            }
+        }
+        
+        function testConnections() {
+            const nodes = document.querySelectorAll('.workflow-node');
+            if (nodes.length < 2) {
+                log('Need at least 2 nodes to test connections', 'warning');
+                return;
+            }
+            
+            // Connect first two nodes
+            if (window.workflowAutomation) {
+                window.workflowAutomation.createConnection(nodes[0], nodes[1]);
+                log('Created test connection between first two nodes', 'success');
+            }
+        }
+        
+        function simulateTrigger() {
+            const triggerType = document.getElementById('trigger-type').value;
+            log(`Simulating trigger: ${triggerType}`, 'info');
+            
+            // Simulate the trigger event
+            const eventData = {
+                leadCreated: { lead: { id: 'lead_123', name: 'New Lead' } },
+                leadUpdated: { lead: { id: 'lead_123', changes: ['status'] } },
+                leadStatusChanged: { lead: { id: 'lead_123', oldStatus: 'new', newStatus: 'contacted' } },
+                timeSchedule: { schedule: 'daily', time: '09:00' },
+                metricThreshold: { metric: 'conversion_rate', value: 85, threshold: 80 }
+            };
+            
+            log(`Trigger data: ${JSON.stringify(eventData[triggerType])}`, 'info');
+            
+            // Check if any workflows would be triggered
+            if (window.workflowAutomation) {
+                const workflows = Array.from(window.workflowAutomation.workflows.values());
+                const matchingWorkflows = workflows.filter(w => 
+                    w.status === 'active' && 
+                    w.nodes.some(n => n.type === 'trigger' && n.data.trigger === triggerType)
+                );
+                
+                if (matchingWorkflows.length > 0) {
+                    matchingWorkflows.forEach(w => {
+                        log(`Would trigger workflow: ${w.name}`, 'success');
+                    });
+                } else {
+                    log('No active workflows match this trigger', 'warning');
+                }
+            }
+        }
+        
+        function activateAllWorkflows() {
+            if (window.workflowAutomation) {
+                const workflows = Array.from(window.workflowAutomation.workflows.values());
+                workflows.forEach(w => {
+                    w.status = 'active';
+                });
+                
+                window.workflowAutomation.saveWorkflowsToStorage();
+                window.workflowAutomation.renderWorkflowList();
+                updateStats();
+                
+                log(`Activated ${workflows.length} workflows`, 'success');
+            }
+        }
+        
+        function pauseAllWorkflows() {
+            if (window.workflowAutomation) {
+                const workflows = Array.from(window.workflowAutomation.workflows.values());
+                workflows.forEach(w => {
+                    w.status = 'paused';
+                });
+                
+                window.workflowAutomation.saveWorkflowsToStorage();
+                window.workflowAutomation.renderWorkflowList();
+                updateStats();
+                
+                log(`Paused ${workflows.length} workflows`, 'warning');
+            }
+        }
+        
+        function updateStats() {
+            if (window.workflowAutomation) {
+                const workflows = Array.from(window.workflowAutomation.workflows.values());
+                const activeCount = workflows.filter(w => w.status === 'active').length;
+                document.getElementById('active-count').textContent = activeCount;
+                
+                const history = window.workflowAutomation.executionHistory;
+                document.getElementById('total-exec').textContent = history.length;
+                document.getElementById('running-exec').textContent = history.filter(e => e.status === 'running').length;
+                document.getElementById('completed-exec').textContent = history.filter(e => e.status === 'completed').length;
+                document.getElementById('failed-exec').textContent = history.filter(e => e.status === 'failed').length;
+            }
+        }
+        
+        function showToast(message, type) {
+            if (window.notificationSystem) {
+                window.notificationSystem.showToast({
+                    type: 'workflow_test',
+                    title: 'Workflow Test',
+                    message: message
+                });
+            } else {
+                console.log(`[${type}] ${message}`);
+            }
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            log('Workflow automation test page loaded', 'success');
+            
+            // Update stats every second
+            setInterval(updateStats, 1000);
+            
+            // Monitor workflow executions
+            if (window.workflowAutomation) {
+                const originalAddToHistory = window.workflowAutomation.addToExecutionHistory;
+                window.workflowAutomation.addToExecutionHistory = function(execution) {
+                    originalAddToHistory.call(this, execution);
+                    log(`Workflow execution: ${execution.workflowName} - ${execution.status}`, 
+                        execution.status === 'completed' ? 'success' : 
+                        execution.status === 'failed' ? 'error' : 'info'
+                    );
+                };
+            }
+        });
+    </script>
+</body>
+</html> 

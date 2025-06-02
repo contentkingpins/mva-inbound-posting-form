@@ -1,0 +1,393 @@
+/* Data Export Module Styles */
+
+/* Export Button */
+.export-button {
+    position: fixed;
+    bottom: 100px;
+    right: 30px;
+    padding: 12px 20px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 100;
+}
+
+.export-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.4);
+    background: var(--primary-hover);
+}
+
+.export-button i {
+    font-size: 18px;
+}
+
+/* Export Modal */
+.export-modal .modal {
+    max-width: 800px;
+    width: 90%;
+}
+
+.export-modal-content .modal-body {
+    display: grid;
+    gap: 30px;
+}
+
+/* Export Format Grid */
+.export-options h4 {
+    margin-bottom: 16px;
+    color: var(--text-primary);
+    font-size: 16px;
+}
+
+.export-format-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 15px;
+}
+
+.export-format-option {
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.export-format-option:hover {
+    background: var(--bg-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.export-format-option.selected {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+    transform: scale(1.05);
+}
+
+.export-format-option i {
+    font-size: 32px;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.export-format-option span {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Export Settings */
+.export-settings {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.export-settings h4 {
+    margin-bottom: 16px;
+    color: var(--text-primary);
+    font-size: 16px;
+}
+
+.export-setting-group {
+    margin-bottom: 16px;
+}
+
+.export-setting-group:last-child {
+    margin-bottom: 0;
+}
+
+.export-setting-group label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-primary);
+    font-weight: 500;
+    margin-bottom: 8px;
+    cursor: pointer;
+}
+
+.export-setting-group input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.export-setting-group .form-select,
+.export-setting-group .form-input {
+    width: 100%;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.export-setting-group .form-select:focus,
+.export-setting-group .form-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
+}
+
+/* Export Preview */
+.export-preview {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.export-preview h4 {
+    margin-bottom: 16px;
+    color: var(--text-primary);
+    font-size: 16px;
+}
+
+.export-preview-content {
+    position: relative;
+    max-height: 300px;
+    overflow: auto;
+}
+
+.export-preview-format {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: var(--primary);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 0 0 0 8px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.export-preview-data {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+    margin: 0;
+    font-family: 'Fira Code', 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    overflow-x: auto;
+    white-space: pre;
+}
+
+.export-preview-info {
+    margin-top: 12px;
+    font-size: 12px;
+    color: var(--text-tertiary);
+    text-align: center;
+}
+
+/* Export Progress */
+.export-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.export-progress-content {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 30px 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.export-progress .spinner {
+    width: 48px;
+    height: 48px;
+    border: 3px solid var(--border-color);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.export-progress span {
+    color: var(--text-primary);
+    font-size: 16px;
+    font-weight: 500;
+}
+
+/* Export History */
+.export-history-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.export-history-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    transition: all 0.2s;
+}
+
+.export-history-item:hover {
+    background: var(--bg-hover);
+    transform: translateX(-4px);
+}
+
+.export-history-icon {
+    width: 48px;
+    height: 48px;
+    background: var(--bg-primary);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.export-history-icon i {
+    font-size: 24px;
+    color: var(--primary);
+}
+
+.export-history-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.export-history-filename {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.export-history-meta {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+/* Inline Export Buttons */
+.inline-export-buttons {
+    display: flex;
+    gap: 8px;
+    margin: 16px 0;
+}
+
+.inline-export-btn {
+    padding: 8px 16px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.inline-export-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--primary);
+    color: var(--primary);
+    transform: translateY(-1px);
+}
+
+.inline-export-btn i {
+    font-size: 16px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .export-modal .modal {
+        width: 95%;
+    }
+    
+    .export-format-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .export-preview-content {
+        max-height: 200px;
+    }
+}
+
+@media (max-width: 480px) {
+    .export-button {
+        bottom: 80px;
+        right: 20px;
+    }
+    
+    .export-button span {
+        display: none;
+    }
+    
+    .export-format-option {
+        padding: 15px;
+    }
+    
+    .export-format-option i {
+        font-size: 24px;
+    }
+}
+
+/* Animations */
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Scrollbar for preview */
+.export-preview-content::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.export-preview-content::-webkit-scrollbar-track {
+    background: var(--bg-primary);
+    border-radius: 4px;
+}
+
+.export-preview-content::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+.export-preview-content::-webkit-scrollbar-thumb:hover {
+    background: var(--text-tertiary);
+}
+
+.export-preview-content::-webkit-scrollbar-corner {
+    background: var(--bg-primary);
+} 
