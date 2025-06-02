@@ -4,6 +4,8 @@ const forgotPassword = require('./forgot-password');
 const confirmForgotPassword = require('./confirm-forgot-password');
 const leadController = require('./leadController');
 const adminController = require('./adminController');
+const assignmentController = require('./assignmentController');
+const bulkController = require('./bulkController');
 
 // CORS headers for consistency
 const CORS_HEADERS = {
@@ -47,6 +49,84 @@ exports.handler = async (event) => {
     else if (path.includes('/confirm') || path.includes('confirm')) {
       console.log('Routing to confirm-forgot-password handler');
       return await confirmForgotPassword.handler(event);
+    }
+    
+    // PHASE 1: Assignment Routes
+    else if (path.includes('/leads/{id}/assign') || path.includes('/leads/') && event.pathParameters?.id && path.includes('assign')) {
+      console.log('Routing to lead assignment handler');
+      if (httpMethod === 'POST') {
+        return await assignmentController.assignLead(event);
+      } else {
+        return {
+          statusCode: 405,
+          headers: CORS_HEADERS,
+          body: JSON.stringify({ error: "Method not allowed for assignment endpoint" })
+        };
+      }
+    }
+    else if (path.includes('/leads/{id}/reassign') || path.includes('/leads/') && event.pathParameters?.id && path.includes('reassign')) {
+      console.log('Routing to lead reassignment handler');
+      if (httpMethod === 'PUT') {
+        return await assignmentController.reassignLead(event);
+      } else {
+        return {
+          statusCode: 405,
+          headers: CORS_HEADERS,
+          body: JSON.stringify({ error: "Method not allowed for reassignment endpoint" })
+        };
+      }
+    }
+    
+    // PHASE 1: Agent Management Routes
+    else if (path.includes('/agents/{agentId}/capacity') || path.includes('/agents/') && event.pathParameters?.agentId && path.includes('capacity')) {
+      console.log('Routing to agent capacity handler');
+      if (httpMethod === 'PUT') {
+        return await assignmentController.updateAgentCapacity(event);
+      } else {
+        return {
+          statusCode: 405,
+          headers: CORS_HEADERS,
+          body: JSON.stringify({ error: "Method not allowed for agent capacity endpoint" })
+        };
+      }
+    }
+    else if (path.includes('/agents') || path.startsWith('/agents')) {
+      console.log('Routing to agents handler');
+      if (httpMethod === 'GET') {
+        return await assignmentController.getAgents(event);
+      } else {
+        return {
+          statusCode: 405,
+          headers: CORS_HEADERS,
+          body: JSON.stringify({ error: "Method not allowed for agents endpoint" })
+        };
+      }
+    }
+    
+    // PHASE 1: Bulk Operations Routes
+    else if (path.includes('/leads/bulk-update') || path.includes('bulk-update')) {
+      console.log('Routing to bulk update handler');
+      if (httpMethod === 'POST') {
+        return await bulkController.bulkUpdate(event);
+      } else {
+        return {
+          statusCode: 405,
+          headers: CORS_HEADERS,
+          body: JSON.stringify({ error: "Method not allowed for bulk update endpoint" })
+        };
+      }
+    }
+    else if (path.includes('/leads/bulk-assign') || path.includes('bulk-assign')) {
+      console.log('Routing to bulk assign handler');
+      if (httpMethod === 'POST') {
+        return await bulkController.bulkAssign(event);
+      } else {
+        return {
+          statusCode: 405,
+          headers: CORS_HEADERS,
+          body: JSON.stringify({ error: "Method not allowed for bulk assign endpoint" })
+        };
+      }
     }
     
     // Lead Routes
@@ -122,6 +202,12 @@ exports.handler = async (event) => {
             'POST /leads', 
             'PATCH /leads/{id}',
             'DELETE /leads/{id}',
+            'POST /leads/{id}/assign',
+            'PUT /leads/{id}/reassign',
+            'POST /leads/bulk-update',
+            'POST /leads/bulk-assign',
+            'GET /agents',
+            'PUT /agents/{agentId}/capacity',
             'GET /admin/stats',
             'GET /admin/analytics',
             'POST /auth/get-username',
