@@ -6,6 +6,9 @@ const leadController = require('./leadController');
 const adminController = require('./adminController');
 const assignmentController = require('./assignmentController');
 const bulkController = require('./bulkController');
+// PHASE 2: Search & Export Controllers
+const searchController = require('./searchController');
+const exportController = require('./exportController');
 
 // CORS headers for consistency
 const CORS_HEADERS = {
@@ -125,6 +128,110 @@ exports.handler = async (event) => {
           statusCode: 405,
           headers: CORS_HEADERS,
           body: JSON.stringify({ error: "Method not allowed for bulk assign endpoint" })
+        };
+      }
+    }
+    
+    // PHASE 2: Search Routes
+    else if (path.includes('/leads/search/saved/{id}') || path.includes('/leads/search/saved/') && event.pathParameters?.id) {
+      console.log('Routing to delete saved search handler');
+      if (httpMethod === 'DELETE') {
+        return await searchController.deleteSavedSearch(event);
+      } else {
+        return {
+          statusCode: 405,
+          headers: CORS_HEADERS,
+          body: JSON.stringify({ error: "Method not allowed for saved search deletion endpoint" })
+        };
+      }
+    }
+    else if (path.includes('/leads/search/saved') || path.includes('search/saved')) {
+      console.log('Routing to saved search handler');
+      if (httpMethod === 'POST') {
+        return await searchController.saveSearch(event);
+      } else if (httpMethod === 'GET') {
+        return await searchController.getSavedSearches(event);
+      } else {
+        return {
+          statusCode: 405,
+          headers: CORS_HEADERS,
+          body: JSON.stringify({ error: "Method not allowed for saved search endpoint" })
+        };
+      }
+    }
+    else if (path.includes('/leads/filters') || path.includes('leads/filters')) {
+      console.log('Routing to filter options handler');
+      if (httpMethod === 'GET') {
+        return await searchController.getFilterOptions(event);
+      } else {
+        return {
+          statusCode: 405,
+          headers: CORS_HEADERS,
+          body: JSON.stringify({ error: "Method not allowed for filter options endpoint" })
+        };
+      }
+    }
+    else if (path.includes('/leads/search') || path.includes('leads/search')) {
+      console.log('Routing to advanced search handler');
+      if (httpMethod === 'POST') {
+        return await searchController.advancedSearch(event);
+      } else {
+        return {
+          statusCode: 405,
+          headers: CORS_HEADERS,
+          body: JSON.stringify({ error: "Method not allowed for search endpoint" })
+        };
+      }
+    }
+    
+    // PHASE 2: Export Routes
+    else if (path.includes('/leads/export/{jobId}/download') || path.includes('/leads/export/') && event.pathParameters?.jobId && path.includes('download')) {
+      console.log('Routing to export download handler');
+      if (httpMethod === 'GET') {
+        return await exportController.downloadExport(event);
+      } else {
+        return {
+          statusCode: 405,
+          headers: CORS_HEADERS,
+          body: JSON.stringify({ error: "Method not allowed for export download endpoint" })
+        };
+      }
+    }
+    else if (path.includes('/leads/export/{jobId}') || path.includes('/leads/export/') && event.pathParameters?.jobId) {
+      console.log('Routing to export job handler');
+      if (httpMethod === 'GET') {
+        return await exportController.getExportStatus(event);
+      } else if (httpMethod === 'DELETE') {
+        return await exportController.cancelExport(event);
+      } else {
+        return {
+          statusCode: 405,
+          headers: CORS_HEADERS,
+          body: JSON.stringify({ error: "Method not allowed for export job endpoint" })
+        };
+      }
+    }
+    else if (path.includes('/leads/export/history') || path.includes('export/history')) {
+      console.log('Routing to export history handler');
+      if (httpMethod === 'GET') {
+        return await exportController.getExportHistory(event);
+      } else {
+        return {
+          statusCode: 405,
+          headers: CORS_HEADERS,
+          body: JSON.stringify({ error: "Method not allowed for export history endpoint" })
+        };
+      }
+    }
+    else if (path.includes('/leads/export') || path.includes('leads/export')) {
+      console.log('Routing to export initiation handler');
+      if (httpMethod === 'POST') {
+        return await exportController.initiateExport(event);
+      } else {
+        return {
+          statusCode: 405,
+          headers: CORS_HEADERS,
+          body: JSON.stringify({ error: "Method not allowed for export endpoint" })
         };
       }
     }

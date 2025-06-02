@@ -1,0 +1,455 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Phase 2 Infrastructure - Advanced Search & Export System for MVA CRM'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: 'production'
+    Description: 'Environment name (dev, staging, production)'
+    
+  ProjectName:
+    Type: String
+    Default: 'mva-crm'
+    Description: 'Project name for resource naming'
+
+Resources:
+  # ========================================
+  # PHASE 2: SAVED SEARCHES TABLE
+  # ========================================
+  SavedSearchesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${ProjectName}-SavedSearches-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: search_id
+          AttributeType: S
+        - AttributeName: user_email
+          AttributeType: S
+        - AttributeName: created_at
+          AttributeType: S
+      KeySchema:
+        - AttributeName: search_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        # Index for querying user's saved searches
+        - IndexName: UserEmailIndex
+          KeySchema:
+            - AttributeName: user_email
+              KeyType: HASH
+            - AttributeName: created_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        # Index for public searches
+        - IndexName: PublicSearchesIndex
+          KeySchema:
+            - AttributeName: user_email
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Phase
+          Value: 'Phase2'
+        - Key: Component
+          Value: 'SavedSearches'
+
+  # ========================================
+  # PHASE 2: EXPORT JOBS TABLE
+  # ========================================
+  ExportJobsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${ProjectName}-ExportJobs-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: job_id
+          AttributeType: S
+        - AttributeName: user_email
+          AttributeType: S
+        - AttributeName: created_at
+          AttributeType: S
+        - AttributeName: status
+          AttributeType: S
+      KeySchema:
+        - AttributeName: job_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        # Index for querying user's export history
+        - IndexName: UserEmailIndex
+          KeySchema:
+            - AttributeName: user_email
+              KeyType: HASH
+            - AttributeName: created_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        # Index for querying by status (for admin monitoring)
+        - IndexName: StatusIndex
+          KeySchema:
+            - AttributeName: status
+              KeyType: HASH
+            - AttributeName: created_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Phase
+          Value: 'Phase2'
+        - Key: Component
+          Value: 'ExportJobs'
+
+  # ========================================
+  # PHASE 2: EXPORT PROCESSING SQS QUEUE
+  # ========================================
+  ExportProcessingQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub '${ProjectName}-export-processing-${Environment}'
+      VisibilityTimeoutSeconds: 900  # 15 minutes for export processing
+      MessageRetentionPeriod: 1209600  # 14 days
+      ReceiveMessageWaitTimeSeconds: 20  # Long polling
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt ExportProcessingDLQ.Arn
+        maxReceiveCount: 3
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Phase
+          Value: 'Phase2'
+        - Key: Component
+          Value: 'ExportQueue'
+
+  # Dead Letter Queue for failed export jobs
+  ExportProcessingDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub '${ProjectName}-export-processing-dlq-${Environment}'
+      MessageRetentionPeriod: 1209600  # 14 days
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Phase
+          Value: 'Phase2'
+        - Key: Component
+          Value: 'ExportDLQ'
+
+  # ========================================
+  # PHASE 2: EXPORT FILES S3 BUCKET
+  # ========================================
+  ExportFilesBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${ProjectName}-exports-${Environment}-${AWS::AccountId}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+            BucketKeyEnabled: true
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          # Delete export files after 30 days
+          - Id: DeleteExportFiles
+            Status: Enabled
+            ExpirationInDays: 30
+          # Delete incomplete multipart uploads after 7 days
+          - Id: DeleteIncompleteUploads
+            Status: Enabled
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 7
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      NotificationConfiguration:
+        CloudWatchConfigurations:
+          - Event: s3:ObjectCreated:*
+            CloudWatchConfiguration:
+              LogGroupName: !Ref ExportFilesLogGroup
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Phase
+          Value: 'Phase2'
+        - Key: Component
+          Value: 'ExportStorage'
+
+  # ========================================
+  # PHASE 2: LAMBDA FUNCTION FOR EXPORT WORKER
+  # ========================================
+  ExportWorkerFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-export-worker-${Environment}'
+      Runtime: nodejs18.x
+      Handler: exportWorker.processExportJob
+      Code:
+        ZipFile: |
+          // Placeholder code - will be deployed separately
+          exports.processExportJob = async (event) => {
+            console.log('Export worker not yet deployed');
+            return { statusCode: 202, body: 'Worker not deployed' };
+          };
+      Timeout: 900  # 15 minutes
+      MemorySize: 1024
+      Environment:
+        Variables:
+          LEADS_TABLE: !Sub '${ProjectName}-Leads-${Environment}'
+          USERS_TABLE: !Sub '${ProjectName}-Users-${Environment}'
+          EXPORT_JOBS_TABLE: !Ref ExportJobsTable
+          EXPORT_BUCKET: !Ref ExportFilesBucket
+          EXPORT_QUEUE_URL: !Ref ExportProcessingQueue
+          SES_FROM_EMAIL: 'no-reply@mva-crm.com'
+      Role: !GetAtt ExportWorkerRole.Arn
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Phase
+          Value: 'Phase2'
+        - Key: Component
+          Value: 'ExportWorker'
+
+  # ========================================
+  # PHASE 2: IAM ROLES AND POLICIES
+  # ========================================
+  ExportWorkerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ProjectName}-export-worker-role-${Environment}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: ExportWorkerPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              # DynamoDB access for leads, users, and export jobs
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                Resource:
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ProjectName}-Leads-${Environment}'
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ProjectName}-Leads-${Environment}/index/*'
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ProjectName}-Users-${Environment}'
+                  - !GetAtt ExportJobsTable.Arn
+                  - !Sub '${ExportJobsTable.Arn}/index/*'
+              # S3 access for export files
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                  - s3:PutObjectAcl
+                Resource: !Sub '${ExportFilesBucket}/*'
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource: !GetAtt ExportFilesBucket.Arn
+              # SQS access for processing messages
+              - Effect: Allow
+                Action:
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                Resource: !GetAtt ExportProcessingQueue.Arn
+              # SES access for sending notifications
+              - Effect: Allow
+                Action:
+                  - ses:SendEmail
+                  - ses:SendRawEmail
+                Resource: '*'
+
+  # SQS Event Source Mapping for Export Worker
+  ExportWorkerEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !GetAtt ExportProcessingQueue.Arn
+      FunctionName: !Ref ExportWorkerFunction
+      BatchSize: 1
+      MaximumBatchingWindowInSeconds: 5
+
+  # ========================================
+  # PHASE 2: CLOUDWATCH MONITORING
+  # ========================================
+  ExportFilesLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/s3/${ProjectName}-exports-${Environment}'
+      RetentionInDays: 30
+
+  ExportWorkerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ProjectName}-export-worker-${Environment}'
+      RetentionInDays: 30
+
+  # CloudWatch Alarms for monitoring
+  ExportQueueDepthAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${ProjectName}-export-queue-depth-${Environment}'
+      AlarmDescription: 'High number of messages in export queue'
+      MetricName: ApproximateNumberOfVisibleMessages
+      Namespace: AWS/SQS
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 10
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt ExportProcessingQueue.QueueName
+      TreatMissingData: notBreaching
+
+  ExportWorkerErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${ProjectName}-export-worker-errors-${Environment}'
+      AlarmDescription: 'High error rate in export worker'
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 5
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref ExportWorkerFunction
+      TreatMissingData: notBreaching
+
+  # ========================================
+  # PHASE 2: ENHANCED GSI FOR LEADS TABLE
+  # ========================================
+  # Note: These would need to be added to existing Leads table
+  # This is a reference template - actual implementation requires
+  # updating the existing Leads table GSI configuration
+
+Outputs:
+  # Table Names
+  SavedSearchesTableName:
+    Description: 'Name of the SavedSearches DynamoDB table'
+    Value: !Ref SavedSearchesTable
+    Export:
+      Name: !Sub '${AWS::StackName}-SavedSearchesTable'
+
+  ExportJobsTableName:
+    Description: 'Name of the ExportJobs DynamoDB table'
+    Value: !Ref ExportJobsTable
+    Export:
+      Name: !Sub '${AWS::StackName}-ExportJobsTable'
+
+  # Queue Information
+  ExportQueueUrl:
+    Description: 'URL of the export processing SQS queue'
+    Value: !Ref ExportProcessingQueue
+    Export:
+      Name: !Sub '${AWS::StackName}-ExportQueueUrl'
+
+  ExportQueueArn:
+    Description: 'ARN of the export processing SQS queue'
+    Value: !GetAtt ExportProcessingQueue.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-ExportQueueArn'
+
+  # S3 Bucket Information
+  ExportBucketName:
+    Description: 'Name of the S3 bucket for export files'
+    Value: !Ref ExportFilesBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-ExportBucket'
+
+  ExportBucketArn:
+    Description: 'ARN of the S3 bucket for export files'
+    Value: !GetAtt ExportFilesBucket.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-ExportBucketArn'
+
+  # Lambda Function Information
+  ExportWorkerFunctionName:
+    Description: 'Name of the export worker Lambda function'
+    Value: !Ref ExportWorkerFunction
+    Export:
+      Name: !Sub '${AWS::StackName}-ExportWorkerFunction'
+
+  ExportWorkerFunctionArn:
+    Description: 'ARN of the export worker Lambda function'
+    Value: !GetAtt ExportWorkerFunction.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-ExportWorkerFunctionArn'
+
+  # Environment Variables for Main Lambda
+  Phase2EnvironmentVariables:
+    Description: 'Environment variables to add to main Lambda function'
+    Value: !Sub |
+      SAVED_SEARCHES_TABLE=${SavedSearchesTable}
+      EXPORT_JOBS_TABLE=${ExportJobsTable}
+      EXPORT_QUEUE_URL=${ExportProcessingQueue}
+      EXPORT_BUCKET=${ExportFilesBucket}
+      SES_FROM_EMAIL=no-reply@mva-crm.com
+
+  # Deployment Summary
+  Phase2DeploymentSummary:
+    Description: 'Phase 2 infrastructure deployment summary'
+    Value: !Sub |
+      Phase 2 Infrastructure Deployed Successfully!
+      
+      New Resources Created:
+      - SavedSearches Table: ${SavedSearchesTable}
+      - ExportJobs Table: ${ExportJobsTable}
+      - Export Processing Queue: ${ExportProcessingQueue}
+      - Export Files Bucket: ${ExportFilesBucket}
+      - Export Worker Function: ${ExportWorkerFunction}
+      
+      Next Steps:
+      1. Update main Lambda function with new environment variables
+      2. Deploy Phase 2 code (searchController.js, exportController.js, exportWorker.js)
+      3. Test all 10 new API endpoints
+      4. Configure SES email sending (verify domain/email)
+      
+      Phase 2 Status: Infrastructure Ready! 🚀 
