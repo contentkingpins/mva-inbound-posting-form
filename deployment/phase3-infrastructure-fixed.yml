@@ -1,0 +1,220 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Phase 3 Infrastructure - File Management & Document Storage for MVA CRM'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: 'production'
+    Description: 'Environment name (dev, staging, production)'
+    
+  ProjectName:
+    Type: String
+    Default: 'mva-crm'
+    Description: 'Project name for resource naming'
+
+Resources:
+  # PHASE 3: DOCUMENTS TABLE
+  DocumentsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${ProjectName}-Documents-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: document_id
+          AttributeType: S
+        - AttributeName: lead_id
+          AttributeType: S
+        - AttributeName: uploaded_at
+          AttributeType: S
+        - AttributeName: document_category
+          AttributeType: S
+        - AttributeName: uploaded_by
+          AttributeType: S
+      KeySchema:
+        - AttributeName: document_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: LeadDocumentsIndex
+          KeySchema:
+            - AttributeName: lead_id
+              KeyType: HASH
+            - AttributeName: uploaded_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: CategoryIndex
+          KeySchema:
+            - AttributeName: document_category
+              KeyType: HASH
+            - AttributeName: uploaded_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: UploaderIndex
+          KeySchema:
+            - AttributeName: uploaded_by
+              KeyType: HASH
+            - AttributeName: uploaded_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Phase
+          Value: 'Phase3'
+
+  # PHASE 3: DOCUMENT ACTIVITY TABLE
+  DocumentActivityTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${ProjectName}-DocumentActivity-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: activity_id
+          AttributeType: S
+        - AttributeName: document_id
+          AttributeType: S
+        - AttributeName: timestamp
+          AttributeType: S
+        - AttributeName: user_email
+          AttributeType: S
+      KeySchema:
+        - AttributeName: activity_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: DocumentActivityIndex
+          KeySchema:
+            - AttributeName: document_id
+              KeyType: HASH
+            - AttributeName: timestamp
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: UserActivityIndex
+          KeySchema:
+            - AttributeName: user_email
+              KeyType: HASH
+            - AttributeName: timestamp
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Phase
+          Value: 'Phase3'
+
+  # PHASE 3: DOCUMENTS S3 BUCKET
+  DocumentsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${ProjectName}-documents-${Environment}-${AWS::AccountId}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+            BucketKeyEnabled: true
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - '*'
+            AllowedMethods:
+              - GET
+              - PUT
+              - POST
+              - DELETE
+              - HEAD
+            AllowedOrigins:
+              - 'https://main.d21xta9fg9b6w.amplifyapp.com'
+            ExposedHeaders:
+              - ETag
+            MaxAge: 3000
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Phase
+          Value: 'Phase3'
+
+  # PHASE 3: SQS PROCESSING QUEUE (FIXED)
+  DocumentProcessingQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub '${ProjectName}-document-processing-${Environment}'
+      VisibilityTimeout: 900
+      MessageRetentionPeriod: 1209600
+      DelaySeconds: 0
+      ReceiveMessageWaitTimeSeconds: 20
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt DocumentProcessingDLQ.Arn
+        maxReceiveCount: 3
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Phase
+          Value: 'Phase3'
+
+  # Dead Letter Queue for failed processing
+  DocumentProcessingDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub '${ProjectName}-document-processing-dlq-${Environment}'
+      MessageRetentionPeriod: 1209600
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Phase
+          Value: 'Phase3'
+
+Outputs:
+  DocumentsTableName:
+    Description: 'Name of the Documents DynamoDB table'
+    Value: !Ref DocumentsTable
+    Export:
+      Name: !Sub '${AWS::StackName}-DocumentsTable'
+
+  DocumentActivityTableName:
+    Description: 'Name of the DocumentActivity DynamoDB table'
+    Value: !Ref DocumentActivityTable
+    Export:
+      Name: !Sub '${AWS::StackName}-DocumentActivityTable'
+
+  DocumentsBucketName:
+    Description: 'Name of the S3 bucket for documents'
+    Value: !Ref DocumentsBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-DocumentsBucket'
+
+  DocumentQueueUrl:
+    Description: 'URL of the document processing SQS queue'
+    Value: !Ref DocumentProcessingQueue
+    Export:
+      Name: !Sub '${AWS::StackName}-DocumentQueueUrl' 

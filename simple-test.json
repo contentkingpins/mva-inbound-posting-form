@@ -1,0 +1,8 @@
+{
+  "path": "/documents/search",
+  "httpMethod": "POST",
+  "headers": {
+    "Authorization": "Bearer test-token"
+  },
+  "body": "{\"query\": \"test\"}"
+}
