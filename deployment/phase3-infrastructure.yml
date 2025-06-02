@@ -1,0 +1,596 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Phase 3 Infrastructure - File Management & Document Storage for MVA CRM'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: 'production'
+    Description: 'Environment name (dev, staging, production)'
+    
+  ProjectName:
+    Type: String
+    Default: 'mva-crm'
+    Description: 'Project name for resource naming'
+
+Resources:
+  # ========================================
+  # PHASE 3: DOCUMENTS TABLE
+  # ========================================
+  DocumentsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${ProjectName}-Documents-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: document_id
+          AttributeType: S
+        - AttributeName: lead_id
+          AttributeType: S
+        - AttributeName: uploaded_at
+          AttributeType: S
+        - AttributeName: document_category
+          AttributeType: S
+        - AttributeName: uploaded_by
+          AttributeType: S
+      KeySchema:
+        - AttributeName: document_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        # Index for querying documents by lead
+        - IndexName: LeadDocumentsIndex
+          KeySchema:
+            - AttributeName: lead_id
+              KeyType: HASH
+            - AttributeName: uploaded_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        # Index for querying documents by category
+        - IndexName: CategoryIndex
+          KeySchema:
+            - AttributeName: document_category
+              KeyType: HASH
+            - AttributeName: uploaded_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        # Index for querying documents by uploader
+        - IndexName: UploaderIndex
+          KeySchema:
+            - AttributeName: uploaded_by
+              KeyType: HASH
+            - AttributeName: uploaded_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Phase
+          Value: 'Phase3'
+        - Key: Component
+          Value: 'Documents'
+
+  # ========================================
+  # PHASE 3: DOCUMENT ACTIVITY TABLE
+  # ========================================
+  DocumentActivityTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${ProjectName}-DocumentActivity-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: activity_id
+          AttributeType: S
+        - AttributeName: document_id
+          AttributeType: S
+        - AttributeName: timestamp
+          AttributeType: S
+        - AttributeName: user_email
+          AttributeType: S
+      KeySchema:
+        - AttributeName: activity_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        # Index for querying activity by document
+        - IndexName: DocumentActivityIndex
+          KeySchema:
+            - AttributeName: document_id
+              KeyType: HASH
+            - AttributeName: timestamp
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        # Index for querying activity by user
+        - IndexName: UserActivityIndex
+          KeySchema:
+            - AttributeName: user_email
+              KeyType: HASH
+            - AttributeName: timestamp
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Phase
+          Value: 'Phase3'
+        - Key: Component
+          Value: 'DocumentActivity'
+
+  # ========================================
+  # PHASE 3: DOCUMENTS S3 BUCKET
+  # ========================================
+  DocumentsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${ProjectName}-documents-${Environment}-${AWS::AccountId}'
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+            BucketKeyEnabled: true
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          # Transition to Intelligent-Tiering after 30 days
+          - Id: IntelligentTiering
+            Status: Enabled
+            Transitions:
+              - TransitionInDays: 30
+                StorageClass: INTELLIGENT_TIERING
+          # Transition to Glacier after 365 days
+          - Id: ArchiveOldDocuments
+            Status: Enabled
+            Transitions:
+              - TransitionInDays: 365
+                StorageClass: GLACIER
+          # Delete incomplete multipart uploads after 7 days
+          - Id: DeleteIncompleteUploads
+            Status: Enabled
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 7
+          # Delete old document versions after 90 days
+          - Id: DeleteOldVersions
+            Status: Enabled
+            NoncurrentVersionExpirationInDays: 90
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - '*'
+            AllowedMethods:
+              - GET
+              - PUT
+              - POST
+              - DELETE
+              - HEAD
+            AllowedOrigins:
+              - 'https://main.d21xta9fg9b6w.amplifyapp.com'
+              - 'https://localhost:3000'
+            ExposedHeaders:
+              - ETag
+            MaxAge: 3000
+      NotificationConfiguration:
+        CloudWatchConfigurations:
+          - Event: s3:ObjectCreated:*
+            CloudWatchConfiguration:
+              LogGroupName: !Ref DocumentsLogGroup
+        LambdaConfigurations:
+          - Event: s3:ObjectCreated:*
+            Function: !GetAtt DocumentProcessorFunction.Arn
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: leads/
+                  - Name: suffix
+                    Value: /documents/
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Phase
+          Value: 'Phase3'
+        - Key: Component
+          Value: 'DocumentStorage'
+
+  # ========================================
+  # PHASE 3: DOCUMENT PROCESSING QUEUE
+  # ========================================
+  DocumentProcessingQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub '${ProjectName}-document-processing-${Environment}'
+      VisibilityTimeoutSeconds: 900  # 15 minutes for document processing
+      MessageRetentionPeriod: 1209600  # 14 days
+      ReceiveMessageWaitTimeSeconds: 20  # Long polling
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt DocumentProcessingDLQ.Arn
+        maxReceiveCount: 3
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Phase
+          Value: 'Phase3'
+        - Key: Component
+          Value: 'DocumentQueue'
+
+  # Dead Letter Queue for failed document processing
+  DocumentProcessingDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub '${ProjectName}-document-processing-dlq-${Environment}'
+      MessageRetentionPeriod: 1209600  # 14 days
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Phase
+          Value: 'Phase3'
+        - Key: Component
+          Value: 'DocumentDLQ'
+
+  # ========================================
+  # PHASE 3: DOCUMENT PROCESSOR LAMBDA
+  # ========================================
+  DocumentProcessorFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-document-processor-${Environment}'
+      Runtime: nodejs18.x
+      Handler: documentProcessor.processDocument
+      Code:
+        ZipFile: |
+          // Placeholder code - will be deployed separately
+          exports.processDocument = async (event) => {
+            console.log('Document processor not yet deployed');
+            return { statusCode: 202, body: 'Processor not deployed' };
+          };
+      Timeout: 900  # 15 minutes
+      MemorySize: 1024
+      Environment:
+        Variables:
+          DOCUMENTS_TABLE: !Ref DocumentsTable
+          DOCUMENT_ACTIVITY_TABLE: !Ref DocumentActivityTable
+          DOCUMENTS_BUCKET: !Ref DocumentsBucket
+          DOCUMENT_QUEUE_URL: !Ref DocumentProcessingQueue
+          LEADS_TABLE: !Sub '${ProjectName}-Leads-${Environment}'
+          USERS_TABLE: !Sub '${ProjectName}-Users-${Environment}'
+      Role: !GetAtt DocumentProcessorRole.Arn
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Phase
+          Value: 'Phase3'
+        - Key: Component
+          Value: 'DocumentProcessor'
+
+  # Lambda permission for S3 to invoke document processor
+  DocumentProcessorS3Permission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref DocumentProcessorFunction
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceArn: !GetAtt DocumentsBucket.Arn
+
+  # ========================================
+  # PHASE 3: IAM ROLES AND POLICIES
+  # ========================================
+  DocumentProcessorRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ProjectName}-document-processor-role-${Environment}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: DocumentProcessorPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              # DynamoDB access for documents, activity, leads, and users
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                Resource:
+                  - !GetAtt DocumentsTable.Arn
+                  - !Sub '${DocumentsTable.Arn}/index/*'
+                  - !GetAtt DocumentActivityTable.Arn
+                  - !Sub '${DocumentActivityTable.Arn}/index/*'
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ProjectName}-Leads-${Environment}'
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ProjectName}-Users-${Environment}'
+              # S3 access for document files
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                  - s3:PutObjectAcl
+                  - s3:GetObjectVersion
+                Resource: !Sub '${DocumentsBucket}/*'
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                  - s3:GetBucketLocation
+                  - s3:GetBucketVersioning
+                Resource: !GetAtt DocumentsBucket.Arn
+              # SQS access for processing messages
+              - Effect: Allow
+                Action:
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                  - sqs:SendMessage
+                Resource: 
+                  - !GetAtt DocumentProcessingQueue.Arn
+                  - !GetAtt DocumentProcessingDLQ.Arn
+              # Rekognition for content moderation and text extraction
+              - Effect: Allow
+                Action:
+                  - rekognition:DetectModerationLabels
+                  - rekognition:DetectText
+                Resource: '*'
+              # Textract for document text extraction
+              - Effect: Allow
+                Action:
+                  - textract:DetectDocumentText
+                  - textract:AnalyzeDocument
+                Resource: '*'
+
+  # SQS Event Source Mapping for Document Processor
+  DocumentProcessorEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !GetAtt DocumentProcessingQueue.Arn
+      FunctionName: !Ref DocumentProcessorFunction
+      BatchSize: 1
+      MaximumBatchingWindowInSeconds: 5
+
+  # Enhanced IAM policy for main Lambda function to access document resources
+  MainLambdaDocumentPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub '${ProjectName}-main-lambda-document-policy-${Environment}'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          # DynamoDB access for document tables
+          - Effect: Allow
+            Action:
+              - dynamodb:GetItem
+              - dynamodb:PutItem
+              - dynamodb:UpdateItem
+              - dynamodb:DeleteItem
+              - dynamodb:Query
+              - dynamodb:Scan
+            Resource:
+              - !GetAtt DocumentsTable.Arn
+              - !Sub '${DocumentsTable.Arn}/index/*'
+              - !GetAtt DocumentActivityTable.Arn
+              - !Sub '${DocumentActivityTable.Arn}/index/*'
+          # S3 access for document operations
+          - Effect: Allow
+            Action:
+              - s3:GetObject
+              - s3:PutObject
+              - s3:DeleteObject
+              - s3:PutObjectAcl
+              - s3:GetObjectVersion
+              - s3:GeneratePresignedUrl
+            Resource: !Sub '${DocumentsBucket}/*'
+          - Effect: Allow
+            Action:
+              - s3:ListBucket
+              - s3:GetBucketLocation
+            Resource: !GetAtt DocumentsBucket.Arn
+          # SQS access for queuing document processing jobs
+          - Effect: Allow
+            Action:
+              - sqs:SendMessage
+              - sqs:GetQueueAttributes
+            Resource: !GetAtt DocumentProcessingQueue.Arn
+      Roles:
+        - !Sub '${ProjectName}-inbound-posting-form-role-${Environment}'
+
+  # ========================================
+  # PHASE 3: CLOUDWATCH MONITORING
+  # ========================================
+  DocumentsLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/s3/${ProjectName}-documents-${Environment}'
+      RetentionInDays: 30
+
+  DocumentProcessorLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ProjectName}-document-processor-${Environment}'
+      RetentionInDays: 30
+
+  # CloudWatch Alarms for monitoring
+  DocumentQueueDepthAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${ProjectName}-document-queue-depth-${Environment}'
+      AlarmDescription: 'High number of messages in document processing queue'
+      MetricName: ApproximateNumberOfVisibleMessages
+      Namespace: AWS/SQS
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 10
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt DocumentProcessingQueue.QueueName
+      TreatMissingData: notBreaching
+
+  DocumentProcessorErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${ProjectName}-document-processor-errors-${Environment}'
+      AlarmDescription: 'High error rate in document processor'
+      MetricName: Errors
+      Namespace: AWS/Lambda
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 5
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref DocumentProcessorFunction
+      TreatMissingData: notBreaching
+
+  DocumentStorageAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${ProjectName}-document-storage-size-${Environment}'
+      AlarmDescription: 'Document storage size approaching limits'
+      MetricName: BucketSizeBytes
+      Namespace: AWS/S3
+      Statistic: Average
+      Period: 86400  # Daily check
+      EvaluationPeriods: 1
+      Threshold: 50000000000  # 50GB threshold
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: BucketName
+          Value: !Ref DocumentsBucket
+        - Name: StorageType
+          Value: StandardStorage
+      TreatMissingData: notBreaching
+
+Outputs:
+  # Table Names
+  DocumentsTableName:
+    Description: 'Name of the Documents DynamoDB table'
+    Value: !Ref DocumentsTable
+    Export:
+      Name: !Sub '${AWS::StackName}-DocumentsTable'
+
+  DocumentActivityTableName:
+    Description: 'Name of the DocumentActivity DynamoDB table'
+    Value: !Ref DocumentActivityTable
+    Export:
+      Name: !Sub '${AWS::StackName}-DocumentActivityTable'
+
+  # S3 Bucket Information
+  DocumentsBucketName:
+    Description: 'Name of the S3 bucket for documents'
+    Value: !Ref DocumentsBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-DocumentsBucket'
+
+  DocumentsBucketArn:
+    Description: 'ARN of the S3 bucket for documents'
+    Value: !GetAtt DocumentsBucket.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-DocumentsBucketArn'
+
+  # Queue Information
+  DocumentQueueUrl:
+    Description: 'URL of the document processing SQS queue'
+    Value: !Ref DocumentProcessingQueue
+    Export:
+      Name: !Sub '${AWS::StackName}-DocumentQueueUrl'
+
+  DocumentQueueArn:
+    Description: 'ARN of the document processing SQS queue'
+    Value: !GetAtt DocumentProcessingQueue.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-DocumentQueueArn'
+
+  # Lambda Function Information
+  DocumentProcessorFunctionName:
+    Description: 'Name of the document processor Lambda function'
+    Value: !Ref DocumentProcessorFunction
+    Export:
+      Name: !Sub '${AWS::StackName}-DocumentProcessorFunction'
+
+  DocumentProcessorFunctionArn:
+    Description: 'ARN of the document processor Lambda function'
+    Value: !GetAtt DocumentProcessorFunction.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-DocumentProcessorFunctionArn'
+
+  # Environment Variables for Main Lambda
+  Phase3EnvironmentVariables:
+    Description: 'Environment variables to add to main Lambda function'
+    Value: !Sub |
+      DOCUMENTS_TABLE=${DocumentsTable}
+      DOCUMENT_ACTIVITY_TABLE=${DocumentActivityTable}
+      DOCUMENTS_BUCKET=${DocumentsBucket}
+      DOCUMENT_QUEUE_URL=${DocumentProcessingQueue}
+
+  # Deployment Summary
+  Phase3DeploymentSummary:
+    Description: 'Phase 3 infrastructure deployment summary'
+    Value: !Sub |
+      Phase 3 Infrastructure Deployed Successfully!
+      
+      New Resources Created:
+      - Documents Table: ${DocumentsTable}
+      - DocumentActivity Table: ${DocumentActivityTable}
+      - Documents Processing Queue: ${DocumentProcessingQueue}
+      - Documents S3 Bucket: ${DocumentsBucket}
+      - Document Processor Function: ${DocumentProcessorFunction}
+      
+      Features Enabled:
+      - Secure document upload/download
+      - Document metadata management
+      - Activity tracking and auditing
+      - Background document processing
+      - Thumbnail generation (ready)
+      - Content extraction (ready)
+      - Virus scanning integration (ready)
+      
+      Next Steps:
+      1. Update main Lambda function with new environment variables
+      2. Deploy Phase 3 code (documentController.js, documentProcessor.js)
+      3. Test all 5 new document API endpoints
+      4. Configure document processing workflows
+      
+      Phase 3 Status: Infrastructure Ready! 📁🚀 
