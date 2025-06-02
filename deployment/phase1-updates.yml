@@ -1,0 +1,310 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Phase 1 Implementation - Lead Assignment & Bulk Operations Infrastructure'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: 'prod'
+    Description: 'Environment name'
+  
+  LeadsTableName:
+    Type: String
+    Default: 'LEADS_TABLE'
+    Description: 'Name of the existing leads table'
+    
+  UsersTableName:
+    Type: String
+    Default: 'USERS_TABLE'
+    Description: 'Name of the existing users table'
+
+Resources:
+  # Add Global Secondary Index for Lead Assignment Queries
+  LeadsAssignmentIndex:
+    Type: AWS::DynamoDB::GlobalSecondaryIndex
+    Properties:
+      IndexName: 'AgentAssignmentIndex'
+      TableName: !Ref LeadsTableName
+      KeySchema:
+        - AttributeName: 'assigned_agent'
+          KeyType: 'HASH'
+        - AttributeName: 'assigned_at'
+          KeyType: 'RANGE'
+      AttributeDefinitions:
+        - AttributeName: 'assigned_agent'
+          AttributeType: 'S'
+        - AttributeName: 'assigned_at'
+          AttributeType: 'S'
+      Projection:
+        ProjectionType: 'ALL'
+      BillingMode: 'PAY_PER_REQUEST'
+
+  # Add Global Secondary Index for Priority Filtering
+  LeadsPriorityIndex:
+    Type: AWS::DynamoDB::GlobalSecondaryIndex
+    Properties:
+      IndexName: 'PriorityIndex'
+      TableName: !Ref LeadsTableName
+      KeySchema:
+        - AttributeName: 'priority'
+          KeyType: 'HASH'
+        - AttributeName: 'timestamp'
+          KeyType: 'RANGE'
+      AttributeDefinitions:
+        - AttributeName: 'priority'
+          AttributeType: 'S'
+        - AttributeName: 'timestamp'
+          AttributeType: 'S'
+      Projection:
+        ProjectionType: 'ALL'
+      BillingMode: 'PAY_PER_REQUEST'
+
+  # Lambda function for data migration (one-time execution)
+  DataMigrationFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${Environment}-phase1-data-migration'
+      Runtime: nodejs18.x
+      Handler: index.handler
+      Role: !GetAtt DataMigrationRole.Arn
+      Timeout: 300
+      Environment:
+        Variables:
+          LEADS_TABLE: !Ref LeadsTableName
+          USERS_TABLE: !Ref UsersTableName
+      Code:
+        ZipFile: |
+          const AWS = require('aws-sdk');
+          const dynamodb = new AWS.DynamoDB.DocumentClient();
+          
+          exports.handler = async (event, context) => {
+            console.log('Starting Phase 1 data migration...');
+            
+            const LEADS_TABLE = process.env.LEADS_TABLE;
+            const USERS_TABLE = process.env.USERS_TABLE;
+            
+            try {
+              // Migrate existing leads with default values
+              console.log('Migrating leads table...');
+              
+              // Scan all leads
+              let lastKey = null;
+              let totalLeads = 0;
+              
+              do {
+                const scanParams = {
+                  TableName: LEADS_TABLE,
+                  ExclusiveStartKey: lastKey
+                };
+                
+                const result = await dynamodb.scan(scanParams).promise();
+                
+                // Update each lead with new fields if they don't exist
+                for (const lead of result.Items) {
+                  const updates = {};
+                  let needsUpdate = false;
+                  
+                  if (!lead.assigned_agent) {
+                    updates.assigned_agent = null;
+                    needsUpdate = true;
+                  }
+                  
+                  if (!lead.priority) {
+                    updates.priority = 'normal';
+                    needsUpdate = true;
+                  }
+                  
+                  if (!lead.tags) {
+                    updates.tags = [];
+                    needsUpdate = true;
+                  }
+                  
+                  if (!lead.last_activity) {
+                    updates.last_activity = lead.timestamp || new Date().toISOString();
+                    needsUpdate = true;
+                  }
+                  
+                  if (needsUpdate) {
+                    let updateExpression = 'SET ';
+                    const expressionValues = {};
+                    const expressionNames = {};
+                    
+                    Object.keys(updates).forEach((key, index) => {
+                      if (index > 0) updateExpression += ', ';
+                      updateExpression += `#${key} = :${key}`;
+                      expressionNames[`#${key}`] = key;
+                      expressionValues[`:${key}`] = updates[key];
+                    });
+                    
+                    const updateParams = {
+                      TableName: LEADS_TABLE,
+                      Key: { lead_id: lead.lead_id },
+                      UpdateExpression: updateExpression,
+                      ExpressionAttributeNames: expressionNames,
+                      ExpressionAttributeValues: expressionValues
+                    };
+                    
+                    await dynamodb.update(updateParams).promise();
+                    totalLeads++;
+                  }
+                }
+                
+                lastKey = result.LastEvaluatedKey;
+              } while (lastKey);
+              
+              console.log(`Updated ${totalLeads} leads with new fields`);
+              
+              // Migrate users table for agent capacity
+              console.log('Migrating users table...');
+              
+              lastKey = null;
+              let totalUsers = 0;
+              
+              do {
+                const scanParams = {
+                  TableName: USERS_TABLE,
+                  ExclusiveStartKey: lastKey,
+                  FilterExpression: '#role = :role',
+                  ExpressionAttributeNames: {
+                    '#role': 'role'
+                  },
+                  ExpressionAttributeValues: {
+                    ':role': 'agent'
+                  }
+                };
+                
+                const result = await dynamodb.scan(scanParams).promise();
+                
+                // Update each agent with capacity fields
+                for (const user of result.Items) {
+                  const updates = {};
+                  let needsUpdate = false;
+                  
+                  if (user.max_capacity === undefined) {
+                    updates.max_capacity = 25; // Default capacity
+                    needsUpdate = true;
+                  }
+                  
+                  if (!user.availability) {
+                    updates.availability = 'active';
+                    needsUpdate = true;
+                  }
+                  
+                  if (!user.performance_score) {
+                    updates.performance_score = 75; // Default score
+                    needsUpdate = true;
+                  }
+                  
+                  if (!user.last_seen) {
+                    updates.last_seen = new Date().toISOString();
+                    needsUpdate = true;
+                  }
+                  
+                  if (needsUpdate) {
+                    let updateExpression = 'SET ';
+                    const expressionValues = {};
+                    const expressionNames = {};
+                    
+                    Object.keys(updates).forEach((key, index) => {
+                      if (index > 0) updateExpression += ', ';
+                      updateExpression += `#${key} = :${key}`;
+                      expressionNames[`#${key}`] = key;
+                      expressionValues[`:${key}`] = updates[key];
+                    });
+                    
+                    const updateParams = {
+                      TableName: USERS_TABLE,
+                      Key: { email: user.email },
+                      UpdateExpression: updateExpression,
+                      ExpressionAttributeNames: expressionNames,
+                      ExpressionAttributeValues: expressionValues
+                    };
+                    
+                    await dynamodb.update(updateParams).promise();
+                    totalUsers++;
+                  }
+                }
+                
+                lastKey = result.LastEvaluatedKey;
+              } while (lastKey);
+              
+              console.log(`Updated ${totalUsers} agents with capacity fields`);
+              
+              return {
+                statusCode: 200,
+                body: JSON.stringify({
+                  message: 'Phase 1 data migration completed successfully',
+                  leadsUpdated: totalLeads,
+                  agentsUpdated: totalUsers
+                })
+              };
+              
+            } catch (error) {
+              console.error('Migration error:', error);
+              return {
+                statusCode: 500,
+                body: JSON.stringify({
+                  error: 'Migration failed',
+                  message: error.message
+                })
+              };
+            }
+          };
+
+  # IAM Role for data migration function
+  DataMigrationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: DynamoDBMigrationPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:Scan
+                  - dynamodb:UpdateItem
+                  - dynamodb:GetItem
+                Resource:
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${LeadsTableName}'
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${UsersTableName}'
+
+  # Custom resource to trigger migration
+  DataMigrationTrigger:
+    Type: AWS::CloudFormation::CustomResource
+    Properties:
+      ServiceToken: !GetAtt DataMigrationFunction.Arn
+      TriggerTime: !Ref 'AWS::StackId'
+    DependsOn:
+      - DataMigrationFunction
+
+Outputs:
+  MigrationFunctionArn:
+    Description: 'ARN of the data migration function'
+    Value: !GetAtt DataMigrationFunction.Arn
+    Export:
+      Name: !Sub '${Environment}-phase1-migration-function'
+  
+  AssignmentIndexName:
+    Description: 'Name of the assignment index'
+    Value: 'AgentAssignmentIndex'
+    Export:
+      Name: !Sub '${Environment}-assignment-index'
+  
+  PriorityIndexName:
+    Description: 'Name of the priority index'
+    Value: 'PriorityIndex'
+    Export:
+      Name: !Sub '${Environment}-priority-index'
+  
+  MigrationStatus:
+    Description: 'Phase 1 migration deployment status'
+    Value: 'SUCCESS - Ready for Phase 1 endpoints' 
