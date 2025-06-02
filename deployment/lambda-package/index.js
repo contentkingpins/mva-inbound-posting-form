@@ -9,6 +9,9 @@ const bulkController = require('./bulkController');
 // PHASE 2: Search & Export Controllers
 const searchController = require('./searchController');
 const exportController = require('./exportController');
+// PHASE 3: Document Management Controller
+const documentController = require('./documentController');
+const documentSearch = require('./documentSearch');
 
 // CORS headers for consistency
 const CORS_HEADERS = {
@@ -290,6 +293,100 @@ exports.handler = async (event) => {
           statusCode: 405,
           headers: CORS_HEADERS,
           body: JSON.stringify({ error: "Method not allowed for admin analytics endpoint" })
+        };
+      }
+    }
+    
+    // PHASE 3: Document Search & Analytics Routes
+    else if (path.includes('/documents/search') || path.includes('documents/search')) {
+      console.log('Routing to document search handler');
+      if (httpMethod === 'POST') {
+        return await documentSearch.searchDocuments(event);
+      } else {
+        return {
+          statusCode: 405,
+          headers: CORS_HEADERS,
+          body: JSON.stringify({ error: "Method not allowed for document search endpoint" })
+        };
+      }
+    }
+    else if (path.includes('/documents/analytics') || path.includes('documents/analytics')) {
+      console.log('Routing to document analytics handler');
+      if (httpMethod === 'GET') {
+        return await documentSearch.getDocumentAnalytics(event);
+      } else {
+        return {
+          statusCode: 405,
+          headers: CORS_HEADERS,
+          body: JSON.stringify({ error: "Method not allowed for document analytics endpoint" })
+        };
+      }
+    }
+    else if (path.includes('/documents/recent') || path.includes('documents/recent')) {
+      console.log('Routing to recent documents handler');
+      if (httpMethod === 'GET') {
+        return await documentSearch.getRecentDocuments(event);
+      } else {
+        return {
+          statusCode: 405,
+          headers: CORS_HEADERS,
+          body: JSON.stringify({ error: "Method not allowed for recent documents endpoint" })
+        };
+      }
+    }
+    else if (path.includes('/documents/{documentId}/share') || path.includes('/documents/') && event.pathParameters?.documentId && path.includes('share')) {
+      console.log('Routing to document share handler');
+      if (httpMethod === 'POST') {
+        return await documentSearch.shareDocument(event);
+      } else {
+        return {
+          statusCode: 405,
+          headers: CORS_HEADERS,
+          body: JSON.stringify({ error: "Method not allowed for document share endpoint" })
+        };
+      }
+    }
+    
+    // PHASE 3: Document Management Routes
+    else if (path.includes('/documents/{documentId}/download') || path.includes('/documents/') && event.pathParameters?.documentId && path.includes('download')) {
+      console.log('Routing to document download handler');
+      if (httpMethod === 'GET') {
+        return await documentController.downloadDocument(event);
+      } else {
+        return {
+          statusCode: 405,
+          headers: CORS_HEADERS,
+          body: JSON.stringify({ error: "Method not allowed for document download endpoint" })
+        };
+      }
+    }
+    else if (path.includes('/documents/{documentId}') || path.includes('/documents/') && event.pathParameters?.documentId) {
+      console.log('Routing to document metadata handler');
+      if (httpMethod === 'GET') {
+        return await documentController.getDocumentMetadata(event);
+      } else if (httpMethod === 'DELETE') {
+        return await documentController.deleteDocument(event);
+      } else if (httpMethod === 'PUT') {
+        return await documentSearch.updateDocumentMetadata(event);
+      } else {
+        return {
+          statusCode: 405,
+          headers: CORS_HEADERS,
+          body: JSON.stringify({ error: "Method not allowed for document endpoint" })
+        };
+      }
+    }
+    else if (path.includes('/leads/{leadId}/documents') || path.includes('/leads/') && event.pathParameters?.leadId && path.includes('documents')) {
+      console.log('Routing to lead documents handler');
+      if (httpMethod === 'POST') {
+        return await documentController.uploadDocument(event);
+      } else if (httpMethod === 'GET') {
+        return await documentController.getLeadDocuments(event);
+      } else {
+        return {
+          statusCode: 405,
+          headers: CORS_HEADERS,
+          body: JSON.stringify({ error: "Method not allowed for lead documents endpoint" })
         };
       }
     }
