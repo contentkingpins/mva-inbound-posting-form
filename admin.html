@@ -1115,239 +1115,524 @@
         margin-left: var(--space-2);
     }
 
-    .ai-status-grid {
+    /* IMPROVED LAYOUT & SPACING */
+    .quick-stats-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: var(--space-4);
-        margin-bottom: var(--space-6);
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2.5rem;
+        padding: 0 0.5rem;
     }
 
-    .ai-metric-card {
-        display: flex;
-        align-items: center;
-        gap: var(--space-3);
-        background: var(--bg-secondary);
-        padding: var(--space-4);
-        border-radius: var(--radius-lg);
+    .stat-card {
+        background: var(--bg-glass);
+        backdrop-filter: blur(20px);
         border: 1px solid var(--border-subtle);
-    }
-
-    .ai-metric-icon {
-        font-size: var(--font-size-2xl);
-        width: 50px;
-        text-align: center;
-    }
-
-    .ai-metric-label {
-        color: var(--text-secondary);
-        font-size: var(--font-size-sm);
-        margin-bottom: var(--space-1);
-    }
-
-    .ai-metric-value {
-        color: var(--text-primary);
-        font-size: var(--font-size-lg);
-        font-weight: 600;
-    }
-
-    .ai-controls {
+        border-radius: var(--radius-lg);
+        padding: 2rem;
+        transition: all var(--transition-base);
+        position: relative;
+        overflow: hidden;
         display: flex;
-        gap: var(--space-3);
-        margin-bottom: var(--space-6);
-        flex-wrap: wrap;
-    }
-
-    .ai-recent-assignments h4 {
-        color: var(--text-primary);
-        margin-bottom: var(--space-4);
-    }
-
-    .ai-assignment-list {
-        max-height: 300px;
-        overflow-y: auto;
-    }
-
-    .ai-assignment-item {
-        display: flex;
-        justify-content: space-between;
         align-items: center;
-        background: var(--bg-secondary);
-        padding: var(--space-3);
-        margin-bottom: var(--space-2);
-        border-radius: var(--radius-md);
-        border-left: 3px solid var(--accent-purple);
+        gap: 1.5rem;
+        min-height: 120px;
     }
 
-    .ai-assignment-lead {
-        font-weight: 600;
-        color: var(--text-primary);
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, transparent, var(--accent-purple), transparent);
     }
 
-    .ai-assignment-agent {
-        color: var(--text-secondary);
-        font-size: var(--font-size-sm);
+    .stat-card:hover {
+        transform: translateY(-4px);
+        border-color: var(--border-accent);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
     }
 
-    .ai-assignment-score {
-        color: var(--accent-purple);
-        font-weight: 600;
-    }
-
-    .ai-assignment-time {
-        color: var(--text-muted);
-        font-size: var(--font-size-xs);
-    }
-
-    .ai-assignment-empty {
-        text-align: center;
-        color: var(--text-muted);
-        padding: var(--space-6);
-        font-style: italic;
-    }
-
-    .ai-trends {
+    .stat-icon {
+        font-size: 2.5rem;
+        width: 70px;
+        height: 70px;
         display: flex;
-        flex-direction: column;
-        gap: var(--space-3);
-        padding: var(--space-4);
-    }
-
-    .trend-item {
-        display: flex;
-        justify-content: space-between;
         align-items: center;
-        padding: var(--space-2);
-        background: var(--bg-secondary);
-        border-radius: var(--radius-md);
+        justify-content: center;
+        background: rgba(139, 92, 246, 0.1);
+        border-radius: 50%;
+        border: 2px solid rgba(139, 92, 246, 0.2);
     }
 
-    .trend-label {
+    .stat-content {
+        flex: 1;
+    }
+
+    .stat-value {
+        color: var(--text-primary);
+        font-size: 2.25rem;
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+        line-height: 1;
+    }
+
+    .stat-label {
         color: var(--text-secondary);
-        font-size: var(--font-size-sm);
-    }
-
-    .trend-value {
+        font-size: 1rem;
         font-weight: 600;
+        margin-bottom: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
 
-    .trend-up {
+    .stat-change {
+        font-size: 0.875rem;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .stat-change.positive {
         color: var(--success);
     }
 
-    .trend-down {
-        color: var(--info);
+    /* IMPROVED SECTION LAYOUTS */
+    .admin-section {
+        background: var(--bg-glass);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-xl);
+        margin-bottom: 2.5rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        overflow: hidden;
     }
 
-    /* Predictive Analytics Styles */
-    .predictive-overview {
-        margin-bottom: var(--space-6);
+    .section-header {
+        background: rgba(139, 92, 246, 0.05);
+        border-bottom: 1px solid var(--border-subtle);
+        padding: 1.5rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
 
-    .prediction-cards {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: var(--space-4);
-    }
-
-    .prediction-card {
+    .section-title {
         display: flex;
         align-items: center;
-        gap: var(--space-4);
-        background: var(--bg-secondary);
-        padding: var(--space-4);
-        border-radius: var(--radius-lg);
-        border-left: 4px solid;
+        gap: 1rem;
     }
 
-    .prediction-card.revenue { border-left-color: var(--success); }
-    .prediction-card.quality { border-left-color: var(--accent-blue); }
-    .prediction-card.risk { border-left-color: var(--warning); }
-    .prediction-card.coaching { border-left-color: var(--accent-purple); }
+    .section-title h2 {
+        color: var(--text-primary);
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0;
+    }
 
-    .prediction-icon {
-        font-size: var(--font-size-3xl);
-        width: 60px;
+    .section-icon {
+        font-size: 1.75rem;
+        color: var(--accent-purple);
+    }
+
+    .section-actions {
+        display: flex;
+        gap: 1rem;
+    }
+
+    /* OVERVIEW GRID IMPROVEMENTS */
+    .overview-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 2rem;
+        padding: 2rem;
+    }
+
+    .overview-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        padding: 2rem;
+        transition: all var(--transition-base);
+        position: relative;
+    }
+
+    .overview-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: var(--accent-blue);
+    }
+
+    .overview-card.claimed-leads::before {
+        background: var(--accent-purple);
+    }
+
+    .overview-card.agent-performance::before {
+        background: var(--success);
+    }
+
+    .overview-card:hover {
+        transform: translateY(-2px);
+        border-color: var(--border-accent);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+    }
+
+    .overview-card h3 {
+        color: var(--text-primary);
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .overview-metric {
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 1.5rem;
+    }
+
+    .metric-value {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: var(--accent-blue);
+        line-height: 1;
+        margin-bottom: 0.5rem;
+    }
+
+    .metric-label {
+        color: var(--text-secondary);
+        font-size: 1rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .overview-details {
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+        background: rgba(59, 130, 246, 0.05);
+        border-radius: var(--radius-md);
+        border-left: 3px solid var(--accent-blue);
+    }
+
+    .detail-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+    }
+
+    .detail-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .detail-label {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .detail-value {
+        color: var(--text-primary);
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+
+    .btn-outline {
+        background: transparent;
+        border: 2px solid var(--accent-blue);
+        color: var(--accent-blue);
+        padding: 0.75rem 1.5rem;
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        cursor: pointer;
+        transition: all var(--transition-base);
+        width: 100%;
+        justify-content: center;
+    }
+
+    .btn-outline:hover {
+        background: var(--accent-blue);
+        color: white;
+        transform: translateY(-1px);
+        box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+    }
+
+    /* ANALYTICS GRID IMPROVEMENTS */
+    .analytics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+        padding: 2rem;
+    }
+
+    .analytics-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        padding: 2rem;
+        transition: all var(--transition-base);
+        border-left: 4px solid var(--accent-purple);
+    }
+
+    .analytics-card:hover {
+        transform: translateY(-2px);
+        border-color: var(--border-accent);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+    }
+
+    .analytics-card h4 {
+        color: var(--text-primary);
+        font-size: 1.125rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    /* ADMIN GRID FOR ACTIVITY & MANAGEMENT */
+    .admin-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin-bottom: 2.5rem;
+    }
+
+    .admin-grid .admin-section {
+        margin-bottom: 0;
+    }
+
+    /* ACTIVITY FEED IMPROVEMENTS */
+    .activity-feed {
+        padding: 1.5rem 2rem 2rem;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .activity-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        background: var(--bg-secondary);
+        border-radius: var(--radius-md);
+        border-left: 3px solid var(--accent-purple);
+        transition: all var(--transition-base);
+    }
+
+    .activity-item:hover {
+        background: var(--bg-accent);
+        transform: translateX(4px);
+    }
+
+    .activity-icon {
+        width: 40px;
+        height: 40px;
+        background: rgba(139, 92, 246, 0.1);
+        border: 2px solid rgba(139, 92, 246, 0.2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.125rem;
+        flex-shrink: 0;
+    }
+
+    .activity-content {
+        flex: 1;
+    }
+
+    .activity-text {
+        color: var(--text-primary);
+        font-size: 0.9rem;
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+    }
+
+    .activity-time {
+        color: var(--text-muted);
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    /* MANAGEMENT ACTIONS IMPROVEMENTS */
+    .management-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .action-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.5rem;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        cursor: pointer;
+        transition: all var(--transition-base);
+        text-decoration: none;
+        color: var(--text-primary);
+    }
+
+    .action-btn:hover {
+        background: var(--bg-accent);
+        border-color: var(--accent-blue);
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-icon {
+        font-size: 2rem;
+        color: var(--accent-purple);
+    }
+
+    .btn-text {
+        font-weight: 600;
         text-align: center;
     }
 
-    .prediction-label {
-        color: var(--text-secondary);
-        font-size: var(--font-size-sm);
-        margin-bottom: var(--space-1);
+    /* QUICK FILTERS */
+    .quick-filters {
+        padding: 0 2rem 2rem;
     }
 
-    .prediction-value {
+    .quick-filters h4 {
         color: var(--text-primary);
-        font-size: var(--font-size-2xl);
-        font-weight: 700;
-        margin-bottom: var(--space-1);
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
     }
 
-    .prediction-confidence,
-    .prediction-trend,
-    .prediction-urgency,
-    .prediction-action {
-        color: var(--text-muted);
-        font-size: var(--font-size-sm);
-    }
-
-    .predictive-insights {
-        background: var(--bg-secondary);
-        padding: var(--space-4);
-        border-radius: var(--radius-lg);
-        margin-bottom: var(--space-6);
-    }
-
-    .insights-list {
+    .filter-buttons {
         display: flex;
-        flex-direction: column;
-        gap: var(--space-2);
-        margin-top: var(--space-3);
-    }
-
-    .insight-item {
-        display: flex;
-        align-items: center;
-        gap: var(--space-3);
-        padding: var(--space-2);
-        background: var(--bg-accent);
-        border-radius: var(--radius-md);
-    }
-
-    .insight-item.loading {
-        color: var(--text-muted);
-    }
-
-    .insight-icon {
-        font-size: var(--font-size-lg);
-    }
-
-    .insight-text {
-        flex: 1;
-        font-size: var(--font-size-sm);
-    }
-
-    .predictive-actions {
-        display: flex;
-        gap: var(--space-3);
+        gap: 0.5rem;
         flex-wrap: wrap;
     }
 
+    .filter-btn {
+        padding: 0.5rem 1rem;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all var(--transition-base);
+    }
+
+    .filter-btn.active,
+    .filter-btn:hover {
+        background: var(--accent-blue);
+        border-color: var(--accent-blue);
+        color: white;
+        transform: translateY(-1px);
+    }
+
+    /* AI INSIGHTS IMPROVEMENTS */
+    .ai-insights-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+        padding: 2rem;
+    }
+
+    .ai-insight-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        transition: all var(--transition-base);
+        border-left: 4px solid var(--accent-purple);
+    }
+
+    .ai-insight-card:hover {
+        transform: translateY(-2px);
+        border-color: var(--border-accent);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .insight-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .insight-type {
+        color: var(--text-primary);
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+
+    .insight-score {
+        background: var(--success);
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: var(--radius-md);
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+
+    .insight-text {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        line-height: 1.5;
+        margin: 0;
+    }
+
+    /* RESPONSIVE IMPROVEMENTS */
     @media (max-width: 768px) {
-        .ai-status-grid,
-        .prediction-cards {
+        .admin-grid {
             grid-template-columns: 1fr;
         }
         
-        .ai-controls,
-        .predictive-actions {
-            flex-direction: column;
+        .overview-grid,
+        .analytics-grid,
+        .ai-insights-grid {
+            grid-template-columns: 1fr;
         }
         
-        .ai-assignment-item {
+        .management-actions {
+            grid-template-columns: 1fr;
+        }
+        
+        .section-header {
             flex-direction: column;
-            align-items: flex-start;
-            gap: var(--space-2);
+            gap: 1rem;
+            align-items: stretch;
+        }
+        
+        .section-actions {
+            justify-content: center;
+        }
+        
+        .stat-card {
+            flex-direction: column;
+            text-align: center;
+            min-height: auto;
+        }
+        
+        .stat-icon {
+            margin-bottom: 1rem;
         }
     }
     </style>
