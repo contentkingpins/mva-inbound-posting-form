@@ -3,1135 +3,520 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vendor Dashboard - MVA Lead Management</title>
+    <title>Publisher Dashboard - MVA CRM</title>
     
     <!-- Preconnect to CDNs -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     
     <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Icons -->
-    <link rel="stylesheet" href="https://unpkg.com/lucide@latest/dist/lucide.css">
+    <!-- MASTER DARK THEME - Single source of truth -->
+    <link rel="stylesheet" href="css/master-dark-theme.css">
     
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.3/index.min.js"></script>
-    
-    <!-- Date utilities -->
-    <script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.3/index.min.js"></script>
-    
-    <!-- Phase 1-3 Optimizations: Unified Dark Theme and Limited Features -->
-    <link rel="stylesheet" href="css/unified-dark-theme.css">
-    <link rel="stylesheet" href="css/vendor-dashboard.css">
-    <link rel="stylesheet" href="css/notification-center.css">
-    <link rel="stylesheet" href="css/data-export.css">
-    <link rel="stylesheet" href="css/performance-monitor.css">
     
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <style>
-        :root {
-            --primary: #8B5CF6;
-            --primary-dark: #7C3AED;
-            --primary-light: #A78BFA;
-            --secondary: #6366F1;
-            --background: #0F0F23;
-            --surface: #1A1A2E;
-            --surface-light: #16213E;
-            --text: #FFFFFF;
-            --text-secondary: #CBD5E1;
-            --success: #10B981;
-            --error: #EF4444;
-            --warning: #F59E0B;
-            --border: #374151;
-            --blue: #3B82F6;
-            --green: #10B981;
-            --yellow: #F59E0B;
-            --red: #EF4444;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, var(--background) 0%, var(--surface) 100%);
-            color: var(--text);
-            min-height: 100vh;
-        }
-
-        .dashboard {
-            display: grid;
-            grid-template-areas: 
-                "header header"
-                "sidebar main";
-            grid-template-columns: 280px 1fr;
-            grid-template-rows: auto 1fr;
-            min-height: 100vh;
-        }
-
-        .header {
-            grid-area: header;
-            background: rgba(26, 26, 46, 0.95);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(139, 92, 246, 0.2);
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .header-title h1 {
-            color: var(--primary);
-            font-size: 1.5rem;
-            font-weight: 700;
-        }
-
-        .header-title p {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-        }
-
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .vendor-info {
-            text-align: right;
-        }
-
-        .vendor-name {
-            font-weight: 600;
-            color: var(--text);
-        }
-
-        .vendor-code {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-        }
-
-        .logout-btn {
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            color: var(--error);
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .logout-btn:hover {
-            background: rgba(239, 68, 68, 0.2);
-            transform: translateY(-1px);
-        }
-
-        .sidebar {
-            grid-area: sidebar;
-            background: rgba(26, 26, 46, 0.8);
-            border-right: 1px solid rgba(139, 92, 246, 0.2);
-            padding: 2rem 0;
-        }
-
-        .nav-menu {
-            list-style: none;
-        }
-
-        .nav-item {
-            margin-bottom: 0.5rem;
-        }
-
-        .nav-link {
-            display: flex;
-            align-items: center;
-            padding: 1rem 2rem;
-            color: var(--text-secondary);
-            text-decoration: none;
-            transition: all 0.3s ease;
-            border-right: 3px solid transparent;
-        }
-
-        .nav-link:hover,
-        .nav-link.active {
-            background: rgba(139, 92, 246, 0.1);
-            color: var(--primary);
-            border-right-color: var(--primary);
-        }
-
-        .nav-icon {
-            width: 20px;
-            height: 20px;
-            margin-right: 0.75rem;
-        }
-
-        .main-content {
-            grid-area: main;
-            padding: 2rem;
-            overflow-y: auto;
-        }
-
-        .dashboard-section {
-            display: none;
-        }
-
-        .dashboard-section.active {
-            display: block;
-        }
-
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .metric-card {
-            background: rgba(26, 26, 46, 0.8);
-            border: 1px solid rgba(139, 92, 246, 0.2);
-            border-radius: 16px;
-            padding: 1.5rem;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .metric-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, var(--primary), transparent);
-        }
-
-        .metric-header {
-            display: flex;
-            justify-content: between;
-            align-items: flex-start;
-            margin-bottom: 1rem;
-        }
-
-        .metric-title {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            font-weight: 500;
-        }
-
-        .metric-icon {
-            padding: 0.5rem;
-            border-radius: 8px;
-            margin-left: auto;
-        }
-
-        .metric-value {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--text);
-            margin-bottom: 0.5rem;
-        }
-
-        .metric-change {
-            font-size: 0.85rem;
-            display: flex;
-            align-items: center;
-            gap: 0.25rem;
-        }
-
-        .metric-change.positive {
-            color: var(--success);
-        }
-
-        .metric-change.negative {
-            color: var(--error);
-        }
-
-        .chart-container {
-            background: rgba(26, 26, 46, 0.8);
-            border: 1px solid rgba(139, 92, 246, 0.2);
-            border-radius: 16px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .chart-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-
-        .chart-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: var(--text);
-        }
-
-        .date-range-picker {
-            display: flex;
-            gap: 0.5rem;
-            align-items: center;
-        }
-
-        .date-input {
-            background: rgba(139, 92, 246, 0.1);
-            border: 1px solid rgba(139, 92, 246, 0.3);
-            border-radius: 8px;
-            padding: 0.5rem;
-            color: var(--text);
-            font-size: 0.85rem;
-        }
-
-        .leads-table {
-            width: 100%;
-            background: rgba(26, 26, 46, 0.8);
-            border: 1px solid rgba(139, 92, 246, 0.2);
-            border-radius: 16px;
-            overflow: hidden;
-        }
-
-        .table-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1.5rem;
-            border-bottom: 1px solid rgba(139, 92, 246, 0.2);
-        }
-
-        .table-title {
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: var(--text);
-        }
-
-        .table-actions {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .btn {
-            background: rgba(139, 92, 246, 0.1);
-            border: 1px solid rgba(139, 92, 246, 0.3);
-            color: var(--primary);
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.85rem;
-            transition: all 0.3s ease;
-        }
-
-        .btn:hover {
-            background: rgba(139, 92, 246, 0.2);
-            transform: translateY(-1px);
-        }
-
-        .btn-primary {
-            background: var(--primary);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: var(--primary-dark);
-        }
-
-        .table-content {
-            max-height: 600px;
-            overflow-y: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th, td {
-            padding: 1rem;
-            text-align: left;
-            border-bottom: 1px solid rgba(139, 92, 246, 0.1);
-        }
-
-        th {
-            background: rgba(139, 92, 246, 0.05);
-            color: var(--text-secondary);
-            font-weight: 600;
-            font-size: 0.85rem;
-            position: sticky;
-            top: 0;
-        }
-
-        td {
-            color: var(--text);
-            font-size: 0.9rem;
-        }
-
-        .status-badge {
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
-        .status-new {
-            background: rgba(59, 130, 246, 0.2);
-            color: var(--blue);
-        }
-
-        .status-contacted {
-            background: rgba(245, 158, 11, 0.2);
-            color: var(--yellow);
-        }
-
-        .status-qualified {
-            background: rgba(16, 185, 129, 0.2);
-            color: var(--green);
-        }
-
-        .status-closed {
-            background: rgba(139, 92, 246, 0.2);
-            color: var(--primary);
-        }
-
-        .status-rejected {
-            background: rgba(239, 68, 68, 0.2);
-            color: var(--red);
-        }
-
-        .loading {
-            text-align: center;
-            padding: 2rem;
-            color: var(--text-secondary);
-        }
-
-        .loading-spinner {
-            display: inline-block;
-            width: 24px;
-            height: 24px;
-            border: 2px solid rgba(139, 92, 246, 0.3);
-            border-radius: 50%;
-            border-top-color: var(--primary);
-            animation: spin 0.8s linear infinite;
-            margin-right: 0.5rem;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .error-message {
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            color: var(--error);
-            padding: 1rem;
-            border-radius: 8px;
-            margin: 1rem 0;
-        }
-
-        .no-data {
-            text-align: center;
-            padding: 3rem;
-            color: var(--text-secondary);
-        }
-
-        @media (max-width: 768px) {
-            .dashboard {
-                grid-template-areas: 
-                    "header"
-                    "main";
-                grid-template-columns: 1fr;
-            }
-
-            .sidebar {
-                display: none;
-            }
-
-            .metrics-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .chart-header {
-                flex-direction: column;
-                gap: 1rem;
-                align-items: flex-start;
-            }
-
-            .table-content {
-                overflow-x: auto;
-            }
-        }
-    </style>
 </head>
 <body>
-    <div class="dashboard">
-        <!-- Header -->
-        <header class="header">
-            <div class="header-title">
-                <h1>🏢 Vendor Portal</h1>
-                <p>Lead Management Dashboard</p>
+    <!-- Header -->
+    <header class="admin-header">
+        <div class="header-content">
+            <div class="header-left">
+                <h1 class="header-title">
+                    <span class="header-icon">🏢</span>
+                    Publisher Portal
+                </h1>
+                <div class="header-greeting">
+                    Welcome, <span id="vendor-name" style="color: var(--accent-purple);">Publisher</span>
+                </div>
             </div>
-            <div class="header-actions">
+            <div class="header-right">
                 <div class="vendor-info">
-                    <div class="vendor-name" id="vendor-name">Loading...</div>
                     <div class="vendor-code" id="vendor-code">Loading...</div>
                 </div>
-                <button class="logout-btn" onclick="logout()">Logout</button>
+                <button class="btn btn-secondary btn-sm" onclick="logout()">
+                    Logout
+                </button>
             </div>
-        </header>
+        </div>
+    </header>
 
-        <!-- Sidebar -->
-        <nav class="sidebar">
-            <ul class="nav-menu">
-                <li class="nav-item">
-                    <a href="#" class="nav-link active" data-section="overview">
-                        <i data-lucide="layout-dashboard" class="nav-icon"></i>
-                        Overview
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link" data-section="leads">
-                        <i data-lucide="users" class="nav-icon"></i>
-                        My Leads
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link" data-section="analytics">
-                        <i data-lucide="bar-chart" class="nav-icon"></i>
-                        Analytics
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="#" class="nav-link" data-section="performance">
-                        <i data-lucide="trending-up" class="nav-icon"></i>
-                        Performance
-                    </a>
-                </li>
-            </ul>
-        </nav>
-
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Overview Section -->
-            <section id="overview" class="dashboard-section active">
-                <div class="metrics-grid" id="metrics-grid">
-                    <!-- Metrics will be populated by JavaScript -->
+    <!-- Main Content -->
+    <main class="admin-main">
+        <!-- Quick Stats Overview -->
+        <section class="stats-grid">
+            <div class="stat-card glass-card">
+                <div class="stat-content">
+                    <div class="stat-label">📊 Total Leads Sent</div>
+                    <div class="stat-value" id="total-leads">0</div>
+                    <div class="stat-subtext">all time</div>
                 </div>
-
-                <div class="chart-container">
-                    <div class="chart-header">
-                        <h3 class="chart-title">Lead Conversion Trend</h3>
-                        <div class="date-range-picker">
-                            <input type="date" id="chart-start-date" class="date-input">
-                            <span style="color: var(--text-secondary);">to</span>
-                            <input type="date" id="chart-end-date" class="date-input">
-                            <button class="btn" onclick="updateChart()">Update</button>
-                        </div>
-                    </div>
-                    <canvas id="conversionChart" width="400" height="200"></canvas>
-                </div>
-            </section>
-
-            <!-- Leads Section -->
-            <section id="leads" class="dashboard-section">
-                <div class="leads-table">
-                    <div class="table-header">
-                        <h3 class="table-title">My Leads</h3>
-                        <div class="table-actions">
-                            <select id="status-filter" class="btn">
-                                <option value="">All Status</option>
-                                <option value="New">New</option>
-                                <option value="Contacted">Contacted</option>
-                                <option value="Qualified">Qualified</option>
-                                <option value="Closed">Closed</option>
-                                <option value="Rejected">Rejected</option>
-                            </select>
-                            <button class="btn" onclick="exportLeads()">Export CSV</button>
-                            <button class="btn btn-primary" onclick="refreshLeads()">Refresh</button>
-                        </div>
-                    </div>
-                    <div class="table-content" id="leads-table-content">
-                        <div class="loading">
-                            <span class="loading-spinner"></span>Loading leads...
-                        </div>
+            </div>
+            
+            <div class="stat-card glass-card">
+                <div class="stat-content">
+                    <div class="stat-label">✅ Accepted Leads</div>
+                    <div class="stat-value" id="accepted-leads">0</div>
+                    <div class="stat-change positive" id="acceptance-rate">
+                        <span>0% acceptance rate</span>
                     </div>
                 </div>
-            </section>
+            </div>
+            
+            <div class="stat-card glass-card">
+                <div class="stat-content">
+                    <div class="stat-label">💰 Total Revenue</div>
+                    <div class="stat-value" id="total-revenue">$0</div>
+                    <div class="stat-subtext">earned this month</div>
+                </div>
+            </div>
+            
+            <div class="stat-card glass-card">
+                <div class="stat-content">
+                    <div class="stat-label">📈 Avg Lead Value</div>
+                    <div class="stat-value" id="avg-lead-value">$0</div>
+                    <div class="stat-change positive" id="value-trend">
+                        <span>↑ trending up</span>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-            <!-- Analytics Section -->
-            <section id="analytics" class="dashboard-section">
-                <div class="metrics-grid" id="analytics-metrics">
-                    <!-- Analytics metrics will be populated here -->
+        <!-- Lead Submission - Collapsible Section -->
+        <div class="collapsible-section">
+            <button class="section-toggle active" data-section="submit-lead">
+                <span>📝 Submit New Lead</span>
+                <span class="toggle-icon">▼</span>
+            </button>
+            <div class="section-content expanded" id="submit-lead-content">
+                <div class="lead-form-container">
+                    <form id="lead-submission-form" class="lead-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>First Name *</label>
+                                <input type="text" id="lead-first-name" class="form-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Last Name *</label>
+                                <input type="text" id="lead-last-name" class="form-input" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Email *</label>
+                                <input type="email" id="lead-email" class="form-input" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Phone *</label>
+                                <input type="tel" id="lead-phone" class="form-input" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>State *</label>
+                                <select id="lead-state" class="form-input" required>
+                                    <option value="">Select State</option>
+                                    <option value="CA">California</option>
+                                    <option value="TX">Texas</option>
+                                    <option value="FL">Florida</option>
+                                    <option value="NY">New York</option>
+                                    <!-- Add more states as needed -->
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Zip Code *</label>
+                                <input type="text" id="lead-zip" class="form-input" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Lead Notes</label>
+                            <textarea id="lead-notes" class="form-input" rows="3" placeholder="Additional information about the lead..."></textarea>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">📤 Submit Lead</button>
+                            <button type="reset" class="btn btn-secondary">🔄 Clear Form</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- My Leads - Collapsible Section -->
+        <div class="collapsible-section">
+            <button class="section-toggle active" data-section="my-leads">
+                <span>📋 My Lead History</span>
+                <span class="toggle-icon">▼</span>
+            </button>
+            <div class="section-content expanded" id="my-leads-content">
+                <div class="section-header">
+                    <div class="search-filters">
+                        <input type="text" id="search-leads" placeholder="🔍 Search leads..." class="search-input">
+                        <select id="filter-status" class="select-input">
+                            <option value="">All Status</option>
+                            <option value="new">New</option>
+                            <option value="contacted">Contacted</option>
+                            <option value="qualified">Qualified</option>
+                            <option value="rejected">Rejected</option>
+                        </select>
+                        <select id="date-range" class="select-input">
+                            <option value="7">Last 7 days</option>
+                            <option value="30">Last 30 days</option>
+                            <option value="90">Last 90 days</option>
+                            <option value="365">Last year</option>
+                        </select>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="btn btn-secondary" onclick="exportLeads()">📤 Export</button>
+                        <button class="btn btn-primary" onclick="refreshLeads()">🔄 Refresh</button>
+                    </div>
                 </div>
                 
-                <div class="chart-container">
-                    <div class="chart-header">
-                        <h3 class="chart-title">Lead Status Distribution</h3>
-                    </div>
-                    <canvas id="statusChart" width="400" height="200"></canvas>
-                </div>
-
-                <div class="chart-container">
-                    <div class="chart-header">
-                        <h3 class="chart-title">Monthly Performance</h3>
-                    </div>
-                    <canvas id="monthlyChart" width="400" height="200"></canvas>
-                </div>
-            </section>
-
-            <!-- Performance Section -->
-            <section id="performance" class="dashboard-section">
-                <div class="chart-container">
-                    <div class="chart-header">
-                        <h3 class="chart-title">Conversion Rate Over Time</h3>
-                    </div>
-                    <canvas id="performanceChart" width="400" height="200"></canvas>
-                </div>
-            </section>
-        </main>
-    </div>
-
-    <!-- Build-Time Injected Configuration -->
-    <script>
-    window.APP_CONFIG = {
-        "userPoolId": "us-east-1_lhc964tLD",
-        "clientId": "5t6mane4fnvineksoqb4ta0iu1",
-        "apiEndpoint": "https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod"
-    };
-    </script>
-
-    <script>
-        // Initialize Lucide icons
-        lucide.createIcons();
-
-        // Global variables
-        let vendorToken = localStorage.getItem('vendor_token');
-        let vendorCode = localStorage.getItem('vendor_code');
-        let vendorUsername = localStorage.getItem('vendor_username');
-        let currentLeads = [];
-        let conversionChart = null;
-        let statusChart = null;
-        let monthlyChart = null;
-        let performanceChart = null;
-
-        // Check authentication on load
-        window.addEventListener('load', function() {
-            if (!vendorToken || !vendorCode) {
-                window.location.href = 'vendor-login.html';
-                return;
-            }
-
-            // Verify token is still valid
-            try {
-                const payload = JSON.parse(atob(vendorToken.split('.')[1]));
-                const currentTime = Math.floor(Date.now() / 1000);
-                
-                if (payload.exp <= currentTime) {
-                    logout();
-                    return;
-                }
-            } catch (error) {
-                logout();
-                return;
-            }
-
-            initializeDashboard();
-        });
-
-        // Initialize dashboard
-        async function initializeDashboard() {
-            // Update vendor info
-            document.getElementById('vendor-name').textContent = vendorUsername || 'Vendor';
-            document.getElementById('vendor-code').textContent = `Code: ${vendorCode}`;
-
-            // Set up navigation
-            setupNavigation();
-
-            // Set default date range (last 30 days)
-            const endDate = new Date();
-            const startDate = new Date();
-            startDate.setDate(startDate.getDate() - 30);
-            
-            document.getElementById('chart-start-date').value = startDate.toISOString().split('T')[0];
-            document.getElementById('chart-end-date').value = endDate.toISOString().split('T')[0];
-
-            // Load initial data
-            await loadDashboardData();
-        }
-
-        // Setup navigation
-        function setupNavigation() {
-            const navLinks = document.querySelectorAll('.nav-link');
-            navLinks.forEach(link => {
-                link.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    
-                    // Update active link
-                    navLinks.forEach(l => l.classList.remove('active'));
-                    this.classList.add('active');
-                    
-                    // Show corresponding section
-                    const sectionId = this.dataset.section;
-                    showSection(sectionId);
-                });
-            });
-
-            // Status filter
-            document.getElementById('status-filter').addEventListener('change', function() {
-                filterLeads();
-            });
-        }
-
-        // Show specific section
-        function showSection(sectionId) {
-            const sections = document.querySelectorAll('.dashboard-section');
-            sections.forEach(section => section.classList.remove('active'));
-            
-            const targetSection = document.getElementById(sectionId);
-            if (targetSection) {
-                targetSection.classList.add('active');
-                
-                // Load section-specific data
-                if (sectionId === 'analytics' && !statusChart) {
-                    loadAnalytics();
-                } else if (sectionId === 'performance' && !performanceChart) {
-                    loadPerformance();
-                }
-            }
-        }
-
-        // Load dashboard data
-        async function loadDashboardData() {
-            try {
-                // Load metrics and leads in parallel
-                await Promise.all([
-                    loadMetrics(),
-                    loadLeads(),
-                    loadConversionChart()
-                ]);
-            } catch (error) {
-                console.error('Error loading dashboard data:', error);
-                showError('Failed to load dashboard data');
-            }
-        }
-
-        // Load metrics
-        async function loadMetrics() {
-            try {
-                const response = await fetch(`${window.APP_CONFIG.apiEndpoint}/vendor/analytics`, {
-                    headers: {
-                        'Authorization': `Bearer ${vendorToken}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to fetch metrics');
-                }
-
-                const data = await response.json();
-                renderMetrics(data);
-            } catch (error) {
-                console.error('Error loading metrics:', error);
-                renderMetrics({}); // Render empty metrics
-            }
-        }
-
-        // Load leads
-        async function loadLeads() {
-            try {
-                const response = await fetch(`${window.APP_CONFIG.apiEndpoint}/vendor/leads`, {
-                    headers: {
-                        'Authorization': `Bearer ${vendorToken}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to fetch leads');
-                }
-
-                const data = await response.json();
-                currentLeads = data.leads || [];
-                renderLeadsTable(currentLeads);
-            } catch (error) {
-                console.error('Error loading leads:', error);
-                renderLeadsTable([]);
-            }
-        }
-
-        // Render metrics
-        function renderMetrics(data) {
-            const metricsGrid = document.getElementById('metrics-grid');
-            const metrics = [
-                {
-                    title: 'Total Leads',
-                    value: data.total_leads || 0,
-                    change: data.leads_change || 0,
-                    icon: 'users',
-                    color: 'var(--blue)'
-                },
-                {
-                    title: 'Conversion Rate',
-                    value: data.conversion_rate ? `${data.conversion_rate}%` : '0%',
-                    change: data.conversion_change || 0,
-                    icon: 'trending-up',
-                    color: 'var(--green)'
-                },
-                {
-                    title: 'Revenue Generated',
-                    value: data.revenue ? `$${data.revenue.toLocaleString()}` : '$0',
-                    change: data.revenue_change || 0,
-                    icon: 'dollar-sign',
-                    color: 'var(--primary)'
-                },
-                {
-                    title: 'This Month',
-                    value: data.monthly_leads || 0,
-                    change: data.monthly_change || 0,
-                    icon: 'calendar',
-                    color: 'var(--yellow)'
-                }
-            ];
-
-            metricsGrid.innerHTML = metrics.map(metric => `
-                <div class="metric-card">
-                    <div class="metric-header">
-                        <div class="metric-title">${metric.title}</div>
-                        <div class="metric-icon" style="background: ${metric.color}20; color: ${metric.color};">
-                            <i data-lucide="${metric.icon}" style="width: 20px; height: 20px;"></i>
-                        </div>
-                    </div>
-                    <div class="metric-value">${metric.value}</div>
-                    <div class="metric-change ${metric.change >= 0 ? 'positive' : 'negative'}">
-                        <i data-lucide="${metric.change >= 0 ? 'trending-up' : 'trending-down'}" style="width: 16px; height: 16px;"></i>
-                        ${Math.abs(metric.change)}% from last period
-                    </div>
-                </div>
-            `).join('');
-
-            lucide.createIcons();
-        }
-
-        // Render leads table
-        function renderLeadsTable(leads) {
-            const tableContent = document.getElementById('leads-table-content');
-            
-            if (leads.length === 0) {
-                tableContent.innerHTML = '<div class="no-data">No leads found</div>';
-                return;
-            }
-
-            tableContent.innerHTML = `
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Email</th>
-                            <th>Phone</th>
-                            <th>Status</th>
-                            <th>Value</th>
-                            <th>Created</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${leads.map(lead => `
+                <div class="table-container">
+                    <table class="data-table" id="leads-table">
+                        <thead>
                             <tr>
-                                <td>${lead.first_name} ${lead.last_name}</td>
-                                <td>${lead.email}</td>
-                                <td>${lead.phone}</td>
-                                <td>
-                                    <span class="status-badge status-${lead.disposition.toLowerCase().replace(' ', '-')}">
-                                        ${lead.disposition}
-                                    </span>
-                                </td>
-                                <td>$${(lead.lead_value || 0).toLocaleString()}</td>
-                                <td>${new Date(lead.created_date).toLocaleDateString()}</td>
+                                <th>Lead</th>
+                                <th>Contact Info</th>
+                                <th>Location</th>
+                                <th>Status</th>
+                                <th>Submitted</th>
+                                <th>Value</th>
                             </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-        }
+                        </thead>
+                        <tbody id="leads-tbody">
+                            <tr>
+                                <td colspan="6" class="loading-state">
+                                    <div class="loading-spinner"></div>
+                                    Loading your leads...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
 
-        // Filter leads
-        function filterLeads() {
-            const statusFilter = document.getElementById('status-filter').value;
-            let filteredLeads = currentLeads;
+        <!-- Performance Analytics - Collapsible Section -->
+        <div class="collapsible-section">
+            <button class="section-toggle" data-section="analytics">
+                <span>📊 Performance Analytics</span>
+                <span class="toggle-icon">▼</span>
+            </button>
+            <div class="section-content" id="analytics-content">
+                <div class="analytics-grid">
+                    <div class="analytics-card">
+                        <div class="card-header">
+                            <h3>📈 Lead Submission Trends</h3>
+                        </div>
+                        <canvas id="submission-chart"></canvas>
+                    </div>
+                    
+                    <div class="analytics-card">
+                        <div class="card-header">
+                            <h3>🎯 Acceptance Rate</h3>
+                        </div>
+                        <canvas id="acceptance-chart"></canvas>
+                    </div>
+                    
+                    <div class="analytics-card">
+                        <div class="card-header">
+                            <h3>💰 Revenue Breakdown</h3>
+                        </div>
+                        <div class="revenue-summary">
+                            <div class="revenue-item">
+                                <span class="revenue-label">This Month</span>
+                                <span class="revenue-value" id="monthly-revenue">$0</span>
+                            </div>
+                            <div class="revenue-item">
+                                <span class="revenue-label">Last Month</span>
+                                <span class="revenue-value" id="last-month-revenue">$0</span>
+                            </div>
+                            <div class="revenue-item">
+                                <span class="revenue-label">Total Earned</span>
+                                <span class="revenue-value" id="total-earned">$0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-            if (statusFilter) {
-                filteredLeads = currentLeads.filter(lead => lead.disposition === statusFilter);
-            }
+        <!-- API Information - Collapsible Section -->
+        <div class="collapsible-section">
+            <button class="section-toggle" data-section="api-info">
+                <span>🔑 API Information</span>
+                <span class="toggle-icon">▼</span>
+            </button>
+            <div class="section-content" id="api-info-content">
+                <div class="api-info-grid">
+                    <div class="api-card glass-card">
+                        <h3>📋 Your API Details</h3>
+                        <div class="api-detail">
+                            <label>Publisher Code:</label>
+                            <code id="api-publisher-code">Loading...</code>
+                        </div>
+                        <div class="api-detail">
+                            <label>API Key:</label>
+                            <code id="api-key">Loading...</code>
+                            <button class="btn btn-sm btn-secondary" onclick="copyAPIKey()">📋 Copy</button>
+                        </div>
+                        <div class="api-detail">
+                            <label>Endpoint:</label>
+                            <code>POST /api/v1/leads</code>
+                        </div>
+                    </div>
+                    
+                    <div class="api-card glass-card">
+                        <h3>📖 API Usage</h3>
+                        <div class="usage-stats">
+                            <div class="usage-item">
+                                <span class="usage-label">Today</span>
+                                <span class="usage-value" id="calls-today">0</span>
+                            </div>
+                            <div class="usage-item">
+                                <span class="usage-label">This Month</span>
+                                <span class="usage-value" id="calls-month">0</span>
+                            </div>
+                            <div class="usage-item">
+                                <span class="usage-label">Rate Limit</span>
+                                <span class="usage-value">1000/hour</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
 
-            renderLeadsTable(filteredLeads);
-        }
-
-        // Load conversion chart
-        async function loadConversionChart() {
-            const ctx = document.getElementById('conversionChart').getContext('2d');
-            
-            // Mock data for now - replace with real API call
-            const chartData = {
-                labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-                datasets: [{
-                    label: 'Leads',
-                    data: [12, 19, 15, 25],
-                    borderColor: 'rgb(139, 92, 246)',
-                    backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                    tension: 0.4
-                }, {
-                    label: 'Conversions',
-                    data: [2, 4, 3, 6],
-                    borderColor: 'rgb(16, 185, 129)',
-                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                    tension: 0.4
-                }]
-            };
-
-            conversionChart = new Chart(ctx, {
-                type: 'line',
-                data: chartData,
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            labels: {
-                                color: 'rgb(203, 213, 225)'
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            ticks: {
-                                color: 'rgb(203, 213, 225)'
-                            },
-                            grid: {
-                                color: 'rgba(139, 92, 246, 0.1)'
-                            }
-                        },
-                        y: {
-                            ticks: {
-                                color: 'rgb(203, 213, 225)'
-                            },
-                            grid: {
-                                color: 'rgba(139, 92, 246, 0.1)'
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        // Load analytics
-        async function loadAnalytics() {
-            // Load status distribution chart
-            const statusCtx = document.getElementById('statusChart').getContext('2d');
-            
-            const statusData = {
-                labels: ['New', 'Contacted', 'Qualified', 'Closed', 'Rejected'],
-                datasets: [{
-                    data: [30, 25, 20, 15, 10],
-                    backgroundColor: [
-                        'rgb(59, 130, 246)',
-                        'rgb(245, 158, 11)',
-                        'rgb(16, 185, 129)',
-                        'rgb(139, 92, 246)',
-                        'rgb(239, 68, 68)'
-                    ]
-                }]
-            };
-
-            statusChart = new Chart(statusCtx, {
-                type: 'doughnut',
-                data: statusData,
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            labels: {
-                                color: 'rgb(203, 213, 225)'
-                            }
-                        }
-                    }
-                }
-            });
-
-            // Load monthly performance chart
-            const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
-            
-            const monthlyData = {
-                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-                datasets: [{
-                    label: 'Leads',
-                    data: [65, 59, 80, 81, 56, 75],
-                    backgroundColor: 'rgba(139, 92, 246, 0.2)',
-                    borderColor: 'rgb(139, 92, 246)',
-                    borderWidth: 2
-                }]
-            };
-
-            monthlyChart = new Chart(monthlyCtx, {
-                type: 'bar',
-                data: monthlyData,
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            labels: {
-                                color: 'rgb(203, 213, 225)'
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            ticks: {
-                                color: 'rgb(203, 213, 225)'
-                            },
-                            grid: {
-                                color: 'rgba(139, 92, 246, 0.1)'
-                            }
-                        },
-                        y: {
-                            ticks: {
-                                color: 'rgb(203, 213, 225)'
-                            },
-                            grid: {
-                                color: 'rgba(139, 92, 246, 0.1)'
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        // Load performance
-        async function loadPerformance() {
-            const ctx = document.getElementById('performanceChart').getContext('2d');
-            
-            const performanceData = {
-                labels: ['Q1', 'Q2', 'Q3', 'Q4'],
-                datasets: [{
-                    label: 'Conversion Rate (%)',
-                    data: [12, 15, 18, 22],
-                    borderColor: 'rgb(16, 185, 129)',
-                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                    tension: 0.4,
-                    fill: true
-                }]
-            };
-
-            performanceChart = new Chart(ctx, {
-                type: 'line',
-                data: performanceData,
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            labels: {
-                                color: 'rgb(203, 213, 225)'
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            ticks: {
-                                color: 'rgb(203, 213, 225)'
-                            },
-                            grid: {
-                                color: 'rgba(139, 92, 246, 0.1)'
-                            }
-                        },
-                        y: {
-                            ticks: {
-                                color: 'rgb(203, 213, 225)'
-                            },
-                            grid: {
-                                color: 'rgba(139, 92, 246, 0.1)'
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        // Update chart with date range
-        function updateChart() {
-            // Implement date range update logic
-            console.log('Updating chart with date range');
-        }
-
-        // Export leads to CSV
-        function exportLeads() {
-            if (currentLeads.length === 0) {
-                alert('No leads to export');
-                return;
-            }
-
-            const headers = ['Name', 'Email', 'Phone', 'Status', 'Value', 'Created'];
-            const csvContent = [
-                headers.join(','),
-                ...currentLeads.map(lead => [
-                    `"${lead.first_name} ${lead.last_name}"`,
-                    `"${lead.email}"`,
-                    `"${lead.phone}"`,
-                    `"${lead.disposition}"`,
-                    lead.lead_value || 0,
-                    new Date(lead.created_date).toLocaleDateString()
-                ].join(','))
-            ].join('\n');
-
-            const blob = new Blob([csvContent], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.setAttribute('href', url);
-            a.setAttribute('download', `leads-${vendorCode}-${new Date().toISOString().split('T')[0]}.csv`);
-            a.click();
-            window.URL.revokeObjectURL(url);
-        }
-
-        // Refresh leads
-        async function refreshLeads() {
-            document.getElementById('leads-table-content').innerHTML = '<div class="loading"><span class="loading-spinner"></span>Refreshing leads...</div>';
-            await loadLeads();
-        }
-
-        // Show error message
-        function showError(message) {
-            const errorHtml = `<div class="error-message">${message}</div>`;
-            document.querySelector('.main-content').insertAdjacentHTML('afterbegin', errorHtml);
-            
-            setTimeout(() => {
-                const errorEl = document.querySelector('.error-message');
-                if (errorEl) errorEl.remove();
-            }, 5000);
-        }
-
-        // Logout function
-        function logout() {
-            localStorage.removeItem('vendor_token');
-            localStorage.removeItem('vendor_code');
-            localStorage.removeItem('vendor_username');
-            window.location.href = 'vendor-login.html';
-        }
-    </script>
-
+    <!-- Scripts -->
     <script src="js/mock-api.js"></script>
-    <!-- API Service -->
     <script src="js/api-service.js"></script>
     <script src="vendor-dashboard.js"></script>
     
-    <!-- Phase 2-3 Feature Scripts (Limited for Vendors) -->
-    <script src="js/notification-center.js"></script>
-    <script src="js/data-export.js"></script>
-    <script src="js/performance-monitor.js"></script>
-    <script src="js/data-visualization.js"></script>
-    <script src="js/service-worker-registration.js"></script>
+    <!-- Publisher-specific JavaScript -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle collapsible sections
+        document.querySelectorAll('.section-toggle').forEach(toggle => {
+            toggle.addEventListener('click', function() {
+                const sectionName = this.dataset.section;
+                const content = document.getElementById(sectionName + '-content');
+                const icon = this.querySelector('.toggle-icon');
+                
+                // Toggle active state
+                this.classList.toggle('active');
+                content.classList.toggle('expanded');
+                
+                // Rotate icon
+                if (this.classList.contains('active')) {
+                    icon.textContent = '▲';
+                } else {
+                    icon.textContent = '▼';
+                }
+            });
+        });
+        
+        // Handle lead submission form
+        document.getElementById('lead-submission-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            submitLead();
+        });
+        
+        // Utility functions
+        window.submitLead = function() {
+            const formData = {
+                firstName: document.getElementById('lead-first-name').value,
+                lastName: document.getElementById('lead-last-name').value,
+                email: document.getElementById('lead-email').value,
+                phone: document.getElementById('lead-phone').value,
+                state: document.getElementById('lead-state').value,
+                zipCode: document.getElementById('lead-zip').value,
+                notes: document.getElementById('lead-notes').value
+            };
+            
+            // Submit to API
+            console.log('Submitting lead:', formData);
+            // Add actual API call here
+            alert('Lead submitted successfully!');
+            document.getElementById('lead-submission-form').reset();
+        };
+        
+        window.exportLeads = function() {
+            console.log('Exporting leads...');
+        };
+        
+        window.refreshLeads = function() {
+            console.log('Refreshing leads...');
+        };
+        
+        window.copyAPIKey = function() {
+            const apiKey = document.getElementById('api-key').textContent;
+            navigator.clipboard.writeText(apiKey).then(() => {
+                alert('API key copied to clipboard!');
+            });
+        };
+        
+        window.logout = function() {
+            console.log('Logging out...');
+            // Add logout logic
+        };
+        
+        console.log('🎯 Publisher dashboard initialized with streamlined dark theme');
+    });
+    
+    // Additional CSS for publisher-specific styling
+    const additionalCSS = `
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-4);
+            margin-bottom: var(--space-4);
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-group label {
+            color: var(--text-secondary);
+            font-size: var(--font-size-sm);
+            font-weight: 500;
+            margin-bottom: var(--space-2);
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: var(--space-3);
+            justify-content: flex-end;
+            margin-top: var(--space-6);
+        }
+        
+        .lead-form-container {
+            background: var(--bg-glass);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: var(--space-6);
+            margin-top: var(--space-4);
+        }
+        
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: var(--space-5);
+            margin-top: var(--space-4);
+        }
+        
+        .api-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: var(--space-5);
+            margin-top: var(--space-4);
+        }
+        
+        .api-card {
+            padding: var(--space-5);
+        }
+        
+        .api-card h3 {
+            color: var(--text-primary);
+            margin-bottom: var(--space-4);
+            font-size: var(--font-size-lg);
+        }
+        
+        .api-detail {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+            margin-bottom: var(--space-3);
+        }
+        
+        .api-detail label {
+            color: var(--text-secondary);
+            font-size: var(--font-size-sm);
+            min-width: 100px;
+        }
+        
+        .api-detail code {
+            background: var(--bg-accent);
+            padding: var(--space-2) var(--space-3);
+            border-radius: var(--radius-md);
+            color: var(--accent-cyan);
+            font-family: 'Courier New', monospace;
+            font-size: var(--font-size-sm);
+            flex: 1;
+        }
+        
+        .usage-stats {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-3);
+        }
+        
+        .usage-item, .revenue-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--space-3);
+            background: var(--bg-accent);
+            border-radius: var(--radius-md);
+        }
+        
+        .usage-label, .revenue-label {
+            color: var(--text-secondary);
+            font-size: var(--font-size-sm);
+        }
+        
+        .usage-value, .revenue-value {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        
+        .revenue-summary {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-3);
+            margin-top: var(--space-4);
+        }
+        
+        .vendor-info {
+            text-align: right;
+        }
+        
+        .vendor-code {
+            font-size: var(--font-size-sm);
+            color: var(--text-secondary);
+            font-family: 'Courier New', monospace;
+        }
+        
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .analytics-grid,
+            .api-info-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-actions {
+                flex-direction: column;
+            }
+        }
+    `;
+    
+    // Inject additional CSS
+    const styleSheet = document.createElement('style');
+    styleSheet.textContent = additionalCSS;
+    document.head.appendChild(styleSheet);
+    </script>
 </body>
 </html> 

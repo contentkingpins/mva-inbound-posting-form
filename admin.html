@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Lead Management System</title>
+    <title>Admin Dashboard - MVA CRM</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     
     <!-- Preconnect to CDNs -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://unpkg.com">
     
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -23,57 +22,26 @@
     <!-- CountUp.js for number animations -->
     <script src="https://unpkg.com/countup.js@2.8.0/dist/countUp.umd.js"></script>
     
-    <!-- Custom Styles -->
-    <link rel="stylesheet" href="admin.css">
-
-    <!-- Phase 1-3 Optimizations: Unified Dark Theme and Features -->
-    <link rel="stylesheet" href="css/unified-dark-theme.css">
-    <link rel="stylesheet" href="css/notification-center.css">
-    <link rel="stylesheet" href="css/data-export.css">
-    <link rel="stylesheet" href="css/keyboard-shortcuts.css">
-    <link rel="stylesheet" href="css/performance-monitor.css">
-    <link rel="stylesheet" href="css/virtual-scroll.css">
-    <link rel="stylesheet" href="css/unified-features.css">
+    <!-- MASTER DARK THEME - Single source of truth -->
+    <link rel="stylesheet" href="css/master-dark-theme.css">
     
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Modern icon library -->
 
-<!-- Build-Time Injected Configuration -->
-
-
-<!-- Build-Time Injected Configuration -->
-
-
-<!-- Build-Time Injected Configuration -->
-
-
-<!-- AppConfig Module Reference -->
-<script src="/js/app-config.js?v=1748481232267"></script>
-
-<!-- Build-Time Injected Configuration -->
-<script>
-/**
- * Application Configuration - Injected at Build Time
- * This eliminates the need for external config.json files and prevents
- * race conditions, failed fetches, and timing issues.
- */
-window.APP_CONFIG = {
-  "userPoolId": "us-east-1_lhc964tLD",
-  "clientId": "5t6mane4fnvineksoqb4ta0iu1",
-  "apiEndpoint": "https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod",
-  "apiUrl": "https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod",
-  "apiKey": "",
-  "buildTime": "2025-05-29T01:13:52.266Z",
-  "buildEnv": "production"
-};
-
-// Legacy compatibility - some code might still look for these
-window.preloadedConfig = window.APP_CONFIG;
-
-console.log('🔧 Configuration injected at build time - no external loading needed');
-</script>
+    <!-- Build-Time Injected Configuration -->
+    <script>
+    window.APP_CONFIG = {
+        "userPoolId": "us-east-1_lhc964tLD",
+        "clientId": "5t6mane4fnvineksoqb4ta0iu1",
+        "apiEndpoint": "https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod",
+        "apiUrl": "https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod",
+        "apiKey": "",
+        "buildTime": "2025-05-29T01:13:52.266Z",
+        "buildEnv": "production"
+    };
+    window.preloadedConfig = window.APP_CONFIG;
+    console.log('🔧 Configuration injected at build time - no external loading needed');
+    </script>
 </head>
 <body>
     <!-- Header -->
@@ -81,348 +49,247 @@ console.log('🔧 Configuration injected at build time - no external loading nee
         <div class="header-content">
             <div class="header-left">
                 <h1 class="header-title">
-                    <span class="header-icon">🎨</span>
-                    Admin Dashboard
+                    <span class="header-icon">⚡</span>
+                    MVA CRM Admin
                 </h1>
                 <div class="header-greeting">
-                    Good <span id="time-greeting">morning</span>, <span id="admin-name">Admin</span> ☕
+                    Good <span id="time-greeting">morning</span>, <span id="admin-name">Admin</span> 
                 </div>
             </div>
             <div class="header-right">
-                <div class="header-date"></div>
+                <div class="header-date" id="current-date"></div>
+                <button class="btn btn-secondary btn-sm" id="refresh-all">🔄 Refresh</button>
             </div>
         </div>
     </header>
 
     <!-- Main Content -->
     <main class="admin-main">
-        <!-- System Overview Stats -->
-        <section class="stats-section">
-            <div class="section-header">
-                <h2 class="section-title">📊 System Overview</h2>
-                <div class="header-actions">
-                    <button class="btn btn-secondary" id="refresh-dashboard">🔄 Refresh</button>
-                    <span class="last-updated" id="last-updated">Last updated: --:--</span>
+        <!-- Quick Stats Overview - Always Visible -->
+        <section class="stats-grid">
+            <div class="stat-card glass-card">
+                <div class="stat-content">
+                    <div class="stat-label">💰 Total Revenue</div>
+                    <div class="stat-value" id="total-revenue">$0</div>
+                    <div class="stat-change positive" id="revenue-change">
+                        <span>↑ 0%</span>
+                    </div>
                 </div>
             </div>
             
-            <div class="stats-grid">
-                <div class="stat-card glass-card">
-                    <div class="stat-icon" data-tooltip="Total revenue from all closed leads" data-tooltip-theme="success">💰</div>
-                    <div class="stat-content">
-                        <div class="stat-label">Total Revenue</div>
-                        <div class="stat-value" id="total-revenue">$0</div>
-                        <div class="stat-change positive" id="revenue-change" data-tooltip="Compared to last period">
-                            <span>↑ 0%</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="stat-card glass-card">
-                    <div class="stat-icon" data-tooltip="Cost Per Acquisition - Average cost per lead" data-tooltip-theme="primary">📊</div>
-                    <div class="stat-content">
-                        <div class="stat-label">Average CPA</div>
-                        <div class="stat-value" id="average-cpa">$0</div>
-                        <div class="stat-change negative" id="cpa-change" data-tooltip="Lower is better">
-                            <span>↓ 0%</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="stat-card glass-card">
-                    <div class="stat-icon" data-tooltip="Number of agents currently online" data-tooltip-theme="success">👥</div>
-                    <div class="stat-content">
-                        <div class="stat-label">Active Agents</div>
-                        <div class="stat-value" id="active-agents">0</div>
-                        <div class="stat-subtext" id="total-agents">of 0 total</div>
-                    </div>
-                </div>
-                
-                <div class="stat-card glass-card">
-                    <div class="stat-icon" data-tooltip="Percentage of leads converted to customers" data-tooltip-theme="warning">🎯</div>
-                    <div class="stat-content">
-                        <div class="stat-label">Conversion Rate</div>
-                        <div class="stat-value" id="conversion-rate">0%</div>
-                        <div class="stat-change positive" id="conversion-change" data-tooltip="Conversion trend">
-                            <span>↑ 0%</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Dashboard Widgets Section -->
-        <section class="dashboard-widgets-section">
-            <!-- Widget controls and grid will be automatically inserted here by dashboard-widgets.js -->
-        </section>
-
-        <!-- Live Activity Feed -->
-        <section class="activity-section glass-card">
-            <div class="section-header">
-                <h2 class="section-title">🔴 Live Activity Feed</h2>
-                <div class="activity-controls">
-                    <button class="btn btn-sm btn-secondary" id="pause-activity">⏸️ Pause</button>
-                    <button class="btn btn-sm btn-secondary" id="clear-activity">🗑️ Clear</button>
+            <div class="stat-card glass-card">
+                <div class="stat-content">
+                    <div class="stat-label">👥 Active Users</div>
+                    <div class="stat-value" id="active-users">0</div>
+                    <div class="stat-subtext" id="total-users">of 0 total</div>
                 </div>
             </div>
             
-            <div class="activity-feed" id="activity-feed">
-                <!-- Live activities will be populated here -->
+            <div class="stat-card glass-card">
+                <div class="stat-content">
+                    <div class="stat-label">📈 Conversion Rate</div>
+                    <div class="stat-value" id="conversion-rate">0%</div>
+                    <div class="stat-change positive" id="conversion-change">
+                        <span>↑ 0%</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stat-card glass-card">
+                <div class="stat-content">
+                    <div class="stat-label">🔄 Live Activity</div>
+                    <div class="stat-value" id="live-activity">0</div>
+                    <div class="stat-subtext">leads today</div>
+                </div>
             </div>
         </section>
 
-        <!-- Enhanced Agent Management -->
-        <section class="agents-management glass-card">
-            <div class="section-header">
-                <h2 class="section-title">👥 Agent Command Center</h2>
-                <div class="management-controls">
+        <!-- Agent Leaderboard - Collapsible Section -->
+        <div class="collapsible-section">
+            <button class="section-toggle active" data-section="agent-leaderboard">
+                <span>🏆 Agent Leaderboard</span>
+                <span class="toggle-icon">▼</span>
+            </button>
+            <div class="section-content expanded" id="agent-leaderboard-content">
+                <div class="leaderboard-grid" id="agent-leaderboard">
+                    <!-- Leaderboard items will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Agent Management - Collapsible Section -->
+        <div class="collapsible-section">
+            <button class="section-toggle" data-section="agent-management">
+                <span>👥 Agent Management</span>
+                <span class="toggle-icon">▼</span>
+            </button>
+            <div class="section-content" id="agent-management-content">
+                <div class="section-header">
                     <div class="search-filters">
                         <input type="text" id="agent-search" placeholder="🔍 Search agents..." class="search-input">
                         <select id="agent-status-filter" class="select-input">
                             <option value="all">All Status</option>
                             <option value="online">Online</option>
                             <option value="offline">Offline</option>
-                            <option value="invited">Invited</option>
-                        </select>
-                        <select id="agent-role-filter" class="select-input">
-                            <option value="all">All Roles</option>
-                            <option value="admin">Admin</option>
-                            <option value="agent">Agent</option>
-                            <option value="viewer">Viewer</option>
                         </select>
                     </div>
                     <div class="action-buttons">
-                        <button class="btn btn-secondary" id="bulk-actions-btn">📋 Bulk Actions</button>
-                        <button class="btn btn-primary" id="add-agent-btn">
-                            <span class="btn-icon">+</span>
-                            Add Agent
-                        </button>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Agent Performance Leaderboard -->
-            <div class="leaderboard-section">
-                <h3>🏆 Top Performers This Month</h3>
-                <div class="leaderboard-grid" id="agent-leaderboard">
-                    <!-- Will be populated by JavaScript -->
-                </div>
-            </div>
-            
-            <!-- Advanced Agent Table -->
-            <div class="agents-table-container">
-                <div class="bulk-actions-bar" id="bulk-actions-bar" style="display: none;">
-                    <div class="selected-count">
-                        <span id="selected-agent-count">0</span> agents selected
-                    </div>
-                    <div class="bulk-buttons">
-                        <button class="btn btn-sm btn-secondary" id="bulk-enable">✅ Enable</button>
-                        <button class="btn btn-sm btn-secondary" id="bulk-disable">❌ Disable</button>
-                        <button class="btn btn-sm btn-danger" id="bulk-delete">🗑️ Delete</button>
+                        <button class="btn btn-primary" id="add-agent-btn">+ Add Agent</button>
                     </div>
                 </div>
                 
-                <table class="data-table enhanced-table" id="agents-table">
-                    <thead>
-                        <tr>
-                            <th>
-                                <input type="checkbox" id="select-all-agents" class="bulk-checkbox">
-                            </th>
-                            <th class="sortable" data-sort="name">
-                                Agent <span class="sort-indicator">↕️</span>
-                            </th>
-                            <th class="sortable" data-sort="status">
-                                Status <span class="sort-indicator">↕️</span>
-                            </th>
-                            <th class="sortable" data-sort="role">
-                                Role <span class="sort-indicator">↕️</span>
-                            </th>
-                            <th class="sortable" data-sort="leads">
-                                Leads <span class="sort-indicator">↕️</span>
-                            </th>
-                            <th class="sortable" data-sort="conversion">
-                                Conversion <span class="sort-indicator">↕️</span>
-                            </th>
-                            <th class="sortable" data-sort="lastActive">
-                                Last Active <span class="sort-indicator">↕️</span>
-                            </th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="agents-tbody">
-                        <!-- Agent rows will be inserted here -->
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-        <!-- Publisher Analytics & Management -->
-        <section class="analytics-section">
-            <div class="section-header">
-                <h2 class="section-title">🏢 Publisher Management</h2>
-                <div class="header-actions">
-                    <button class="btn btn-primary" id="add-publisher-btn">➕ Add Publisher</button>
-                    <button class="btn btn-secondary" id="bulk-publisher-actions">📋 Bulk Actions</button>
+                <div class="table-container">
+                    <table class="data-table" id="agents-table">
+                        <thead>
+                            <tr>
+                                <th>Agent</th>
+                                <th>Status</th>
+                                <th>Role</th>
+                                <th>Leads</th>
+                                <th>Conversion</th>
+                                <th>Last Active</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="agents-tbody">
+                            <!-- Agent rows populated by JavaScript -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
-            
-            <div class="analytics-grid">
-                <!-- Publisher Search & Filters -->
-                <div class="analytics-card full-width">
-                    <div class="card-header">
-                        <h3>🔍 Publisher Search & Management</h3>
-                        <div class="search-filters">
-                            <input type="text" class="search-input" id="publisher-search" placeholder="Search publishers...">
-                            <select class="filter-select" id="publisher-status-filter">
-                                <option value="">All Status</option>
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                                <option value="pending">Pending</option>
-                            </select>
-                            <select class="filter-select" id="publisher-sort">
-                                <option value="name">Sort by Name</option>
-                                <option value="leads">Sort by Leads</option>
-                                <option value="revenue">Sort by Revenue</option>
-                                <option value="date">Sort by Date Added</option>
-                            </select>
+        </div>
+
+        <!-- Publisher Management - Collapsible Section -->
+        <div class="collapsible-section">
+            <button class="section-toggle" data-section="publisher-management">
+                <span>🏢 Publisher Management</span>
+                <span class="toggle-icon">▼</span>
+            </button>
+            <div class="section-content" id="publisher-management-content">
+                <div class="section-header">
+                    <div class="search-filters">
+                        <input type="text" id="publisher-search" placeholder="🔍 Search publishers..." class="search-input">
+                        <select id="publisher-status-filter" class="select-input">
+                            <option value="">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" id="add-publisher-btn">+ Add Publisher</button>
+                        <button class="btn btn-success" id="generate-api-key">🔑 Generate API Key</button>
+                    </div>
+                </div>
+                
+                <div class="table-container">
+                    <table class="data-table" id="publishers-table">
+                        <thead>
+                            <tr>
+                                <th>Publisher</th>
+                                <th>Vendor Code</th>
+                                <th>Status</th>
+                                <th>API Key</th>
+                                <th>Total Leads</th>
+                                <th>Revenue</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="publishers-table-body">
+                            <!-- Publishers populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Activity Feed - Collapsible Section -->
+        <div class="collapsible-section">
+            <button class="section-toggle" data-section="activity-feed">
+                <span>🔴 Live Activity Feed</span>
+                <span class="toggle-icon">▼</span>
+            </button>
+            <div class="section-content" id="activity-feed-content">
+                <div class="section-header">
+                    <div class="activity-controls">
+                        <button class="btn btn-sm btn-secondary" id="pause-activity">⏸️ Pause</button>
+                        <button class="btn btn-sm btn-secondary" id="clear-activity">🗑️ Clear</button>
+                    </div>
+                </div>
+                
+                <div class="activity-feed" id="activity-feed">
+                    <!-- Live activities will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics Dashboard - Collapsible Section -->
+        <div class="collapsible-section">
+            <button class="section-toggle" data-section="analytics">
+                <span>📊 Analytics Dashboard</span>
+                <span class="toggle-icon">▼</span>
+            </button>
+            <div class="section-content" id="analytics-content">
+                <div class="analytics-grid">
+                    <div class="analytics-card">
+                        <div class="card-header">
+                            <h3>📈 Performance Overview</h3>
                         </div>
+                        <canvas id="performance-chart"></canvas>
                     </div>
                     
-                    <div class="table-container">
-                        <table class="data-table" id="publishers-table">
-                            <thead>
-                                <tr>
-                                    <th><input type="checkbox" id="select-all-publishers"></th>
-                                    <th class="sortable" data-sort="name">Publisher Name</th>
-                                    <th class="sortable" data-sort="status">Status</th>
-                                    <th class="sortable" data-sort="api">API Key</th>
-                                    <th class="sortable" data-sort="leads">Total Leads</th>
-                                    <th class="sortable" data-sort="revenue">Revenue</th>
-                                    <th class="sortable" data-sort="lastActivity">Last Activity</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="publishers-table-body">
-                                <!-- Publishers will be loaded here -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                
-                <!-- Publisher Performance Chart -->
-                <div class="analytics-card">
-                    <div class="card-header">
-                        <h3>📈 Publisher Performance</h3>
-                    </div>
-                    <canvas id="publisher-chart"></canvas>
-                </div>
-                
-                <!-- Top Publishers -->
-                <div class="analytics-card">
-                    <div class="card-header">
-                        <h3>🏆 Top Publishers</h3>
-                    </div>
-                    <div class="top-list" id="top-publishers-list">
-                        <!-- Top publishers will be loaded here -->
-                    </div>
-                </div>
-                
-                <!-- API Generation Panel -->
-                <div class="analytics-card">
-                    <div class="card-header">
-                        <h3>🔑 API Management</h3>
-                    </div>
-                    <div class="api-panel">
-                        <div class="api-stats">
-                            <div class="api-stat">
-                                <span class="api-stat-number" id="active-apis">0</span>
-                                <span class="api-stat-label">Active APIs</span>
-                            </div>
-                            <div class="api-stat">
-                                <span class="api-stat-number" id="api-calls-today">0</span>
-                                <span class="api-stat-label">Calls Today</span>
-                            </div>
+                    <div class="analytics-card">
+                        <div class="card-header">
+                            <h3>🏆 Top Publishers</h3>
                         </div>
-                        <button class="btn btn-success" id="generate-api-key">🔑 Generate New API Key</button>
-                        <button class="btn btn-secondary" id="api-documentation">📖 API Documentation</button>
+                        <div class="top-list" id="top-publishers-list">
+                            <!-- Top publishers populated by JavaScript -->
+                        </div>
                     </div>
-                </div>
-
-                <div class="smart-pricing-controls">
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="smart-pricing">
-                        <span class="toggle-slider"></span>
-                    </label>
-                    <span>Enable Smart Pricing</span>
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="openVendorPricingModal()">
-                        💵 Manage Vendor Pricing
-                    </button>
                 </div>
             </div>
-        </section>
+        </div>
     </main>
 
     <!-- Floating Action Button -->
     <div class="fab-container">
-        <button class="fab" id="mainFab" data-tooltip="Quick Actions" data-tooltip-position="left">
+        <button class="fab" id="mainFab">
             <span class="fab-icon">+</span>
         </button>
         <div class="fab-menu" id="fabMenu">
-            <button class="fab-action" id="newLeadBtn" data-tooltip="Create a new lead" data-tooltip-position="left">
+            <button class="fab-action" id="newLeadBtn">
                 <span>📋</span> New Lead
             </button>
-            <button class="fab-action" id="newAgentBtn" data-tooltip="Add a new agent" data-tooltip-position="left">
+            <button class="fab-action" id="newAgentBtn">
                 <span>👤</span> New Agent
             </button>
-            <button class="fab-action" id="newVendorBtn" data-tooltip="Register a new vendor" data-tooltip-position="left">
-                <span>🏢</span> New Vendor
+            <button class="fab-action" id="newPublisherBtn">
+                <span>🏢</span> New Publisher
             </button>
-            <button class="fab-action" id="exportDataBtn" data-tooltip="Export data to CSV/PDF" data-tooltip-position="left">
+            <button class="fab-action" id="exportDataBtn">
                 <span>📤</span> Export Data
             </button>
         </div>
     </div>
 
-    <!-- Modals -->
     <!-- Add Agent Modal -->
     <div class="modal-overlay" id="add-agent-modal">
         <div class="modal glass-modal">
             <div class="modal-header">
-                <h3 class="modal-title">Add New Team Member</h3>
+                <h3 class="modal-title">Add New Agent</h3>
                 <button class="modal-close" data-modal="add-agent-modal">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="conversational-form">
-                    <div class="form-step">
-                        <label>What's their email?</label>
-                        <input type="email" id="new-agent-email" placeholder="jane@example.com" class="form-input">
-                    </div>
-                    <div class="form-step">
-                        <label>What should they do?</label>
-                        <div class="role-options">
-                            <label class="role-option">
-                                <input type="radio" name="agent-role" value="agent" checked>
-                                <span class="role-card">
-                                    <span class="role-icon">👁️</span>
-                                    <span class="role-name">View & manage leads</span>
-                                </span>
-                            </label>
-                            <label class="role-option">
-                                <input type="radio" name="agent-role" value="viewer">
-                                <span class="role-card">
-                                    <span class="role-icon">📊</span>
-                                    <span class="role-name">Just view leads</span>
-                                </span>
-                            </label>
-                            <label class="role-option">
-                                <input type="radio" name="agent-role" value="admin">
-                                <span class="role-card">
-                                    <span class="role-icon">🛡️</span>
-                                    <span class="role-name">Full admin access</span>
-                                </span>
-                            </label>
-                        </div>
-                    </div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="new-agent-email" placeholder="agent@example.com" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Role</label>
+                    <select id="new-agent-role" class="form-input">
+                        <option value="agent">Agent - Manage leads</option>
+                        <option value="viewer">Viewer - View only</option>
+                        <option value="admin">Admin - Full access</option>
+                    </select>
                 </div>
             </div>
             <div class="modal-footer">
@@ -432,310 +299,141 @@ console.log('🔧 Configuration injected at build time - no external loading nee
         </div>
     </div>
 
-    <!-- Custom Pricing Modal -->
-    <div class="modal-overlay" id="custom-pricing-modal">
+    <!-- Add Publisher Modal -->
+    <div class="modal-overlay" id="add-publisher-modal">
         <div class="modal glass-modal">
             <div class="modal-header">
-                <h3 class="modal-title">💵 Custom Vendor Pricing</h3>
-                <button class="modal-close" data-modal="custom-pricing-modal">&times;</button>
+                <h3 class="modal-title">Add New Publisher</h3>
+                <button class="modal-close" data-modal="add-publisher-modal">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="pricing-list" id="vendor-pricing-list">
-                    <!-- Vendor pricing items will be inserted here -->
+                <div class="form-group">
+                    <label>Publisher Name</label>
+                    <input type="text" id="new-publisher-name" placeholder="Publisher Name" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label>Contact Email</label>
+                    <input type="email" id="new-publisher-email" placeholder="contact@publisher.com" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label>Vendor Code</label>
+                    <input type="text" id="new-publisher-code" placeholder="AUTO-GENERATED" class="form-input" readonly style="background: var(--bg-accent); color: var(--text-muted);">
+                </div>
+                <div class="form-group">
+                    <label>API Key</label>
+                    <input type="text" id="new-publisher-api-key" placeholder="AUTO-GENERATED" class="form-input" readonly style="background: var(--bg-accent); color: var(--text-muted);">
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="new-publisher-status" class="form-input">
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="pending">Pending</option>
+                    </select>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-modal="custom-pricing-modal">Cancel</button>
-                <button class="btn btn-primary" id="update-all-prices">Update All</button>
+                <button class="btn btn-secondary" data-modal="add-publisher-modal">Cancel</button>
+                <button class="btn btn-primary" id="create-publisher">Create Publisher</button>
             </div>
         </div>
     </div>
-
-    <!-- Add Publisher Modal -->
-    <div id="publisherModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="publisher-modal-title">Add New Publisher</h3>
-                <span class="close" id="close-publisher-modal">&times;</span>
-            </div>
-            <form id="publisher-form">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="publisher-name">Publisher Name *</label>
-                        <input type="text" id="publisher-name" name="name" class="form-input" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="publisher-email">Contact Email *</label>
-                        <input type="email" id="publisher-email" name="email" class="form-input" required>
-                    </div>
-                </div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="publisher-phone">Phone Number</label>
-                        <input type="tel" id="publisher-phone" name="phone" class="form-input">
-                    </div>
-                    <div class="form-group">
-                        <label for="publisher-website">Website</label>
-                        <input type="url" id="publisher-website" name="website" class="form-input" placeholder="https://">
-                    </div>
-                </div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="publisher-status">Status</label>
-                        <select id="publisher-status" name="status" class="form-input">
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                            <option value="pending">Pending</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="publisher-commission">Commission Rate (%)</label>
-                        <input type="number" id="publisher-commission" name="commission" class="form-input" min="0" max="100" step="0.1">
-                    </div>
-                </div>
-                
-                <div class="form-group full-width">
-                    <label for="publisher-description">Description</label>
-                    <textarea id="publisher-description" name="description" class="form-input" rows="3" placeholder="Brief description of the publisher..."></textarea>
-                </div>
-                
-                <!-- API Configuration -->
-                <div class="api-config-section">
-                    <h4>🔑 API Configuration</h4>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="generate-api">
-                                <input type="checkbox" id="generate-api" name="generateApi" checked>
-                                Generate API Key for Lead Submission
-                            </label>
-                        </div>
-                        <div class="form-group">
-                            <label for="api-rate-limit">API Rate Limit (calls/hour)</label>
-                            <input type="number" id="api-rate-limit" name="rateLimit" class="form-input" value="1000" min="1">
-                        </div>
-                    </div>
-                    
-                    <div class="api-info" id="api-info" style="display: none;">
-                        <div class="api-key-display">
-                            <label>Generated API Key:</label>
-                            <div class="api-key-container">
-                                <input type="text" id="generated-api-key" class="form-input" readonly>
-                                <button type="button" class="btn btn-secondary" id="copy-api-key">📋 Copy</button>
-                            </div>
-                        </div>
-                        
-                        <div class="api-endpoints">
-                            <label>Lead Submission Endpoint:</label>
-                            <code id="api-endpoint">POST /api/v1/leads/submit</code>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" id="cancel-publisher">Cancel</button>
-                    <button type="submit" class="btn btn-primary" id="save-publisher">
-                        <span class="btn-loader" style="display: none;">⏳</span>
-                        Save Publisher
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-    
-    <!-- API Documentation Modal -->
-    <div id="apiDocModal" class="modal">
-        <div class="modal-content large">
-            <div class="modal-header">
-                <h3>📖 Publisher API Documentation</h3>
-                <span class="close" id="close-api-doc-modal">&times;</span>
-            </div>
-            <div class="modal-body">
-                <div class="api-docs">
-                    <h4>Lead Submission API</h4>
-                    <p>Publishers can submit leads directly to our system using these endpoints:</p>
-                    
-                    <div class="api-section">
-                        <h5>Authentication</h5>
-                        <p>Include your API key in the Authorization header:</p>
-                        <pre><code>Authorization: Bearer YOUR_API_KEY</code></pre>
-                    </div>
-                    
-                    <div class="api-section">
-                        <h5>Submit Lead</h5>
-                        <div class="endpoint">
-                            <span class="method post">POST</span>
-                            <span class="url">/api/v1/leads/submit</span>
-                        </div>
-                        
-                        <h6>Request Body:</h6>
-                        <pre><code>{
-  "firstName": "John",
-  "lastName": "Doe",
-  "email": "john@example.com",
-  "phone": "+1234567890",
-  "leadType": "motor_vehicle_accident",
-  "incidentDate": "2024-05-30",
-  "description": "Rear-end collision",
-  "injuries": true,
-  "location": {
-    "city": "Los Angeles",
-    "state": "CA",
-    "zipCode": "90210"
-  },
-  "metadata": {
-    "source": "web_form",
-    "campaign": "summer_2024"
-  }
-}</code></pre>
-                        
-                        <h6>Response:</h6>
-                        <pre><code>{
-  "success": true,
-  "leadId": "lead_12345",
-  "message": "Lead submitted successfully",
-  "timestamp": "2024-05-30T14:30:00Z"
-}</code></pre>
-                    </div>
-                    
-                    <div class="api-section">
-                        <h5>Lead Status</h5>
-                        <div class="endpoint">
-                            <span class="method get">GET</span>
-                            <span class="url">/api/v1/leads/{leadId}/status</span>
-                        </div>
-                        
-                        <h6>Response:</h6>
-                        <pre><code>{
-  "leadId": "lead_12345",
-  "status": "processing",
-  "assignedTo": "agent_456",
-  "lastUpdated": "2024-05-30T14:35:00Z"
-}</code></pre>
-                    </div>
-                    
-                    <div class="api-section">
-                        <h5>Rate Limits</h5>
-                        <p>API calls are limited based on your publisher plan:</p>
-                        <ul>
-                            <li>Standard: 1,000 calls/hour</li>
-                            <li>Premium: 5,000 calls/hour</li>
-                            <li>Enterprise: Unlimited</li>
-                        </ul>
-                    </div>
-                    
-                    <div class="api-section">
-                        <h5>Error Codes</h5>
-                        <table class="error-codes-table">
-                            <tr><td>400</td><td>Bad Request - Invalid data format</td></tr>
-                            <tr><td>401</td><td>Unauthorized - Invalid API key</td></tr>
-                            <tr><td>429</td><td>Rate Limited - Too many requests</td></tr>
-                            <tr><td>500</td><td>Server Error - Contact support</td></tr>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Toast Container -->
-    <div class="toast-container" id="toast-container"></div>
 
     <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- API Service -->
     <script src="js/api-service.js"></script>
     <script src="admin.js"></script>
-    <script src="js/dashboard-widgets.js" type="module"></script>
-    <script src="js/notification-system.js" type="module"></script>
-    <script src="js/search-system.js" type="module"></script>
-    <script src="js/workflow-engine.js" type="module"></script>
-    <script src="js/collaboration-engine.js" type="module"></script>
-    <script src="js/lead-scoring-engine.js" type="module"></script>
-    <script src="js/analytics-insights.js" type="module"></script>
-    <script src="js/workflow-automation.js" type="module"></script>
-    <script src="js/data-visualization.js" type="module"></script>
     
-    <!-- Phase 2-3 Feature Scripts -->
-    <script src="js/notification-center.js"></script>
-    <script src="js/data-export.js"></script>
-    <script src="js/keyboard-shortcuts.js"></script>
-    <script src="js/performance-monitor.js"></script>
-    <script src="js/virtual-scroll.js"></script>
-    <script src="js/unified-widgets.js"></script>
-    <script src="js/global-search.js"></script>
-    <script src="js/service-worker-registration.js"></script>
-    
-    <!-- Vendor controls -->
-    <script src="admin-vendor-controls.js"></script>
+    <!-- Collapsible Sections JavaScript -->
     <script>
-        // Initialize vendor controls when document loads
-        document.addEventListener('DOMContentLoaded', () => {
-            window.vendorControl.initialize().catch(console.error);
-            
-            // Show/hide add vendor form
-            document.getElementById('add-vendor-btn').addEventListener('click', () => {
-                document.getElementById('add-vendor-form').style.display = 'block';
+    document.addEventListener('DOMContentLoaded', function() {
+        // Auto-generate vendor codes and API keys
+        function generateVendorCode() {
+            const prefix = 'PUB';
+            const timestamp = Date.now().toString().slice(-6);
+            const random = Math.random().toString(36).substr(2, 4).toUpperCase();
+            return `${prefix}${timestamp}${random}`;
+        }
+        
+        function generateAPIKey() {
+            return 'api_' + Math.random().toString(36).substr(2, 32);
+        }
+        
+        // Handle collapsible sections
+        document.querySelectorAll('.section-toggle').forEach(toggle => {
+            toggle.addEventListener('click', function() {
+                const sectionName = this.dataset.section;
+                const content = document.getElementById(sectionName + '-content');
+                const icon = this.querySelector('.toggle-icon');
+                
+                // Toggle active state
+                this.classList.toggle('active');
+                content.classList.toggle('expanded');
+                
+                // Rotate icon
+                if (this.classList.contains('active')) {
+                    icon.textContent = '▲';
+                } else {
+                    icon.textContent = '▼';
+                }
             });
         });
-    </script>
-    
-    <!-- Error Tracking & Monitoring System -->
-    <script src="js/error-tracker.js"></script>
-    <script src="js/feedback-widget.js"></script>
-    <script src="js/health-monitor.js"></script>
-    <script src="js/analytics-tracker.js"></script>
-    
-    <!-- Mock API for Development -->
-    <script src="js/mock-api.js"></script>
-    
-    <!-- Lead Assignment Module -->
-    <script src="js/lead-assignment.js"></script>
-    
-    <!-- Advanced Filters Module -->
-    <script src="js/advanced-filters.js"></script>
-    
-    <script>
-        // Initialize monitoring systems
-        console.log('🚀 Initializing monitoring systems...');
         
-        // Track admin-specific features
-        if (window.analyticsTracker) {
-            window.analyticsTracker.trackFeature('admin_dashboard_loaded');
+        // Handle modals
+        document.querySelectorAll('[data-modal]').forEach(trigger => {
+            trigger.addEventListener('click', function() {
+                const modalId = this.dataset.modal;
+                const modal = document.getElementById(modalId);
+                if (modal) {
+                    modal.classList.toggle('active');
+                }
+            });
+        });
+        
+        // Handle modal close buttons
+        document.querySelectorAll('.modal-close').forEach(closeBtn => {
+            closeBtn.addEventListener('click', function() {
+                const modal = this.closest('.modal-overlay');
+                if (modal) {
+                    modal.classList.remove('active');
+                }
+            });
+        });
+        
+        // Auto-generate codes when opening publisher modal
+        document.getElementById('add-publisher-btn').addEventListener('click', function() {
+            document.getElementById('new-publisher-code').value = generateVendorCode();
+            document.getElementById('new-publisher-api-key').value = generateAPIKey();
+            document.getElementById('add-publisher-modal').classList.add('active');
+        });
+        
+        // Handle FAB menu
+        document.getElementById('mainFab').addEventListener('click', function() {
+            document.querySelector('.fab-container').classList.toggle('active');
+        });
+        
+        // Update date and time
+        function updateDateTime() {
+            const now = new Date();
+            const hour = now.getHours();
+            let greeting = 'morning';
             
-            // Track admin actions
-            document.addEventListener('click', (e) => {
-                const adminAction = e.target.closest('[data-admin-action]');
-                if (adminAction) {
-                    window.analyticsTracker.trackFeature(
-                        `admin_action_${adminAction.dataset.adminAction}`
-                    );
-                }
+            if (hour >= 12 && hour < 17) greeting = 'afternoon';
+            else if (hour >= 17) greeting = 'evening';
+            
+            document.getElementById('time-greeting').textContent = greeting;
+            document.getElementById('current-date').textContent = now.toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
             });
         }
         
-        // Monitor admin-specific health metrics
-        if (window.healthMonitor) {
-            window.healthMonitor.addEventListener('healthUpdate', (data) => {
-                // Update admin UI with health status if needed
-                if (data.overall === 'down' || data.overall === 'degraded') {
-                    console.warn('⚠️ System health issue detected:', data);
-                }
-            });
-        }
+        updateDateTime();
+        setInterval(updateDateTime, 60000); // Update every minute
         
-        // Enhanced error tracking for admin
-        if (window.errorTracker) {
-            window.errorTracker.addEventListener('error', (error) => {
-                // Critical errors in admin should be more visible
-                if (error.severity === 'critical') {
-                    console.error('🚨 Critical error in admin dashboard:', error);
-                }
-            });
-        }
-        
-        console.log('✅ All monitoring systems initialized');
+        console.log('🎯 Admin dashboard initialized with streamlined dark theme');
+    });
     </script>
 </body>
 </html> 
