@@ -200,6 +200,12 @@
             </div>
             <div class="header-right">
                 <div class="header-date" id="current-date"></div>
+                <button class="btn btn-success btn-sm" onclick="openAddAgentModal()">
+                    👤 Add Agent
+                </button>
+                <button class="btn btn-info btn-sm" onclick="openAddPublisherModal()">
+                    🏢 Add Publisher
+                </button>
                 <button class="btn btn-secondary btn-sm" onclick="window.open('smart-lead-router-demo.html', '_blank')">
                     🤖 AI Demo
                 </button>
@@ -528,20 +534,20 @@
     <!-- Floating Action Button -->
     <div class="fab-container">
         <button class="fab" id="mainFab">
-            <span class="fab-icon">+</span>
+            <span class="fab-icon">⚡</span>
         </button>
         <div class="fab-menu" id="fabMenu">
-            <button class="fab-action" id="newLeadBtn">
-                <span>📋</span> New Lead
+            <button class="fab-action" onclick="exportLeadData()">
+                <span>📊</span> Export Data
             </button>
-            <button class="fab-action" id="newAgentBtn">
-                <span>👤</span> New Agent
+            <button class="fab-action" onclick="refreshOverview()">
+                <span>🔄</span> Refresh All
             </button>
-            <button class="fab-action" id="newPublisherBtn">
-                <span>🏢</span> New Publisher
+            <button class="fab-action" onclick="agentDashboard()">
+                <span>👤</span> Agent View
             </button>
-            <button class="fab-action" id="exportDataBtn">
-                <span>📤</span> Export Data
+            <button class="fab-action" onclick="viewAnalyticsDetails()">
+                <span>📈</span> Analytics
             </button>
         </div>
     </div>
@@ -551,7 +557,7 @@
         <div class="modal glass-modal">
             <div class="modal-header">
                 <h3 class="modal-title">Add New Agent</h3>
-                <button class="modal-close" data-modal="add-agent-modal">&times;</button>
+                <button class="modal-close" onclick="closeModal('add-agent-modal')">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
@@ -568,8 +574,8 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-modal="add-agent-modal">Cancel</button>
-                <button class="btn btn-primary" id="send-agent-invite">Send Invite</button>
+                <button class="btn btn-secondary" onclick="closeModal('add-agent-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="handleSendAgentInvite()">Send Invite</button>
             </div>
         </div>
     </div>
@@ -579,7 +585,7 @@
         <div class="modal glass-modal">
             <div class="modal-header">
                 <h3 class="modal-title">Add New Publisher</h3>
-                <button class="modal-close" data-modal="add-publisher-modal">&times;</button>
+                <button class="modal-close" onclick="closeModal('add-publisher-modal')">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
@@ -608,8 +614,8 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-modal="add-publisher-modal">Cancel</button>
-                <button class="btn btn-primary" id="create-publisher">Create Publisher</button>
+                <button class="btn btn-secondary" onclick="closeModal('add-publisher-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="handleCreatePublisher()">Create Publisher</button>
             </div>
         </div>
     </div>
@@ -684,16 +690,16 @@
             });
         });
         
-        // Auto-generate codes when opening publisher modal
-        document.getElementById('add-publisher-btn').addEventListener('click', function() {
-            document.getElementById('new-publisher-code').value = generateVendorCode();
-            document.getElementById('new-publisher-api-key').value = generateAPIKey();
-            document.getElementById('add-publisher-modal').classList.add('active');
-        });
-        
-        // Handle FAB menu
+        // Handle FAB menu (simplified)
         document.getElementById('mainFab').addEventListener('click', function() {
             document.querySelector('.fab-container').classList.toggle('active');
+        });
+        
+        // Close modals when clicking outside
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('modal-overlay')) {
+                e.target.classList.remove('active');
+            }
         });
         
         // Update date and time
@@ -1101,6 +1107,79 @@
         // Navigate to agent dashboard
         window.open('agent-dashboard.html', '_blank');
         addActivityFeedItem('👤 Agent dashboard opened', 'info');
+    }
+
+    // MODAL CONTROL FUNCTIONS
+    function openAddAgentModal() {
+        console.log('👤 Opening Add Agent modal...');
+        const modal = document.getElementById('add-agent-modal');
+        if (modal) {
+            // Clear previous data
+            document.getElementById('new-agent-email').value = '';
+            document.getElementById('new-agent-role').value = 'agent';
+            
+            modal.classList.add('active');
+            addActivityFeedItem('👤 Add Agent dialog opened', 'info');
+        }
+    }
+
+    function openAddPublisherModal() {
+        console.log('🏢 Opening Add Publisher modal...');
+        const modal = document.getElementById('add-publisher-modal');
+        if (modal) {
+            // Clear and generate new data
+            document.getElementById('new-publisher-name').value = '';
+            document.getElementById('new-publisher-email').value = '';
+            document.getElementById('new-publisher-code').value = generateVendorCode();
+            document.getElementById('new-publisher-api-key').value = generateAPIKey();
+            document.getElementById('new-publisher-status').value = 'active';
+            
+            modal.classList.add('active');
+            addActivityFeedItem('🏢 Add Publisher dialog opened', 'info');
+        }
+    }
+
+    function closeModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.remove('active');
+        }
+    }
+
+    // ENHANCED MODAL FUNCTIONS
+    function handleSendAgentInvite() {
+        const email = document.getElementById('new-agent-email').value;
+        const role = document.getElementById('new-agent-role').value;
+        
+        if (!email) {
+            alert('Please enter an email address');
+            return;
+        }
+        
+        console.log('📧 Sending agent invite:', { email, role });
+        
+        // Here you would call your API to create the agent
+        addActivityFeedItem(`📧 Agent invite sent to ${email}`, 'success');
+        closeModal('add-agent-modal');
+    }
+
+    function handleCreatePublisher() {
+        const name = document.getElementById('new-publisher-name').value;
+        const email = document.getElementById('new-publisher-email').value;
+        const vendorCode = document.getElementById('new-publisher-code').value;
+        const apiKey = document.getElementById('new-publisher-api-key').value;
+        const status = document.getElementById('new-publisher-status').value;
+        
+        if (!name || !email) {
+            alert('Please fill in all required fields');
+            return;
+        }
+        
+        console.log('🏢 Creating publisher:', { name, email, vendorCode, apiKey, status });
+        
+        // Here you would call your API to create the publisher
+        addActivityFeedItem(`🏢 Publisher "${name}" created successfully`, 'success');
+        closeModal('add-publisher-modal');
     }
     </script>
 
@@ -1634,6 +1713,101 @@
         .stat-icon {
             margin-bottom: 1rem;
         }
+        
+        .header-right {
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+        }
+    }
+
+    /* HEADER IMPROVEMENTS */
+    .header-right {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .header-date {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        margin-right: 0.5rem;
+    }
+
+    /* FORM STYLING IMPROVEMENTS */
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        display: block;
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .form-input {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        color: var(--text-primary);
+        font-size: 0.9rem;
+        transition: all var(--transition-base);
+    }
+
+    .form-input:focus {
+        outline: none;
+        border-color: var(--accent-blue);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        background: var(--bg-accent);
+    }
+
+    .form-input::placeholder {
+        color: var(--text-muted);
+    }
+
+    .form-input[readonly] {
+        background: var(--bg-accent) !important;
+        color: var(--text-muted) !important;
+        cursor: not-allowed;
+    }
+
+    /* ENHANCED BUTTON STYLING */
+    .btn-sm {
+        padding: 0.5rem 1rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .btn-success {
+        background: var(--success);
+        color: white;
+        border: none;
+    }
+
+    .btn-success:hover {
+        background: #059669;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+    }
+
+    .btn-info {
+        background: var(--info);
+        color: white;
+        border: none;
+    }
+
+    .btn-info:hover {
+        background: #2563EB;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
     }
     </style>
 </body>
