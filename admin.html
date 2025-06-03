@@ -25,6 +25,118 @@
     <!-- MASTER DARK THEME - Single source of truth -->
     <link rel="stylesheet" href="css/master-dark-theme.css">
     
+    <!-- FALLBACK: Inline critical dark theme styles for instant loading -->
+    <style>
+    /* Critical dark theme styles - loads immediately */
+    :root {
+        --bg-primary: #0F0F23;
+        --bg-secondary: #1A1A2E;
+        --bg-accent: #16213E;
+        --bg-glass: rgba(26, 26, 46, 0.95);
+        --text-primary: #FFFFFF;
+        --text-secondary: #CBD5E1;
+        --text-muted: #9CA3AF;
+        --accent-blue: #3B82F6;
+        --accent-purple: #8B5CF6;
+        --success: #10B981;
+        --warning: #F59E0B;
+        --error: #EF4444;
+        --border-subtle: rgba(139, 92, 246, 0.2);
+        --border-accent: rgba(59, 130, 246, 0.3);
+        --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        --space-4: 1rem;
+        --space-6: 1.5rem;
+        --radius-lg: 0.75rem;
+        --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+        --transition-base: 0.3s ease;
+    }
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+        font-family: var(--font-family);
+        background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+        color: var(--text-primary);
+        min-height: 100vh;
+        line-height: 1.6;
+    }
+    
+    .admin-header {
+        background: var(--bg-glass);
+        backdrop-filter: blur(20px);
+        border-bottom: 1px solid var(--border-subtle);
+        padding: var(--space-4) var(--space-6);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+    
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    
+    .header-title {
+        color: var(--accent-purple);
+        font-size: 1.5rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .admin-main {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: var(--space-6);
+        min-height: calc(100vh - 80px);
+    }
+    
+    .quick-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+        background: var(--bg-glass);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        padding: 1.25rem;
+        transition: all var(--transition-base);
+    }
+    
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        border: none;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all var(--transition-base);
+        text-decoration: none;
+    }
+    
+    .btn-primary {
+        background: var(--accent-blue);
+        color: white;
+    }
+    
+    .btn-secondary {
+        background: var(--bg-accent);
+        color: var(--text-primary);
+        border: 1px solid var(--border-subtle);
+    }
+    </style>
+    
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
@@ -41,6 +153,35 @@
     };
     window.preloadedConfig = window.APP_CONFIG;
     console.log('🔧 Configuration injected at build time - no external loading needed');
+    
+    // 🎨 DARK THEME ENFORCER - Ensures dark theme always loads
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🎨 Dark Theme Enforcer - Checking CSS...');
+        
+        // Test if external CSS loaded by checking for custom properties
+        const testElement = document.createElement('div');
+        testElement.style.display = 'none';
+        document.body.appendChild(testElement);
+        
+        const computedStyle = getComputedStyle(testElement);
+        const bgPrimary = computedStyle.getPropertyValue('--bg-primary');
+        
+        if (!bgPrimary || bgPrimary.trim() === '') {
+            console.warn('⚠️ External CSS not loaded - using inline fallback');
+            // The inline CSS will handle it
+        } else {
+            console.log('✅ Dark theme CSS loaded successfully');
+        }
+        
+        document.body.removeChild(testElement);
+        
+        // Force dark theme class on body
+        document.body.classList.add('dark-theme');
+        
+        // Apply additional dark theme enforcement
+        document.body.style.background = 'linear-gradient(135deg, #0F0F23 0%, #1A1A2E 100%)';
+        document.body.style.color = '#FFFFFF';
+    });
     </script>
 </head>
 <body>
@@ -54,10 +195,14 @@
                 </h1>
                 <div class="header-greeting">
                     Good <span id="time-greeting">morning</span>, <span id="admin-name">Admin</span> 
+                    <span class="ai-badge">🤖 AI Enhanced</span>
                 </div>
             </div>
             <div class="header-right">
                 <div class="header-date" id="current-date"></div>
+                <button class="btn btn-secondary btn-sm" onclick="window.open('smart-lead-router-demo.html', '_blank')">
+                    🤖 AI Demo
+                </button>
                 <button class="btn btn-secondary btn-sm" id="refresh-all">🔄 Refresh</button>
             </div>
         </div>
@@ -65,189 +210,319 @@
 
     <!-- Main Content -->
     <main class="admin-main">
-        <!-- Quick Stats Overview - Always Visible -->
-        <section class="stats-grid">
-            <div class="stat-card glass-card">
+        <!-- Quick Stats Grid -->
+        <div class="quick-stats-grid">
+            <div class="stat-card leads">
+                <div class="stat-icon">📋</div>
                 <div class="stat-content">
-                    <div class="stat-label">💰 Total Revenue</div>
-                    <div class="stat-value" id="total-revenue">$0</div>
-                    <div class="stat-change positive" id="revenue-change">
-                        <span>↑ 0%</span>
-                    </div>
+                    <div class="stat-value" id="total-leads">0</div>
+                    <div class="stat-label">Total Leads</div>
+                    <div class="stat-change positive" id="leads-change">+12% this week</div>
                 </div>
             </div>
             
-            <div class="stat-card glass-card">
+            <div class="stat-card agents">
+                <div class="stat-icon">👥</div>
                 <div class="stat-content">
-                    <div class="stat-label">👥 Active Users</div>
-                    <div class="stat-value" id="active-users">0</div>
-                    <div class="stat-subtext" id="total-users">of 0 total</div>
+                    <div class="stat-value" id="active-agents">0</div>
+                    <div class="stat-label">Active Agents</div>
+                    <div class="stat-change positive" id="agents-change">3 online now</div>
                 </div>
             </div>
             
-            <div class="stat-card glass-card">
+            <div class="stat-card conversion">
+                <div class="stat-icon">🎯</div>
                 <div class="stat-content">
-                    <div class="stat-label">📈 Conversion Rate</div>
                     <div class="stat-value" id="conversion-rate">0%</div>
-                    <div class="stat-change positive" id="conversion-change">
-                        <span>↑ 0%</span>
-                    </div>
+                    <div class="stat-label">Conversion Rate</div>
+                    <div class="stat-change positive" id="conversion-change">+5% improvement</div>
                 </div>
             </div>
             
-            <div class="stat-card glass-card">
+            <div class="stat-card revenue">
+                <div class="stat-icon">💰</div>
                 <div class="stat-content">
-                    <div class="stat-label">🔄 Live Activity</div>
-                    <div class="stat-value" id="live-activity">0</div>
-                    <div class="stat-subtext">leads today</div>
+                    <div class="stat-value" id="monthly-revenue">$0</div>
+                    <div class="stat-label">Monthly Revenue</div>
+                    <div class="stat-change positive" id="revenue-change">On track</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lead Management Overview -->
+        <section class="admin-section">
+            <div class="section-header">
+                <div class="section-title">
+                    <span class="section-icon">📊</span>
+                    <h2>Lead Management Overview</h2>
+                </div>
+                <div class="section-actions">
+                    <button class="btn btn-secondary" onclick="exportLeadData()">📊 Export Data</button>
+                    <button class="btn btn-primary" onclick="refreshOverview()">🔄 Refresh</button>
+                </div>
+            </div>
+            
+            <div class="overview-grid">
+                <div class="overview-card available-leads">
+                    <h3>🔍 Available Leads</h3>
+                    <div class="overview-metric">
+                        <span class="metric-value" id="available-leads-count">0</span>
+                        <span class="metric-label">Unclaimed leads</span>
+                    </div>
+                    <div class="overview-details">
+                        <div class="detail-item">
+                            <span class="detail-label">Hot leads:</span>
+                            <span class="detail-value" id="hot-leads-count">0</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">This week:</span>
+                            <span class="detail-value" id="weekly-leads-count">0</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-outline" onclick="viewAvailableLeads()">View All</button>
+                </div>
+                
+                <div class="overview-card claimed-leads">
+                    <h3>🎯 Claimed Leads</h3>
+                    <div class="overview-metric">
+                        <span class="metric-value" id="claimed-leads-count">0</span>
+                        <span class="metric-label">Being worked</span>
+                    </div>
+                    <div class="overview-details">
+                        <div class="detail-item">
+                            <span class="detail-label">Today:</span>
+                            <span class="detail-value" id="todays-claims-count">0</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Avg. response:</span>
+                            <span class="detail-value" id="avg-response-time">0 min</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-outline" onclick="viewClaimedLeads()">View All</button>
+                </div>
+                
+                <div class="overview-card agent-performance">
+                    <h3>🏆 Agent Performance</h3>
+                    <div class="overview-metric">
+                        <span class="metric-value" id="top-agent-claims">0</span>
+                        <span class="metric-label">Top agent claims</span>
+                    </div>
+                    <div class="overview-details">
+                        <div class="detail-item">
+                            <span class="detail-label">Best performer:</span>
+                            <span class="detail-value" id="top-agent-name">-</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Team avg:</span>
+                            <span class="detail-value" id="team-avg-claims">0</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-outline" onclick="viewAgentPerformance()">View Details</button>
                 </div>
             </div>
         </section>
 
-        <!-- Agent Leaderboard - Collapsible Section -->
-        <div class="collapsible-section">
-            <button class="section-toggle active" data-section="agent-leaderboard">
-                <span>🏆 Agent Leaderboard</span>
-                <span class="toggle-icon">▼</span>
-            </button>
-            <div class="section-content expanded" id="agent-leaderboard-content">
-                <div class="leaderboard-grid" id="agent-leaderboard">
-                    <!-- Leaderboard items will be populated by JavaScript -->
+        <!-- Predictive Analytics -->
+        <section class="admin-section">
+            <div class="section-header">
+                <div class="section-title">
+                    <span class="section-icon">🔮</span>
+                    <h2>Predictive Analytics</h2>
+                    <span class="ai-badge">AI-Powered</span>
+                </div>
+                <div class="section-actions">
+                    <button class="btn btn-secondary" onclick="showAnalyticsDetails()">📈 Full Report</button>
                 </div>
             </div>
-        </div>
-
-        <!-- Agent Management - Collapsible Section -->
-        <div class="collapsible-section">
-            <button class="section-toggle" data-section="agent-management">
-                <span>👥 Agent Management</span>
-                <span class="toggle-icon">▼</span>
-            </button>
-            <div class="section-content" id="agent-management-content">
-                <div class="section-header">
-                    <div class="search-filters">
-                        <input type="text" id="agent-search" placeholder="🔍 Search agents..." class="search-input">
-                        <select id="agent-status-filter" class="select-input">
-                            <option value="all">All Status</option>
-                            <option value="online">Online</option>
-                            <option value="offline">Offline</option>
-                        </select>
+            
+            <div class="analytics-grid">
+                <div class="analytics-card revenue-forecast">
+                    <h4>💰 Revenue Forecast</h4>
+                    <div class="forecast-display">
+                        <div class="forecast-main">
+                            <span class="forecast-value" id="revenue-forecast">$0</span>
+                            <span class="forecast-period">Next 30 days</span>
+                        </div>
+                        <div class="forecast-confidence">
+                            <span class="confidence-label">Confidence:</span>
+                            <span class="confidence-value" id="forecast-confidence">0%</span>
+                        </div>
                     </div>
-                    <div class="action-buttons">
-                        <button class="btn btn-primary" id="add-agent-btn">+ Add Agent</button>
+                    <div class="mini-chart" id="revenue-mini-chart"></div>
+                </div>
+                
+                <div class="analytics-card lead-quality">
+                    <h4>⭐ Lead Quality Analysis</h4>
+                    <div class="quality-breakdown">
+                        <div class="quality-tier hot">
+                            <span class="tier-label">Hot</span>
+                            <span class="tier-count" id="hot-tier-count">0</span>
+                            <span class="tier-percent" id="hot-tier-percent">0%</span>
+                        </div>
+                        <div class="quality-tier warm">
+                            <span class="tier-label">Warm</span>
+                            <span class="tier-count" id="warm-tier-count">0</span>
+                            <span class="tier-percent" id="warm-tier-percent">0%</span>
+                        </div>
+                        <div class="quality-tier cold">
+                            <span class="tier-label">Cold</span>
+                            <span class="tier-count" id="cold-tier-count">0</span>
+                            <span class="tier-percent" id="cold-tier-percent">0%</span>
+                        </div>
                     </div>
                 </div>
                 
-                <div class="table-container">
-                    <table class="data-table" id="agents-table">
-                        <thead>
-                            <tr>
-                                <th>Agent</th>
-                                <th>Status</th>
-                                <th>Role</th>
-                                <th>Leads</th>
-                                <th>Conversion</th>
-                                <th>Last Active</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="agents-tbody">
-                            <!-- Agent rows populated by JavaScript -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- Publisher Management - Collapsible Section -->
-        <div class="collapsible-section">
-            <button class="section-toggle" data-section="publisher-management">
-                <span>🏢 Publisher Management</span>
-                <span class="toggle-icon">▼</span>
-            </button>
-            <div class="section-content" id="publisher-management-content">
-                <div class="section-header">
-                    <div class="search-filters">
-                        <input type="text" id="publisher-search" placeholder="🔍 Search publishers..." class="search-input">
-                        <select id="publisher-status-filter" class="select-input">
-                            <option value="">All Status</option>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                        </select>
-                    </div>
-                    <div class="action-buttons">
-                        <button class="btn btn-primary" id="add-publisher-btn">+ Add Publisher</button>
-                        <button class="btn btn-success" id="generate-api-key">🔑 Generate API Key</button>
+                <div class="analytics-card performance-insights">
+                    <h4>🚀 Performance Insights</h4>
+                    <div class="insights-list" id="performance-insights-list">
+                        <div class="insight-item">
+                            <span class="insight-icon">📊</span>
+                            <span class="insight-text">Analyzing performance patterns...</span>
+                        </div>
                     </div>
                 </div>
                 
-                <div class="table-container">
-                    <table class="data-table" id="publishers-table">
-                        <thead>
-                            <tr>
-                                <th>Publisher</th>
-                                <th>Vendor Code</th>
-                                <th>Status</th>
-                                <th>API Key</th>
-                                <th>Total Leads</th>
-                                <th>Revenue</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="publishers-table-body">
-                            <!-- Publishers populated by JavaScript -->
-                        </tbody>
-                    </table>
+                <div class="analytics-card trend-analysis">
+                    <h4>📈 Trend Analysis</h4>
+                    <div class="trend-items" id="trend-analysis-list">
+                        <div class="trend-item">
+                            <span class="trend-label">Lead Volume:</span>
+                            <span class="trend-indicator up">↗️ +15%</span>
+                        </div>
+                        <div class="trend-item">
+                            <span class="trend-label">Response Time:</span>
+                            <span class="trend-indicator down">↘️ -8 min</span>
+                        </div>
+                        <div class="trend-item">
+                            <span class="trend-label">Conversion:</span>
+                            <span class="trend-indicator up">↗️ +3%</span>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <!-- Live Activity Feed - Collapsible Section -->
-        <div class="collapsible-section">
-            <button class="section-toggle" data-section="activity-feed">
-                <span>🔴 Live Activity Feed</span>
-                <span class="toggle-icon">▼</span>
-            </button>
-            <div class="section-content" id="activity-feed-content">
+        <!-- Recent Activity & Lead Assignment -->
+        <div class="admin-grid">
+            <section class="admin-section recent-activity">
                 <div class="section-header">
-                    <div class="activity-controls">
-                        <button class="btn btn-sm btn-secondary" id="pause-activity">⏸️ Pause</button>
-                        <button class="btn btn-sm btn-secondary" id="clear-activity">🗑️ Clear</button>
+                    <div class="section-title">
+                        <span class="section-icon">📝</span>
+                        <h2>Recent Activity</h2>
                     </div>
                 </div>
                 
                 <div class="activity-feed" id="activity-feed">
-                    <!-- Live activities will be populated here -->
-                </div>
-            </div>
-        </div>
-
-        <!-- Analytics Dashboard - Collapsible Section -->
-        <div class="collapsible-section">
-            <button class="section-toggle" data-section="analytics">
-                <span>📊 Analytics Dashboard</span>
-                <span class="toggle-icon">▼</span>
-            </button>
-            <div class="section-content" id="analytics-content">
-                <div class="analytics-grid">
-                    <div class="analytics-card">
-                        <div class="card-header">
-                            <h3>📈 Performance Overview</h3>
+                    <div class="activity-item">
+                        <div class="activity-icon">🎯</div>
+                        <div class="activity-content">
+                            <div class="activity-text">Sarah Johnson claimed lead John Smith</div>
+                            <div class="activity-time">2 minutes ago</div>
                         </div>
-                        <canvas id="performance-chart"></canvas>
                     </div>
                     
-                    <div class="analytics-card">
-                        <div class="card-header">
-                            <h3>🏆 Top Publishers</h3>
+                    <div class="activity-item">
+                        <div class="activity-icon">📞</div>
+                        <div class="activity-content">
+                            <div class="activity-text">Mike Davis contacted lead Emma Wilson</div>
+                            <div class="activity-time">15 minutes ago</div>
                         </div>
-                        <div class="top-list" id="top-publishers-list">
-                            <!-- Top publishers populated by JavaScript -->
+                    </div>
+                    
+                    <div class="activity-item">
+                        <div class="activity-icon">✅</div>
+                        <div class="activity-content">
+                            <div class="activity-text">Lead qualified: Robert Brown</div>
+                            <div class="activity-time">1 hour ago</div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </section>
+            
+            <section class="admin-section lead-management">
+                <div class="section-header">
+                    <div class="section-title">
+                        <span class="section-icon">⚙️</span>
+                        <h2>Lead Management</h2>
+                    </div>
+                </div>
+                
+                <div class="management-actions">
+                    <button class="action-btn" onclick="reassignLead()">
+                        <span class="btn-icon">🔄</span>
+                        <span class="btn-text">Reassign Lead</span>
+                    </button>
+                    
+                    <button class="action-btn" onclick="bulkActions()">
+                        <span class="btn-icon">📦</span>
+                        <span class="btn-text">Bulk Actions</span>
+                    </button>
+                    
+                    <button class="action-btn" onclick="leadImport()">
+                        <span class="btn-icon">📥</span>
+                        <span class="btn-text">Import Leads</span>
+                    </button>
+                    
+                    <button class="action-btn" onclick="agentDashboard()">
+                        <span class="btn-icon">👤</span>
+                        <span class="btn-text">Agent View</span>
+                    </button>
+                </div>
+                
+                <div class="quick-filters">
+                    <h4>Quick Filters</h4>
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" data-filter="all">All Leads</button>
+                        <button class="filter-btn" data-filter="unclaimed">Unclaimed</button>
+                        <button class="filter-btn" data-filter="hot">Hot Leads</button>
+                        <button class="filter-btn" data-filter="overdue">Overdue</button>
+                    </div>
+                </div>
+            </section>
         </div>
+
+        <!-- AI Insights Summary -->
+        <section class="admin-section ai-summary">
+            <div class="section-header">
+                <div class="section-title">
+                    <span class="section-icon">🤖</span>
+                    <h2>AI Intelligence Summary</h2>
+                    <span class="ai-badge">Real-time</span>
+                </div>
+            </div>
+            
+            <div class="ai-insights-grid">
+                <div class="ai-insight-card">
+                    <div class="insight-header">
+                        <span class="insight-type">🎯 Lead Optimization</span>
+                        <span class="insight-score">87%</span>
+                    </div>
+                    <p class="insight-text" id="lead-optimization-insight">
+                        Your team is performing well. Focus on referral leads for highest conversion.
+                    </p>
+                </div>
+                
+                <div class="ai-insight-card">
+                    <div class="insight-header">
+                        <span class="insight-type">📊 Performance Coaching</span>
+                        <span class="insight-score">92%</span>
+                    </div>
+                    <p class="insight-text" id="performance-coaching-insight">
+                        Agent response times improved 15%. Consider bonus incentives.
+                    </p>
+                </div>
+                
+                <div class="ai-insight-card">
+                    <div class="insight-header">
+                        <span class="insight-type">🔮 Market Prediction</span>
+                        <span class="insight-score">78%</span>
+                    </div>
+                    <p class="insight-text" id="market-prediction-insight">
+                        Expect 20% more leads next week. Prepare additional capacity.
+                    </p>
+                </div>
+            </div>
+        </section>
     </main>
 
     <!-- Floating Action Button -->
@@ -340,11 +615,16 @@
     </div>
 
     <!-- Scripts -->
+    <script src="js/smart-lead-router.js"></script>
+    <script src="js/predictive-analytics.js"></script>
     <script src="js/api-service.js"></script>
     <script src="admin.js"></script>
     
-    <!-- Collapsible Sections JavaScript -->
+    <!-- Enhanced Admin JavaScript with AI Integration -->
     <script>
+    let aiAssignmentCounter = 0;
+    let aiModeEnabled = true;
+    
     document.addEventListener('DOMContentLoaded', function() {
         // Auto-generate vendor codes and API keys
         function generateVendorCode() {
@@ -374,6 +654,11 @@
                     icon.textContent = '▲';
                 } else {
                     icon.textContent = '▼';
+                }
+                
+                // Load predictive analytics when section is opened
+                if (sectionName === 'predictive-analytics' && this.classList.contains('active')) {
+                    loadPredictiveAnalytics();
                 }
             });
         });
@@ -432,8 +717,639 @@
         updateDateTime();
         setInterval(updateDateTime, 60000); // Update every minute
         
-        console.log('🎯 Admin dashboard initialized with streamlined dark theme');
+        // Initialize AI features
+        initializeAIFeatures();
+        
+        // Initialize predictive analytics
+        initializePredictiveAnalytics();
+        
+        console.log('🎯 Enhanced admin dashboard initialized with AI features');
     });
+
+    // AI Feature Functions
+    function initializeAIFeatures() {
+        updateAIMetrics();
+        setInterval(updateAIMetrics, 10000); // Update every 10 seconds
+        
+        // Simulate some AI activity
+        setTimeout(() => {
+            addAIAssignment({
+                leadName: 'Jane Smith',
+                agentName: 'Sarah Johnson',
+                score: 95,
+                time: '2 min ago'
+            });
+        }, 5000);
+    }
+
+    async function updateAIMetrics() {
+        try {
+            if (window.smartLeadRouter) {
+                const queueStatus = await window.smartLeadRouter.getQueueStatus();
+                const performanceMetrics = await window.smartLeadRouter.getPerformanceMetrics();
+                
+                document.getElementById('ai-queue-status').textContent = 
+                    queueStatus.size > 0 ? `${queueStatus.size} waiting` : 'All assigned';
+                document.getElementById('ai-assignment-time').textContent = 
+                    `${performanceMetrics.averageAssignmentTime}s`;
+                document.getElementById('ai-assignments').textContent = aiAssignmentCounter;
+            }
+        } catch (error) {
+            console.error('Failed to update AI metrics:', error);
+        }
+    }
+
+    function testAIAssignment() {
+        // Generate a test lead
+        const testLead = {
+            first_name: 'Test',
+            last_name: 'Lead',
+            email: 'test@example.com',
+            phone_home: '(555) 123-4567',
+            state: 'CA',
+            zip_code: '90210',
+            source: 'website',
+            lead_value: 5000,
+            notes: 'AI test assignment'
+        };
+
+        addActivityFeedItem('🤖 Testing AI assignment system...', 'info');
+
+        // Process through AI
+        window.smartLeadRouter.assignLeadIntelligently(testLead)
+            .then(assignment => {
+                addAIAssignment({
+                    leadName: `${testLead.first_name} ${testLead.last_name}`,
+                    agentName: assignment.agentName || 'Queued',
+                    score: assignment.agentScore?.total || 'N/A',
+                    time: 'Just now'
+                });
+                
+                aiAssignmentCounter++;
+                updateAIMetrics();
+                
+                addActivityFeedItem(
+                    `✅ AI assigned ${testLead.first_name} ${testLead.last_name} to ${assignment.agentName || 'queue'}`,
+                    'success'
+                );
+            })
+            .catch(error => {
+                addActivityFeedItem('❌ AI assignment test failed', 'error');
+            });
+    }
+
+    function addAIAssignment(assignment) {
+        const listContainer = document.getElementById('ai-assignment-list');
+        
+        // Remove empty message
+        const emptyMessage = listContainer.querySelector('.ai-assignment-empty');
+        if (emptyMessage) {
+            emptyMessage.remove();
+        }
+        
+        const assignmentElement = document.createElement('div');
+        assignmentElement.className = 'ai-assignment-item';
+        assignmentElement.innerHTML = `
+            <div class="ai-assignment-info">
+                <div class="ai-assignment-lead">${assignment.leadName}</div>
+                <div class="ai-assignment-agent">→ ${assignment.agentName}</div>
+            </div>
+            <div class="ai-assignment-metrics">
+                <div class="ai-assignment-score">${assignment.score}/100</div>
+                <div class="ai-assignment-time">${assignment.time}</div>
+            </div>
+        `;
+        
+        listContainer.insertBefore(assignmentElement, listContainer.firstChild);
+        
+        // Keep only last 10 assignments
+        const assignments = listContainer.querySelectorAll('.ai-assignment-item');
+        if (assignments.length > 10) {
+            assignments[assignments.length - 1].remove();
+        }
+    }
+
+    function viewAIInsights() {
+        window.open('smart-lead-router-demo.html', '_blank');
+    }
+
+    function toggleAIMode() {
+        aiModeEnabled = !aiModeEnabled;
+        const toggleBtn = document.getElementById('ai-mode-toggle');
+        
+        if (aiModeEnabled) {
+            toggleBtn.innerHTML = '🟢 AI Mode: ON';
+            addActivityFeedItem('🤖 AI lead routing enabled', 'success');
+        } else {
+            toggleBtn.innerHTML = '🔴 AI Mode: OFF';
+            addActivityFeedItem('⚠️ AI lead routing disabled - manual mode active', 'warning');
+        }
+    }
+
+    // Predictive Analytics Functions
+    function initializePredictiveAnalytics() {
+        // Initialize with placeholder data
+        updatePredictiveMetrics();
+        
+        // Update every 30 seconds
+        setInterval(updatePredictiveMetrics, 30000);
+    }
+
+    async function loadPredictiveAnalytics() {
+        try {
+            addActivityFeedItem('📊 Loading predictive analytics...', 'info');
+            
+            // Remove loading state
+            const loadingInsight = document.querySelector('.insight-item.loading');
+            if (loadingInsight) {
+                loadingInsight.remove();
+            }
+            
+            // Get analytics insights
+            const insights = await window.predictiveAnalytics.getDashboardInsights();
+            
+            // Update metrics
+            updatePredictiveMetrics(insights);
+            
+            // Update insights
+            updateAIInsights(insights);
+            
+            addActivityFeedItem('✅ Predictive analytics loaded', 'success');
+            
+        } catch (error) {
+            console.error('Failed to load predictive analytics:', error);
+            addActivityFeedItem('❌ Failed to load predictive analytics', 'error');
+        }
+    }
+
+    function updatePredictiveMetrics(insights = null) {
+        if (insights) {
+            // Update with real data
+            const revenue = insights.revenue || {};
+            const quality = insights.leadQuality || {};
+            const risk = insights.churnRisk || {};
+            const performance = insights.performance || {};
+            
+            document.getElementById('revenue-forecast').textContent = 
+                '$' + (revenue.forecast || 85000).toLocaleString();
+            document.getElementById('forecast-confidence').textContent = 
+                `${Math.round((revenue.confidence || 0.95) * 100)}% confidence`;
+                
+            document.getElementById('hot-tier-count').textContent = quality.hot?.count || 0;
+            document.getElementById('hot-tier-percent').textContent = quality.hot?.percent || '0%';
+            
+            document.getElementById('warm-tier-count').textContent = quality.warm?.count || 0;
+            document.getElementById('warm-tier-percent').textContent = quality.warm?.percent || '0%';
+            
+            document.getElementById('cold-tier-count').textContent = quality.cold?.count || 0;
+            document.getElementById('cold-tier-percent').textContent = quality.cold?.percent || '0%';
+            
+            document.getElementById('churn-risk').textContent = 
+                risk.totalAtRisk || 0;
+            document.getElementById('risk-urgency').textContent = 
+                `${risk.totalAtRisk || 0} leads at risk`;
+                
+            const coachingNeeded = performance.individual?.filter(
+                agent => agent.priority === 'high' || agent.priority === 'urgent'
+            ).length || 0;
+            document.getElementById('coaching-agents').textContent = coachingNeeded;
+            document.getElementById('coaching-action').textContent = 
+                `${coachingNeeded} agents need coaching`;
+                
+        } else {
+            // Update with mock data
+            document.getElementById('revenue-forecast').textContent = '$85,000';
+            document.getElementById('forecast-confidence').textContent = '95% confidence';
+            document.getElementById('hot-tier-count').textContent = '0';
+            document.getElementById('hot-tier-percent').textContent = '0%';
+            document.getElementById('warm-tier-count').textContent = '0';
+            document.getElementById('warm-tier-percent').textContent = '0%';
+            document.getElementById('cold-tier-count').textContent = '0';
+            document.getElementById('cold-tier-percent').textContent = '0%';
+            document.getElementById('churn-risk').textContent = '3';
+            document.getElementById('risk-urgency').textContent = '3 leads at risk';
+            document.getElementById('coaching-agents').textContent = '2';
+            document.getElementById('coaching-action').textContent = '2 agents need coaching';
+        }
+    }
+
+    function updateAIInsights(insights) {
+        const insightsList = document.getElementById('performance-insights-list');
+        insightsList.innerHTML = '';
+        
+        const allInsights = [
+            ...insights.revenue?.insights || ['Revenue forecasting active'],
+            ...insights.leadQuality?.recommendations?.map(r => r.action) || ['Lead quality analysis complete'],
+            ...insights.churnRisk?.insights || ['Churn risk monitoring active']
+        ];
+        
+        allInsights.slice(0, 5).forEach(insight => {
+            const insightItem = document.createElement('div');
+            insightItem.className = 'insight-item';
+            insightItem.innerHTML = `
+                <div class="insight-icon">💡</div>
+                <div class="insight-text">${insight}</div>
+            `;
+            insightsList.appendChild(insightItem);
+        });
+    }
+
+    function openPredictiveDemo() {
+        window.open('predictive-analytics-demo.html', '_blank');
+    }
+
+    async function generateForecast() {
+        addActivityFeedItem('📊 Generating revenue forecast...', 'info');
+        
+        try {
+            const forecast = await window.predictiveAnalytics.forecastRevenue('monthly');
+            
+            document.getElementById('revenue-forecast').textContent = 
+                '$' + forecast.forecast.toLocaleString();
+            document.getElementById('forecast-confidence').textContent = 
+                `${Math.round(forecast.confidence * 100)}% confidence`;
+            
+            addActivityFeedItem(
+                `✅ Forecast generated: $${forecast.forecast.toLocaleString()} projected`,
+                'success'
+            );
+        } catch (error) {
+            addActivityFeedItem('❌ Forecast generation failed', 'error');
+        }
+    }
+
+    async function analyzeRisk() {
+        addActivityFeedItem('⚠️ Analyzing churn risk...', 'info');
+        
+        try {
+            const riskAnalysis = await window.predictiveAnalytics.analyzeChurnRisk();
+            
+            document.getElementById('churn-risk').textContent = riskAnalysis.totalAtRisk;
+            document.getElementById('risk-urgency').textContent = 
+                `${riskAnalysis.totalAtRisk} leads at risk`;
+            
+            addActivityFeedItem(
+                `✅ Risk analysis complete: ${riskAnalysis.totalAtRisk} leads need attention`,
+                riskAnalysis.totalAtRisk > 5 ? 'warning' : 'success'
+            );
+        } catch (error) {
+            addActivityFeedItem('❌ Risk analysis failed', 'error');
+        }
+    }
+
+    function addActivityFeedItem(message, type = 'info') {
+        const feed = document.getElementById('activity-feed');
+        
+        const activity = document.createElement('div');
+        activity.className = 'activity-item';
+        activity.innerHTML = `
+            <div class="activity-icon ${type}">
+                ${type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️'}
+            </div>
+            <div class="activity-content">
+                <div class="activity-message">${message}</div>
+                <div class="activity-time">${new Date().toLocaleTimeString()}</div>
+            </div>
+        `;
+        
+        feed.insertBefore(activity, feed.firstChild);
+        
+        // Keep only last 20 items
+        const items = feed.querySelectorAll('.activity-item');
+        if (items.length > 20) {
+            items[items.length - 1].remove();
+        }
+    }
+
+    // Initialize with some mock data
+    setTimeout(() => {
+        addActivityFeedItem('🚀 Smart Lead Router system online', 'success');
+        addActivityFeedItem('📊 AI metrics tracking started', 'info');
+        addActivityFeedItem('🔮 Predictive analytics initialized', 'info');
+    }, 2000);
+
+    // Navigation functions for admin dashboard
+    function exportLeadData() {
+        console.log('📊 Exporting lead data...');
+        if (window.apiService) {
+            window.apiService.exportLeads().then(data => {
+                console.log('Export initiated:', data);
+                addActivityFeedItem('📊 Lead export started', 'info');
+            }).catch(error => {
+                addActivityFeedItem('❌ Export failed', 'error');
+            });
+        }
+    }
+
+    function refreshOverview() {
+        console.log('🔄 Refreshing overview...');
+        if (window.apiService) {
+            window.apiService.getDashboardAnalytics().then(data => {
+                console.log('Overview refreshed:', data);
+                addActivityFeedItem('🔄 Overview data refreshed', 'success');
+            });
+        }
+    }
+
+    function viewAvailableLeads() {
+        console.log('🔍 Viewing available leads...');
+        // Could open a modal or navigate to leads view
+        addActivityFeedItem('👁️ Viewing available leads', 'info');
+    }
+
+    function viewClaimedLeads() {
+        console.log('🎯 Viewing claimed leads...');
+        addActivityFeedItem('👁️ Viewing claimed leads', 'info');
+    }
+
+    function viewAgentPerformance() {
+        console.log('🏆 Viewing agent performance...');
+        if (window.apiService) {
+            window.apiService.getPerformanceMetrics().then(data => {
+                console.log('Performance data:', data);
+                addActivityFeedItem('📊 Agent performance loaded', 'info');
+            });
+        }
+    }
+
+    function showAnalyticsDetails() {
+        console.log('📈 Showing analytics details...');
+        // Could open predictive analytics in a modal or new tab
+        addActivityFeedItem('📈 Analytics details opened', 'info');
+    }
+
+    function reassignLead() {
+        console.log('🔄 Reassigning lead...');
+        // Would show lead reassignment modal
+        addActivityFeedItem('🔄 Lead reassignment initiated', 'info');
+    }
+
+    function bulkActions() {
+        console.log('📦 Bulk actions...');
+        // Would show bulk actions modal
+        addActivityFeedItem('📦 Bulk actions opened', 'info');
+    }
+
+    function leadImport() {
+        console.log('📥 Lead import...');
+        // Would show import modal
+        addActivityFeedItem('📥 Lead import started', 'info');
+    }
+
+    function agentDashboard() {
+        console.log('👤 Opening agent dashboard...');
+        // Navigate to agent dashboard
+        window.open('agent-dashboard.html', '_blank');
+        addActivityFeedItem('👤 Agent dashboard opened', 'info');
+    }
     </script>
+
+    <!-- Additional AI Styling -->
+    <style>
+    .ai-badge {
+        background: linear-gradient(45deg, var(--accent-purple), var(--accent-blue));
+        padding: var(--space-1) var(--space-2);
+        border-radius: var(--radius-md);
+        font-size: var(--font-size-xs);
+        font-weight: 600;
+        margin-left: var(--space-2);
+    }
+
+    .ai-status-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: var(--space-4);
+        margin-bottom: var(--space-6);
+    }
+
+    .ai-metric-card {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        background: var(--bg-secondary);
+        padding: var(--space-4);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-subtle);
+    }
+
+    .ai-metric-icon {
+        font-size: var(--font-size-2xl);
+        width: 50px;
+        text-align: center;
+    }
+
+    .ai-metric-label {
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
+        margin-bottom: var(--space-1);
+    }
+
+    .ai-metric-value {
+        color: var(--text-primary);
+        font-size: var(--font-size-lg);
+        font-weight: 600;
+    }
+
+    .ai-controls {
+        display: flex;
+        gap: var(--space-3);
+        margin-bottom: var(--space-6);
+        flex-wrap: wrap;
+    }
+
+    .ai-recent-assignments h4 {
+        color: var(--text-primary);
+        margin-bottom: var(--space-4);
+    }
+
+    .ai-assignment-list {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+    .ai-assignment-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--bg-secondary);
+        padding: var(--space-3);
+        margin-bottom: var(--space-2);
+        border-radius: var(--radius-md);
+        border-left: 3px solid var(--accent-purple);
+    }
+
+    .ai-assignment-lead {
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .ai-assignment-agent {
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
+    }
+
+    .ai-assignment-score {
+        color: var(--accent-purple);
+        font-weight: 600;
+    }
+
+    .ai-assignment-time {
+        color: var(--text-muted);
+        font-size: var(--font-size-xs);
+    }
+
+    .ai-assignment-empty {
+        text-align: center;
+        color: var(--text-muted);
+        padding: var(--space-6);
+        font-style: italic;
+    }
+
+    .ai-trends {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+        padding: var(--space-4);
+    }
+
+    .trend-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--space-2);
+        background: var(--bg-secondary);
+        border-radius: var(--radius-md);
+    }
+
+    .trend-label {
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
+    }
+
+    .trend-value {
+        font-weight: 600;
+    }
+
+    .trend-up {
+        color: var(--success);
+    }
+
+    .trend-down {
+        color: var(--info);
+    }
+
+    /* Predictive Analytics Styles */
+    .predictive-overview {
+        margin-bottom: var(--space-6);
+    }
+
+    .prediction-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: var(--space-4);
+    }
+
+    .prediction-card {
+        display: flex;
+        align-items: center;
+        gap: var(--space-4);
+        background: var(--bg-secondary);
+        padding: var(--space-4);
+        border-radius: var(--radius-lg);
+        border-left: 4px solid;
+    }
+
+    .prediction-card.revenue { border-left-color: var(--success); }
+    .prediction-card.quality { border-left-color: var(--accent-blue); }
+    .prediction-card.risk { border-left-color: var(--warning); }
+    .prediction-card.coaching { border-left-color: var(--accent-purple); }
+
+    .prediction-icon {
+        font-size: var(--font-size-3xl);
+        width: 60px;
+        text-align: center;
+    }
+
+    .prediction-label {
+        color: var(--text-secondary);
+        font-size: var(--font-size-sm);
+        margin-bottom: var(--space-1);
+    }
+
+    .prediction-value {
+        color: var(--text-primary);
+        font-size: var(--font-size-2xl);
+        font-weight: 700;
+        margin-bottom: var(--space-1);
+    }
+
+    .prediction-confidence,
+    .prediction-trend,
+    .prediction-urgency,
+    .prediction-action {
+        color: var(--text-muted);
+        font-size: var(--font-size-sm);
+    }
+
+    .predictive-insights {
+        background: var(--bg-secondary);
+        padding: var(--space-4);
+        border-radius: var(--radius-lg);
+        margin-bottom: var(--space-6);
+    }
+
+    .insights-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+        margin-top: var(--space-3);
+    }
+
+    .insight-item {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        padding: var(--space-2);
+        background: var(--bg-accent);
+        border-radius: var(--radius-md);
+    }
+
+    .insight-item.loading {
+        color: var(--text-muted);
+    }
+
+    .insight-icon {
+        font-size: var(--font-size-lg);
+    }
+
+    .insight-text {
+        flex: 1;
+        font-size: var(--font-size-sm);
+    }
+
+    .predictive-actions {
+        display: flex;
+        gap: var(--space-3);
+        flex-wrap: wrap;
+    }
+
+    @media (max-width: 768px) {
+        .ai-status-grid,
+        .prediction-cards {
+            grid-template-columns: 1fr;
+        }
+        
+        .ai-controls,
+        .predictive-actions {
+            flex-direction: column;
+        }
+        
+        .ai-assignment-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: var(--space-2);
+        }
+    }
+    </style>
 </body>
 </html> 
