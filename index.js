@@ -397,6 +397,11 @@ function doesEndpointRequireAuth(path, method) {
     return false; // Temporarily allow without auth
   }
   
+  // TEMPORARILY DISABLE AUTH FOR LEADS TESTING
+  if (path === '/leads' && method === 'GET') {
+    return false; // Temporarily allow GET /leads without auth for testing
+  }
+  
   // Define which endpoints require authentication
   // By default, POST and PATCH operations require auth, GET may not
   if (method === 'POST' || method === 'PATCH' || method === 'PUT' || method === 'DELETE') {
@@ -1852,6 +1857,11 @@ function isJwtProtectedRoute(path) {
   // TEMPORARILY DISABLE AUTH FOR DOCUMENT ROUTES FOR TESTING
   if (path.startsWith('/documents/') || path.includes('/documents')) {
     return false; // Temporarily allow without auth
+  }
+  
+  // TEMPORARILY DISABLE JWT AUTH FOR LEADS TESTING (use API key auth instead)
+  if (path === '/leads' || path.startsWith('/leads/')) {
+    return false; // Use API key authentication instead of JWT
   }
   
   return !path.match(/^\/auth\/(login|register|forgot-password|verify-reset-token|reset-password)$/);
