@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MVA CRM API Integration Test</title>
+    <style>
+        :root {
+            --primary-color: #0F2D40;
+            --success-color: #38a169;
+            --error-color: #e53e3e;
+            --warning-color: #d69e2e;
+            --info-color: #3182ce;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: var(--primary-color);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .section-header {
+            background: #f7fafc;
+            padding: 20px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .section-header h2 {
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+
+        .section-header p {
+            color: #718096;
+            margin: 0;
+        }
+
+        .section-content {
+            padding: 20px;
+        }
+
+        .test-group {
+            margin-bottom: 30px;
+        }
+
+        .test-group h3 {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .test-item {
+            margin-bottom: 15px;
+            padding: 15px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+
+        .test-item h4 {
+            margin-bottom: 10px;
+            color: #2d3748;
+        }
+
+        .test-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-success {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--error-color);
+            color: white;
+        }
+
+        .btn-info {
+            background: var(--info-color);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #2d3748;
+        }
+
+        .input-group input,
+        .input-group select,
+        .input-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .result-box {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .result-success {
+            background: #f0fff4;
+            border: 1px solid #9ae6b4;
+            color: #22543d;
+        }
+
+        .result-error {
+            background: #fed7d7;
+            border: 1px solid #fc8181;
+            color: #742a2a;
+        }
+
+        .result-info {
+            background: #ebf8ff;
+            border: 1px solid #90cdf4;
+            color: #2a4365;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-online {
+            background: var(--success-color);
+        }
+
+        .status-offline {
+            background: var(--error-color);
+        }
+
+        .status-loading {
+            background: var(--warning-color);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .auth-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Auth Status Display -->
+    <div class="auth-status">
+        <div>
+            <span class="status-indicator" id="auth-indicator"></span>
+            <strong>Auth Status:</strong> <span id="auth-status">Checking...</span>
+        </div>
+        <div style="margin-top: 5px;">
+            <strong>User:</strong> <span id="current-user">None</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>🚀 MVA CRM API Integration Test</h1>
+            <p>Comprehensive testing suite for all backend API endpoints</p>
+        </div>
+
+        <div class="content">
+            <!-- Authentication Section -->
+            <div class="section">
+                <div class="section-header">
+                    <h2>🔐 Authentication & User Management</h2>
+                    <p>Test login, user registration, and authentication features</p>
+                </div>
+                <div class="section-content">
+                    <div class="grid">
+                        <div class="test-group">
+                            <h3>User Authentication</h3>
+                            
+                            <div class="test-item">
+                                <h4>Login Test</h4>
+                                <div class="input-group">
+                                    <label>Username/Email:</label>
+                                    <input type="text" id="login-username" value="george@contentkingpins.com">
+                                </div>
+                                <div class="input-group">
+                                    <label>Password:</label>
+                                    <input type="password" id="login-password" value="">
+                                </div>
+                                <div class="test-controls">
+                                    <button class="btn btn-primary" onclick="testLogin()">
+                                        🔑 Test Login
+                                    </button>
+                                    <button class="btn btn-danger" onclick="testLogout()">
+                                        🚪 Logout
+                                    </button>
+                                </div>
+                                <div class="result-box result-info" id="login-result" style="display: none;"></div>
+                            </div>
+
+                            <div class="test-item">
+                                <h4>Get All Users (Admin Only)</h4>
+                                <div class="test-controls">
+                                    <button class="btn btn-info" onclick="testGetUsers()">
+                                        👥 Get Users
+                                    </button>
+                                </div>
+                                <div class="result-box result-info" id="users-result" style="display: none;"></div>
+                            </div>
+                        </div>
+
+                        <div class="test-group">
+                            <h3>Password Management</h3>
+                            
+                            <div class="test-item">
+                                <h4>Forgot Password</h4>
+                                <div class="input-group">
+                                    <label>Email:</label>
+                                    <input type="email" id="forgot-email" value="george@contentkingpins.com">
+                                </div>
+                                <div class="test-controls">
+                                    <button class="btn btn-info" onclick="testForgotPassword()">
+                                        📧 Send Reset Email
+                                    </button>
+                                </div>
+                                <div class="result-box result-info" id="forgot-result" style="display: none;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lead Management Section -->
+            <div class="section">
+                <div class="section-header">
+                    <h2>📋 Lead Management</h2>
+                    <p>Test CRUD operations for leads and retainer agreements</p>
+                </div>
+                <div class="section-content">
+                    <div class="grid">
+                        <div class="test-group">
+                            <h3>Lead Operations</h3>
+                            
+                            <div class="test-item">
+                                <h4>Create Lead</h4>
+                                <div class="input-group">
+                                    <label>First Name:</label>
+                                    <input type="text" id="lead-firstname" value="John">
+                                </div>
+                                <div class="input-group">
+                                    <label>Last Name:</label>
+                                    <input type="text" id="lead-lastname" value="Doe">
+                                </div>
+                                <div class="input-group">
+                                    <label>Email:</label>
+                                    <input type="email" id="lead-email" value="john.doe@example.com">
+                                </div>
+                                <div class="input-group">
+                                    <label>Phone:</label>
+                                    <input type="tel" id="lead-phone" value="1234567890">
+                                </div>
+                                <div class="input-group">
+                                    <label>Vendor Code:</label>
+                                    <input type="text" id="lead-vendor" value="VENDOR123">
+                                </div>
+                                <div class="input-group">
+                                    <label>Zip Code:</label>
+                                    <input type="text" id="lead-zip" value="12345">
+                                </div>
+                                <div class="input-group">
+                                    <label>State:</label>
+                                    <input type="text" id="lead-state" value="CA">
+                                </div>
+                                <div class="test-controls">
+                                    <button class="btn btn-success" onclick="testCreateLead()">
+                                        ➕ Create Lead
+                                    </button>
+                                </div>
+                                <div class="result-box result-info" id="create-lead-result" style="display: none;"></div>
+                            </div>
+
+                            <div class="test-item">
+                                <h4>Get Leads</h4>
+                                <div class="input-group">
+                                    <label>Vendor Code (optional):</label>
+                                    <input type="text" id="filter-vendor" value="">
+                                </div>
+                                <div class="test-controls">
+                                    <button class="btn btn-info" onclick="testGetLeads()">
+                                        📄 Get All Leads
+                                    </button>
+                                    <button class="btn btn-info" onclick="testGetLeadsFiltered()">
+                                        🔍 Get Filtered Leads
+                                    </button>
+                                </div>
+                                <div class="result-box result-info" id="get-leads-result" style="display: none;"></div>
+                            </div>
+
+                            <div class="test-item">
+                                <h4>Update Lead</h4>
+                                <div class="input-group">
+                                    <label>Lead ID:</label>
+                                    <input type="text" id="update-lead-id" value="">
+                                </div>
+                                <div class="input-group">
+                                    <label>Disposition:</label>
+                                    <select id="update-disposition">
+                                        <option value="New">New</option>
+                                        <option value="contacted">Contacted</option>
+                                        <option value="qualified">Qualified</option>
+                                        <option value="completed">Completed</option>
+                                    </select>
+                                </div>
+                                <div class="input-group">
+                                    <label>Notes:</label>
+                                    <textarea id="update-notes" rows="3" placeholder="Add notes..."></textarea>
+                                </div>
+                                <div class="test-controls">
+                                    <button class="btn btn-primary" onclick="testUpdateLead()">
+                                        ✏️ Update Lead
+                                    </button>
+                                </div>
+                                <div class="result-box result-info" id="update-lead-result" style="display: none;"></div>
+                            </div>
+                        </div>
+
+                        <div class="test-group">
+                            <h3>DocuSign Integration</h3>
+                            
+                            <div class="test-item">
+                                <h4>Send Retainer Agreement</h4>
+                                <div class="input-group">
+                                    <label>Lead ID:</label>
+                                    <input type="text" id="retainer-lead-id" value="">
+                                </div>
+                                <div class="test-controls">
+                                    <button class="btn btn-success" onclick="testSendRetainer()">
+                                        📄 Send Retainer
+                                    </button>
+                                </div>
+                                <div class="result-box result-info" id="retainer-result" style="display: none;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics Section -->
+            <div class="section">
+                <div class="section-header">
+                    <h2>📊 Analytics & Reporting</h2>
+                    <p>Test dashboard analytics, performance metrics, and reporting</p>
+                </div>
+                <div class="section-content">
+                    <div class="grid">
+                        <div class="test-group">
+                            <h3>Admin Analytics</h3>
+                            
+                            <div class="test-item">
+                                <h4>Dashboard Analytics</h4>
+                                <div class="test-controls">
+                                    <button class="btn btn-info" onclick="testDashboardAnalytics()">
+                                        📈 Get Dashboard Data
+                                    </button>
+                                </div>
+                                <div class="result-box result-info" id="dashboard-result" style="display: none;"></div>
+                            </div>
+
+                            <div class="test-item">
+                                <h4>Performance Metrics</h4>
+                                <div class="input-group">
+                                    <label>Days:</label>
+                                    <input type="number" id="performance-days" value="30">
+                                </div>
+                                <div class="test-controls">
+                                    <button class="btn btn-info" onclick="testPerformanceMetrics()">
+                                        📊 Get Performance
+                                    </button>
+                                </div>
+                                <div class="result-box result-info" id="performance-result" style="display: none;"></div>
+                            </div>
+                        </div>
+
+                        <div class="test-group">
+                            <h3>Vendor Analytics</h3>
+                            
+                            <div class="test-item">
+                                <h4>Vendor Dashboard</h4>
+                                <div class="test-controls">
+                                    <button class="btn btn-info" onclick="testVendorDashboard()">
+                                        🏢 Get Vendor Dashboard
+                                    </button>
+                                </div>
+                                <div class="result-box result-info" id="vendor-dashboard-result" style="display: none;"></div>
+                            </div>
+                        </div>
+
+                        <div class="test-group">
+                            <h3>Agent Analytics</h3>
+                            
+                            <div class="test-item">
+                                <h4>Agent KPIs</h4>
+                                <div class="test-controls">
+                                    <button class="btn btn-info" onclick="testAgentKPIs()">
+                                        👨‍💼 Get Agent KPIs
+                                    </button>
+                                </div>
+                                <div class="result-box result-info" id="agent-kpis-result" style="display: none;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vendor Management Section -->
+            <div class="section">
+                <div class="section-header">
+                    <h2>🏢 Vendor Management</h2>
+                    <p>Test vendor CRUD operations and API key management</p>
+                </div>
+                <div class="section-content">
+                    <div class="test-group">
+                        <h3>Vendor Operations</h3>
+                        
+                        <div class="test-item">
+                            <h4>Get All Vendors</h4>
+                            <div class="test-controls">
+                                <button class="btn btn-info" onclick="testGetVendors()">
+                                    🏢 Get Vendors
+                                </button>
+                            </div>
+                            <div class="result-box result-info" id="vendors-result" style="display: none;"></div>
+                        </div>
+
+                        <div class="test-item">
+                            <h4>Create Vendor</h4>
+                            <div class="input-group">
+                                <label>Vendor Code:</label>
+                                <input type="text" id="vendor-code" value="TESTVENDOR">
+                            </div>
+                            <div class="input-group">
+                                <label>Name:</label>
+                                <input type="text" id="vendor-name" value="Test Vendor LLC">
+                            </div>
+                            <div class="input-group">
+                                <label>Description:</label>
+                                <textarea id="vendor-description" rows="2" placeholder="Vendor description..."></textarea>
+                            </div>
+                            <div class="test-controls">
+                                <button class="btn btn-success" onclick="testCreateVendor()">
+                                    ➕ Create Vendor
+                                </button>
+                            </div>
+                            <div class="result-box result-info" id="create-vendor-result" style="display: none;"></div>
+                        </div>
+
+                        <div class="test-item">
+                            <h4>Regenerate API Key</h4>
+                            <div class="input-group">
+                                <label>Vendor Code:</label>
+                                <input type="text" id="regen-vendor-code" value="TESTVENDOR">
+                            </div>
+                            <div class="test-controls">
+                                <button class="btn btn-primary" onclick="testRegenerateApiKey()">
+                                    🔑 Regenerate API Key
+                                </button>
+                            </div>
+                            <div class="result-box result-info" id="regen-key-result" style="display: none;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics Section -->
+            <div class="section">
+                <div class="section-header">
+                    <h2>📈 Statistics & Export</h2>
+                    <p>Test lead statistics and data export functionality</p>
+                </div>
+                <div class="section-content">
+                    <div class="test-group">
+                        <h3>Statistics</h3>
+                        
+                        <div class="test-item">
+                            <h4>Lead Statistics</h4>
+                            <div class="input-group">
+                                <label>Period:</label>
+                                <select id="stats-period">
+                                    <option value="all">All Time</option>
+                                    <option value="daily">Daily</option>
+                                    <option value="weekly">Weekly</option>
+                                    <option value="monthly">Monthly</option>
+                                </select>
+                            </div>
+                            <div class="test-controls">
+                                <button class="btn btn-info" onclick="testGetStats()">
+                                    📊 Get Statistics
+                                </button>
+                            </div>
+                            <div class="result-box result-info" id="stats-result" style="display: none;"></div>
+                        </div>
+
+                        <div class="test-item">
+                            <h4>Export Leads</h4>
+                            <div class="input-group">
+                                <label>Start Date:</label>
+                                <input type="date" id="export-start">
+                            </div>
+                            <div class="input-group">
+                                <label>End Date:</label>
+                                <input type="date" id="export-end">
+                            </div>
+                            <div class="test-controls">
+                                <button class="btn btn-success" onclick="testExportLeads()">
+                                    📤 Export Data
+                                </button>
+                            </div>
+                            <div class="result-box result-info" id="export-result" style="display: none;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Service -->
+    <script src="js/api-service.js"></script>
+
+    <script>
+        // Initialize the test interface
+        document.addEventListener('DOMContentLoaded', function() {
+            updateAuthStatus();
+            
+            // Set default dates
+            const today = new Date();
+            const lastMonth = new Date();
+            lastMonth.setMonth(lastMonth.getMonth() - 1);
+            
+            document.getElementById('export-start').value = lastMonth.toISOString().split('T')[0];
+            document.getElementById('export-end').value = today.toISOString().split('T')[0];
+        });
+
+        // Update authentication status display
+        function updateAuthStatus() {
+            const authIndicator = document.getElementById('auth-indicator');
+            const authStatus = document.getElementById('auth-status');
+            const currentUser = document.getElementById('current-user');
+
+            if (apiService.isAuthenticated()) {
+                authIndicator.className = 'status-indicator status-online';
+                authStatus.textContent = 'Authenticated';
+                
+                const user = apiService.getCurrentUser();
+                currentUser.textContent = user ? user.email || user.username || 'Unknown' : 'Unknown';
+            } else {
+                authIndicator.className = 'status-indicator status-offline';
+                authStatus.textContent = 'Not Authenticated';
+                currentUser.textContent = 'None';
+            }
+        }
+
+        // Helper function to display results
+        function displayResult(elementId, data, isError = false) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = `result-box ${isError ? 'result-error' : 'result-success'}`;
+            element.textContent = JSON.stringify(data, null, 2);
+        }
+
+        // Helper function to display errors
+        function displayError(elementId, error) {
+            displayResult(elementId, { error: error.message }, true);
+        }
+
+        // Authentication Tests
+        async function testLogin() {
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+
+            try {
+                const result = await apiService.login(username, password);
+                displayResult('login-result', result);
+                updateAuthStatus();
+            } catch (error) {
+                displayError('login-result', error);
+            }
+        }
+
+        function testLogout() {
+            apiService.logout();
+            updateAuthStatus();
+            displayResult('login-result', { message: 'Logged out successfully' });
+        }
+
+        async function testGetUsers() {
+            try {
+                const result = await apiService.getUsers();
+                displayResult('users-result', result);
+            } catch (error) {
+                displayError('users-result', error);
+            }
+        }
+
+        async function testForgotPassword() {
+            const email = document.getElementById('forgot-email').value;
+
+            try {
+                const result = await apiService.forgotPassword(email);
+                displayResult('forgot-result', result);
+            } catch (error) {
+                displayError('forgot-result', error);
+            }
+        }
+
+        // Lead Management Tests
+        async function testCreateLead() {
+            const leadData = {
+                first_name: document.getElementById('lead-firstname').value,
+                last_name: document.getElementById('lead-lastname').value,
+                email: document.getElementById('lead-email').value,
+                phone_home: document.getElementById('lead-phone').value,
+                lp_caller_id: document.getElementById('lead-phone').value,
+                vendor_code: document.getElementById('lead-vendor').value,
+                zip_code: document.getElementById('lead-zip').value,
+                state: document.getElementById('lead-state').value
+            };
+
+            try {
+                const result = await apiService.createLead(leadData);
+                displayResult('create-lead-result', result);
+                
+                // Auto-fill the lead ID for other tests
+                if (result.lead_id) {
+                    document.getElementById('update-lead-id').value = result.lead_id;
+                    document.getElementById('retainer-lead-id').value = result.lead_id;
+                }
+            } catch (error) {
+                displayError('create-lead-result', error);
+            }
+        }
+
+        async function testGetLeads() {
+            try {
+                const result = await apiService.getLeads();
+                displayResult('get-leads-result', result);
+            } catch (error) {
+                displayError('get-leads-result', error);
+            }
+        }
+
+        async function testGetLeadsFiltered() {
+            const vendorCode = document.getElementById('filter-vendor').value;
+
+            try {
+                const result = await apiService.getLeads(vendorCode);
+                displayResult('get-leads-result', result);
+            } catch (error) {
+                displayError('get-leads-result', error);
+            }
+        }
+
+        async function testUpdateLead() {
+            const leadId = document.getElementById('update-lead-id').value;
+            const updates = {
+                disposition: document.getElementById('update-disposition').value,
+                notes: document.getElementById('update-notes').value
+            };
+
+            if (!leadId) {
+                displayError('update-lead-result', new Error('Lead ID is required'));
+                return;
+            }
+
+            try {
+                const result = await apiService.updateLead(leadId, updates);
+                displayResult('update-lead-result', result);
+            } catch (error) {
+                displayError('update-lead-result', error);
+            }
+        }
+
+        async function testSendRetainer() {
+            const leadId = document.getElementById('retainer-lead-id').value;
+
+            if (!leadId) {
+                displayError('retainer-result', new Error('Lead ID is required'));
+                return;
+            }
+
+            try {
+                const result = await apiService.sendRetainer(leadId, { sendNow: true });
+                displayResult('retainer-result', result);
+            } catch (error) {
+                displayError('retainer-result', error);
+            }
+        }
+
+        // Analytics Tests
+        async function testDashboardAnalytics() {
+            try {
+                const result = await apiService.getDashboardAnalytics();
+                displayResult('dashboard-result', result);
+            } catch (error) {
+                displayError('dashboard-result', error);
+            }
+        }
+
+        async function testPerformanceMetrics() {
+            const days = parseInt(document.getElementById('performance-days').value);
+
+            try {
+                const result = await apiService.getPerformanceMetrics(days);
+                displayResult('performance-result', result);
+            } catch (error) {
+                displayError('performance-result', error);
+            }
+        }
+
+        async function testVendorDashboard() {
+            try {
+                const result = await apiService.getVendorDashboard();
+                displayResult('vendor-dashboard-result', result);
+            } catch (error) {
+                displayError('vendor-dashboard-result', error);
+            }
+        }
+
+        async function testAgentKPIs() {
+            try {
+                const result = await apiService.getAgentKPIs();
+                displayResult('agent-kpis-result', result);
+            } catch (error) {
+                displayError('agent-kpis-result', error);
+            }
+        }
+
+        // Vendor Management Tests
+        async function testGetVendors() {
+            try {
+                const result = await apiService.getVendors();
+                displayResult('vendors-result', result);
+            } catch (error) {
+                displayError('vendors-result', error);
+            }
+        }
+
+        async function testCreateVendor() {
+            const vendorData = {
+                vendor_code: document.getElementById('vendor-code').value,
+                name: document.getElementById('vendor-name').value,
+                description: document.getElementById('vendor-description').value
+            };
+
+            try {
+                const result = await apiService.createVendor(vendorData);
+                displayResult('create-vendor-result', result);
+            } catch (error) {
+                displayError('create-vendor-result', error);
+            }
+        }
+
+        async function testRegenerateApiKey() {
+            const vendorCode = document.getElementById('regen-vendor-code').value;
+
+            if (!vendorCode) {
+                displayError('regen-key-result', new Error('Vendor code is required'));
+                return;
+            }
+
+            try {
+                const result = await apiService.regenerateApiKey(vendorCode);
+                displayResult('regen-key-result', result);
+            } catch (error) {
+                displayError('regen-key-result', error);
+            }
+        }
+
+        // Statistics Tests
+        async function testGetStats() {
+            const period = document.getElementById('stats-period').value;
+
+            try {
+                const result = await apiService.getLeadStats(period);
+                displayResult('stats-result', result);
+            } catch (error) {
+                displayError('stats-result', error);
+            }
+        }
+
+        async function testExportLeads() {
+            const startDate = document.getElementById('export-start').value;
+            const endDate = document.getElementById('export-end').value;
+
+            const filters = {};
+            if (startDate) filters.start_date = startDate;
+            if (endDate) filters.end_date = endDate;
+
+            try {
+                const result = await apiService.exportLeads(filters);
+                displayResult('export-result', result);
+            } catch (error) {
+                displayError('export-result', error);
+            }
+        }
+    </script>
+</body>
+</html> 
