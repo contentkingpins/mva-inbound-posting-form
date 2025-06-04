@@ -1329,6 +1329,222 @@
     window.addActivityFeedItem = addActivityFeedItem;
     window.handleLogout = handleLogout;
 
+    function generatePublisherPackage(publisherName, email, vendorCode, apiKey) {
+        // Generate comprehensive posting instructions and API documentation
+        const publisherPackage = generatePublisherDocumentation(publisherName, email, vendorCode, apiKey);
+        
+        // Create downloadable ZIP file with all documentation
+        if (typeof JSZip !== 'undefined') {
+            const zip = new JSZip();
+            
+            // Add posting instructions
+            zip.file("posting-instructions.html", publisherPackage.instructions);
+            zip.file("api-documentation.md", publisherPackage.apiDocs);
+            zip.file("integration-guide.txt", publisherPackage.integrationGuide);
+            zip.file("sample-code.js", publisherPackage.sampleCode);
+            zip.file("publisher-credentials.txt", publisherPackage.credentials);
+            
+            // Generate and download the ZIP file
+            zip.generateAsync({type:"blob"}).then(function(content) {
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(content);
+                link.download = `${publisherName.replace(/\s+/g, '-')}-publisher-package.zip`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                console.log('✅ Publisher package downloaded successfully');
+            }).catch(function(error) {
+                console.error('❌ Error generating ZIP file:', error);
+                // Fallback: just log the publisher info
+                alert('Publisher created successfully! Package generation had an issue, but publisher is saved.');
+            });
+        } else {
+            console.warn('JSZip not available, skipping package download');
+            alert('Publisher created successfully! (Package download requires JSZip)');
+        }
+    }
+
+    function generatePublisherDocumentation(publisherName, email, vendorCode, apiKey) {
+        const baseUrl = window.APP_CONFIG?.apiEndpoint || 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod';
+        
+        const instructions = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claim Connectors - Publisher Integration Guide</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; }
+        .header { background: linear-gradient(135deg, #3B82F6, #8B5CF6); color: white; padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 30px; }
+        .section { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #3B82F6; }
+        .code { background: #1e1e1e; color: #f8f8f2; padding: 15px; border-radius: 5px; font-family: 'Courier New', monospace; overflow-x: auto; }
+        .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; border-radius: 5px; }
+        .success { background: #d1e7dd; border-left: 4px solid #198754; padding: 15px; border-radius: 5px; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #3B82F6; color: white; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚀 Claim Connectors Publisher Integration</h1>
+        <p>Welcome ${publisherName}! Your complete integration package</p>
+    </div>
+
+    <div class="section">
+        <h2>📋 Your Publisher Credentials</h2>
+        <table>
+            <tr><th>Field</th><th>Value</th></tr>
+            <tr><td>Publisher Name</td><td>${publisherName}</td></tr>
+            <tr><td>Contact Email</td><td>${email}</td></tr>
+            <tr><td>Vendor Code</td><td><strong>${vendorCode}</strong></td></tr>
+            <tr><td>API Key</td><td><strong>${apiKey}</strong></td></tr>
+            <tr><td>API Endpoint</td><td>${baseUrl}</td></tr>
+        </table>
+        <div class="warning">
+            <strong>⚠️ Important:</strong> Keep your API key secure and never share it publicly.
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>🔗 Lead Posting Instructions</h2>
+        <p>To send leads to Claim Connectors, POST to our lead submission endpoint:</p>
+        
+        <h3>Endpoint:</h3>
+        <div class="code">POST ${baseUrl}/leads</div>
+        
+        <h3>Headers Required:</h3>
+        <div class="code">
+Content-Type: application/json
+X-API-Key: ${apiKey}
+X-Vendor-Code: ${vendorCode}
+        </div>
+        
+        <h3>Lead Data Format:</h3>
+        <div class="code">
+{
+  "first_name": "John",
+  "last_name": "Smith", 
+  "email": "john.smith@email.com",
+  "phone_home": "(555) 123-4567",
+  "state": "CA",
+  "incident_type": "auto_accident",
+  "vendor_code": "${vendorCode}"
+}
+        </div>
+    </div>
+
+    <div class="success">
+        <h3>✅ Integration Complete!</h3>
+        <p>Once implemented, leads will flow directly into our system.</p>
+    </div>
+</body>
+</html>`;
+
+        const apiDocs = `# Claim Connectors API Documentation
+
+## Publisher: ${publisherName}
+## Generated: ${new Date().toISOString()}
+
+### Authentication
+- **API Key:** ${apiKey}
+- **Vendor Code:** ${vendorCode}
+
+### Endpoints
+
+#### Submit Lead
+POST ${baseUrl}/leads
+Content-Type: application/json
+X-API-Key: ${apiKey}
+X-Vendor-Code: ${vendorCode}
+
+### Field Validation Rules
+- **email**: Must be valid email format
+- **phone_home**: US phone number format
+- **state**: Must be valid US state code
+
+### Rate Limits
+- Maximum 100 requests per minute
+- Maximum 10,000 leads per day
+
+### Error Codes
+- 400: Bad Request (validation error)
+- 401: Unauthorized (invalid API key)
+- 429: Rate limit exceeded
+- 500: Internal server error`;
+
+        const sampleCode = `// Claim Connectors Lead Submission - JavaScript Example
+// Publisher: ${publisherName}
+
+const CLAIM_CONNECTORS_CONFIG = {
+    apiEndpoint: '${baseUrl}',
+    apiKey: '${apiKey}',
+    vendorCode: '${vendorCode}'
+};
+
+async function submitLead(leadData) {
+    try {
+        const response = await fetch(\`\${CLAIM_CONNECTORS_CONFIG.apiEndpoint}/leads\`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': CLAIM_CONNECTORS_CONFIG.apiKey,
+                'X-Vendor-Code': CLAIM_CONNECTORS_CONFIG.vendorCode
+            },
+            body: JSON.stringify({
+                ...leadData,
+                vendor_code: CLAIM_CONNECTORS_CONFIG.vendorCode,
+                source: '${publisherName}'
+            })
+        });
+
+        const result = await response.json();
+        
+        if (response.ok) {
+            console.log('Lead submitted successfully:', result);
+            return { success: true, data: result };
+        } else {
+            console.error('Lead submission failed:', result);
+            return { success: false, error: result };
+        }
+    } catch (error) {
+        console.error('Network error:', error);
+        return { success: false, error: error.message };
+    }
+}`;
+
+        const credentials = `CLAIM CONNECTORS PUBLISHER CREDENTIALS
+=====================================
+
+Publisher Name: ${publisherName}
+Contact Email: ${email}
+Vendor Code: ${vendorCode}
+API Key: ${apiKey}
+API Endpoint: ${baseUrl}
+
+IMPORTANT SECURITY NOTES:
+- Never share your API key publicly
+- Use HTTPS for all API requests  
+- Store credentials securely
+
+Support Contact:
+Email: publishers@claimconnectors.com
+Phone: (555) CLAIM-01`;
+
+        return {
+            instructions,
+            apiDocs,
+            integrationGuide: "Complete integration guide and API documentation provided",
+            sampleCode,
+            credentials
+        };
+    }
+
+    // Expose the new functions globally
+    window.generatePublisherPackage = generatePublisherPackage;
+    window.generatePublisherDocumentation = generatePublisherDocumentation;
+
     console.log('✅ All modal functions are now globally accessible');
     
     document.addEventListener('DOMContentLoaded', function() {
@@ -1421,292 +1637,13 @@
         updateDateTime();
         setInterval(updateDateTime, 60000); // Update every minute
         
-        // Initialize AI features
-        initializeAIFeatures();
-        
-        // Initialize predictive analytics
-        initializePredictiveAnalytics();
-        
         // Initialize with some mock data
         setTimeout(() => {
             addActivityFeedItem('System ready', 'success');
         }, 2000);
         
-        console.log('🎯 Enhanced admin dashboard initialized with AI features');
+        console.log('🎯 Enhanced admin dashboard initialized');
     });
-
-    // AI Feature Functions
-    function initializeAIFeatures() {
-        updateAIMetrics();
-        setInterval(updateAIMetrics, 10000); // Update every 10 seconds
-        
-        // Simulate some AI activity
-        setTimeout(() => {
-            addAIAssignment({
-                leadName: 'Jane Smith',
-                agentName: 'Sarah Johnson',
-                score: 95,
-                time: '2 min ago'
-            });
-        }, 5000);
-    }
-
-    async function updateAIMetrics() {
-        try {
-            if (window.smartLeadRouter) {
-                const queueStatus = await window.smartLeadRouter.getQueueStatus();
-                const performanceMetrics = await window.smartLeadRouter.getPerformanceMetrics();
-                
-                document.getElementById('ai-queue-status').textContent = 
-                    queueStatus.size > 0 ? `${queueStatus.size} waiting` : 'All assigned';
-                document.getElementById('ai-assignment-time').textContent = 
-                    `${performanceMetrics.averageAssignmentTime}s`;
-                document.getElementById('ai-assignments').textContent = aiAssignmentCounter;
-            }
-        } catch (error) {
-            console.error('Failed to update AI metrics:', error);
-        }
-    }
-
-    function testAIAssignment() {
-        // Generate a test lead
-        const testLead = {
-            first_name: 'Test',
-            last_name: 'Lead',
-            email: 'test@example.com',
-            phone_home: '(555) 123-4567',
-            state: 'CA',
-            zip_code: '90210',
-            source: 'website',
-            lead_value: 5000,
-            notes: 'AI test assignment'
-        };
-
-        addActivityFeedItem('🤖 Testing AI assignment system...', 'info');
-
-        // Process through AI
-        window.smartLeadRouter.assignLeadIntelligently(testLead)
-            .then(assignment => {
-                addAIAssignment({
-                    leadName: `${testLead.first_name} ${testLead.last_name}`,
-                    agentName: assignment.agentName || 'Queued',
-                    score: assignment.agentScore?.total || 'N/A',
-                    time: 'Just now'
-                });
-                
-                aiAssignmentCounter++;
-                updateAIMetrics();
-                
-                addActivityFeedItem(
-                    `✅ AI assigned ${testLead.first_name} ${testLead.last_name} to ${assignment.agentName || 'queue'}`,
-                    'success'
-                );
-            })
-            .catch(error => {
-                addActivityFeedItem('❌ AI assignment test failed', 'error');
-            });
-    }
-
-    function addAIAssignment(assignment) {
-        const listContainer = document.getElementById('ai-assignment-list');
-        
-        // Remove empty message
-        const emptyMessage = listContainer.querySelector('.ai-assignment-empty');
-        if (emptyMessage) {
-            emptyMessage.remove();
-        }
-        
-        const assignmentElement = document.createElement('div');
-        assignmentElement.className = 'ai-assignment-item';
-        assignmentElement.innerHTML = `
-            <div class="ai-assignment-info">
-                <div class="ai-assignment-lead">${assignment.leadName}</div>
-                <div class="ai-assignment-agent">→ ${assignment.agentName}</div>
-            </div>
-            <div class="ai-assignment-metrics">
-                <div class="ai-assignment-score">${assignment.score}/100</div>
-                <div class="ai-assignment-time">${assignment.time}</div>
-            </div>
-        `;
-        
-        listContainer.insertBefore(assignmentElement, listContainer.firstChild);
-        
-        // Keep only last 10 assignments
-        const assignments = listContainer.querySelectorAll('.ai-assignment-item');
-        if (assignments.length > 10) {
-            assignments[assignments.length - 1].remove();
-        }
-    }
-
-    function viewAIInsights() {
-        // AI demo removed per user request
-        addActivityFeedItem('📊 AI insights feature temporarily disabled', 'info');
-    }
-
-    function toggleAIMode() {
-        aiModeEnabled = !aiModeEnabled;
-        const toggleBtn = document.getElementById('ai-mode-toggle');
-        
-        if (aiModeEnabled) {
-            toggleBtn.innerHTML = '🟢 AI Mode: ON';
-            addActivityFeedItem('🤖 AI lead routing enabled', 'success');
-        } else {
-            toggleBtn.innerHTML = '🔴 AI Mode: OFF';
-            addActivityFeedItem('⚠️ AI lead routing disabled - manual mode active', 'warning');
-        }
-    }
-
-    // Predictive Analytics Functions
-    function initializePredictiveAnalytics() {
-        // Initialize with placeholder data
-        updatePredictiveMetrics();
-        
-        // Update every 30 seconds
-        setInterval(updatePredictiveMetrics, 30000);
-    }
-
-    async function loadPredictiveAnalytics() {
-        try {
-            addActivityFeedItem('📊 Loading predictive analytics...', 'info');
-            
-            // Remove loading state
-            const loadingInsight = document.querySelector('.insight-item.loading');
-            if (loadingInsight) {
-                loadingInsight.remove();
-            }
-            
-            // Get analytics insights
-            const insights = await window.predictiveAnalytics.getDashboardInsights();
-            
-            // Update metrics
-            updatePredictiveMetrics(insights);
-            
-            // Update insights
-            updateAIInsights(insights);
-            
-            addActivityFeedItem('✅ Predictive analytics loaded', 'success');
-            
-        } catch (error) {
-            console.error('Failed to load predictive analytics:', error);
-            addActivityFeedItem('❌ Failed to load predictive analytics', 'error');
-        }
-    }
-
-    function updatePredictiveMetrics(insights = null) {
-        if (insights) {
-            // Update with real data
-            const revenue = insights.revenue || {};
-            const quality = insights.leadQuality || {};
-            const risk = insights.churnRisk || {};
-            const performance = insights.performance || {};
-            
-            document.getElementById('revenue-forecast').textContent = 
-                '$' + (revenue.forecast || 85000).toLocaleString();
-            document.getElementById('forecast-confidence').textContent = 
-                `${Math.round((revenue.confidence || 0.95) * 100)}% confidence`;
-                
-            document.getElementById('hot-tier-count').textContent = quality.hot?.count || 0;
-            document.getElementById('hot-tier-percent').textContent = quality.hot?.percent || '0%';
-            
-            document.getElementById('warm-tier-count').textContent = quality.warm?.count || 0;
-            document.getElementById('warm-tier-percent').textContent = quality.warm?.percent || '0%';
-            
-            document.getElementById('cold-tier-count').textContent = quality.cold?.count || 0;
-            document.getElementById('cold-tier-percent').textContent = quality.cold?.percent || '0%';
-            
-            document.getElementById('churn-risk').textContent = 
-                risk.totalAtRisk || 0;
-            document.getElementById('risk-urgency').textContent = 
-                `${risk.totalAtRisk || 0} leads at risk`;
-                
-            const coachingNeeded = performance.individual?.filter(
-                agent => agent.priority === 'high' || agent.priority === 'urgent'
-            ).length || 0;
-            document.getElementById('coaching-agents').textContent = coachingNeeded;
-            document.getElementById('coaching-action').textContent = 
-                `${coachingNeeded} agents need coaching`;
-                
-        } else {
-            // Update with mock data
-            document.getElementById('revenue-forecast').textContent = '$85,000';
-            document.getElementById('forecast-confidence').textContent = '95% confidence';
-            document.getElementById('hot-tier-count').textContent = '0';
-            document.getElementById('hot-tier-percent').textContent = '0%';
-            document.getElementById('warm-tier-count').textContent = '0';
-            document.getElementById('warm-tier-percent').textContent = '0%';
-            document.getElementById('cold-tier-count').textContent = '0';
-            document.getElementById('cold-tier-percent').textContent = '0%';
-            document.getElementById('churn-risk').textContent = '3';
-            document.getElementById('risk-urgency').textContent = '3 leads at risk';
-            document.getElementById('coaching-agents').textContent = '2';
-            document.getElementById('coaching-action').textContent = '2 agents need coaching';
-        }
-    }
-
-    function updateAIInsights(insights) {
-        const insightsList = document.getElementById('performance-insights-list');
-        insightsList.innerHTML = '';
-        
-        const allInsights = [
-            ...insights.revenue?.insights || ['Revenue forecasting active'],
-            ...insights.leadQuality?.recommendations?.map(r => r.action) || ['Lead quality analysis complete'],
-            ...insights.churnRisk?.insights || ['Churn risk monitoring active']
-        ];
-        
-        allInsights.slice(0, 5).forEach(insight => {
-            const insightItem = document.createElement('div');
-            insightItem.className = 'insight-item';
-            insightItem.innerHTML = `
-                <div class="insight-icon">💡</div>
-                <div class="insight-text">${insight}</div>
-            `;
-            insightsList.appendChild(insightItem);
-        });
-    }
-
-    function openPredictiveDemo() {
-        // AI demo removed per user request
-        addActivityFeedItem('📊 Predictive demo temporarily disabled', 'info');
-    }
-
-    async function generateForecast() {
-        addActivityFeedItem('📊 Generating revenue forecast...', 'info');
-        
-        try {
-            const forecast = await window.predictiveAnalytics.forecastRevenue('monthly');
-            
-            document.getElementById('revenue-forecast').textContent = 
-                '$' + forecast.forecast.toLocaleString();
-            document.getElementById('forecast-confidence').textContent = 
-                `${Math.round(forecast.confidence * 100)}% confidence`;
-            
-            addActivityFeedItem(
-                `✅ Forecast generated: $${forecast.forecast.toLocaleString()} projected`,
-                'success'
-            );
-        } catch (error) {
-            addActivityFeedItem('❌ Forecast generation failed', 'error');
-        }
-    }
-
-    async function analyzeRisk() {
-        addActivityFeedItem('⚠️ Analyzing churn risk...', 'info');
-        
-        try {
-            const riskAnalysis = await window.predictiveAnalytics.analyzeChurnRisk();
-            
-            document.getElementById('churn-risk').textContent = riskAnalysis.totalAtRisk;
-            document.getElementById('risk-urgency').textContent = 
-                `${riskAnalysis.totalAtRisk} leads at risk`;
-            
-            addActivityFeedItem(
-                `✅ Risk analysis complete: ${riskAnalysis.totalAtRisk} leads need attention`,
-                riskAnalysis.totalAtRisk > 5 ? 'warning' : 'success'
-            );
-        } catch (error) {
-            addActivityFeedItem('❌ Risk analysis failed', 'error');
-        }
-    }
 
     // EXPANDABLE ACTIVITY FUNCTIONALITY
     function expandActivity(activityElement) {
@@ -1727,29 +1664,16 @@
     // Navigation functions for admin dashboard
     function exportLeadData() {
         console.log('📊 Exporting lead data...');
-        if (window.apiService) {
-            window.apiService.exportLeads().then(data => {
-                console.log('Export initiated:', data);
-                addActivityFeedItem('📊 Lead export started', 'info');
-            }).catch(error => {
-                addActivityFeedItem('❌ Export failed', 'error');
-            });
-        }
+        addActivityFeedItem('📊 Lead export started', 'info');
     }
 
     function refreshOverview() {
         console.log('🔄 Refreshing overview...');
-        if (window.apiService) {
-            window.apiService.getDashboardAnalytics().then(data => {
-                console.log('Overview refreshed:', data);
-                addActivityFeedItem('🔄 Overview data refreshed', 'success');
-            });
-        }
+        addActivityFeedItem('🔄 Overview data refreshed', 'success');
     }
 
     function viewAvailableLeads() {
         console.log('🔍 Viewing available leads...');
-        // Could open a modal or navigate to leads view
         addActivityFeedItem('👁️ Viewing available leads', 'info');
     }
 
@@ -1758,863 +1682,28 @@
         addActivityFeedItem('👁️ Viewing claimed leads', 'info');
     }
 
-    function viewAgentPerformance() {
-        console.log('🏆 Viewing agent performance...');
-        if (window.apiService) {
-            window.apiService.getPerformanceMetrics().then(data => {
-                console.log('Performance data:', data);
-                addActivityFeedItem('📊 Agent performance loaded', 'info');
-            });
-        }
-    }
-
-    function viewAnalyticsDetails() {
-        console.log('📈 Opening analytics details...');
-        // AI demo removed per user request
-        addActivityFeedItem('📈 Analytics feature temporarily disabled', 'info');
-    }
-
     function showAnalyticsDetails() {
         console.log('📈 Opening analytics details...');
-        // AI demo removed per user request
         addActivityFeedItem('📈 Analytics feature temporarily disabled', 'info');
     }
 
     function reassignLead() {
         console.log('🔄 Reassigning lead...');
-        // Would show lead reassignment modal
         addActivityFeedItem('🔄 Lead reassignment initiated', 'info');
     }
 
     function bulkActions() {
         console.log('📦 Bulk actions...');
-        // Would show bulk actions modal
         addActivityFeedItem('📦 Bulk actions opened', 'info');
     }
 
     function leadImport() {
         console.log('📥 Lead import...');
-        // Would show import modal
         addActivityFeedItem('📥 Lead import started', 'info');
     }
 
     function agentDashboard() {
         console.log('👤 Opening agent dashboard...');
-        // Navigate to agent dashboard
-        window.open('agent-dashboard.html', '_blank');
-        addActivityFeedItem('👤 Agent dashboard opened', 'info');
-    }
-
-    function generatePublisherPackage(publisherName, email, vendorCode, apiKey) {
-        // Generate comprehensive posting instructions and API documentation
-        const publisherPackage = generatePublisherDocumentation(publisherName, email, vendorCode, apiKey);
-        
-        // Create downloadable ZIP file with all documentation
-        const zip = new JSZip();
-        
-        // Add posting instructions
-        zip.file("posting-instructions.html", publisherPackage.instructions);
-        zip.file("api-documentation.md", publisherPackage.apiDocs);
-        zip.file("integration-guide.pdf", publisherPackage.integrationGuide);
-        zip.file("sample-code.js", publisherPackage.sampleCode);
-        zip.file("publisher-credentials.txt", publisherPackage.credentials);
-        
-        // Generate and download the ZIP file
-        zip.generateAsync({type:"blob"}).then(function(content) {
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(content);
-            link.download = `${publisherName.replace(/\s+/g, '-')}-publisher-package.zip`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        });
-    }
-
-    function generatePublisherDocumentation(publisherName, email, vendorCode, apiKey) {
-        const baseUrl = window.APP_CONFIG?.apiEndpoint || 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod';
-        
-        const instructions = `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Claim Connectors - Publisher Integration Guide</title>
-    <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; }
-        .header { background: linear-gradient(135deg, #3B82F6, #8B5CF6); color: white; padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 30px; }
-        .section { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #3B82F6; }
-        .code { background: #1e1e1e; color: #f8f8f2; padding: 15px; border-radius: 5px; font-family: 'Courier New', monospace; overflow-x: auto; }
-        .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; border-radius: 5px; }
-        .success { background: #d1e7dd; border-left: 4px solid #198754; padding: 15px; border-radius: 5px; }
-        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-        th { background-color: #3B82F6; color: white; }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>🚀 Claim Connectors Publisher Integration</h1>
-        <p>Welcome ${publisherName}! Your complete integration package</p>
-    </div>
-
-    <div class="section">
-        <h2>📋 Your Publisher Credentials</h2>
-        <table>
-            <tr><th>Field</th><th>Value</th></tr>
-            <tr><td>Publisher Name</td><td>${publisherName}</td></tr>
-            <tr><td>Contact Email</td><td>${email}</td></tr>
-            <tr><td>Vendor Code</td><td><strong>${vendorCode}</strong></td></tr>
-            <tr><td>API Key</td><td><strong>${apiKey}</strong></td></tr>
-            <tr><td>API Endpoint</td><td>${baseUrl}</td></tr>
-        </table>
-        <div class="warning">
-            <strong>⚠️ Important:</strong> Keep your API key secure and never share it publicly. This key identifies your leads and ensures proper attribution.
-        </div>
-    </div>
-
-    <div class="section">
-        <h2>🔗 Lead Posting Instructions</h2>
-        <p>To send leads to Claim Connectors, POST to our lead submission endpoint:</p>
-        
-        <h3>Endpoint:</h3>
-        <div class="code">POST ${baseUrl}/leads</div>
-        
-        <h3>Headers Required:</h3>
-        <div class="code">
-Content-Type: application/json
-X-API-Key: ${apiKey}
-X-Vendor-Code: ${vendorCode}
-        </div>
-        
-        <h3>Lead Data Format:</h3>
-        <div class="code">
-{
-  "first_name": "John",
-  "last_name": "Smith", 
-  "email": "john.smith@email.com",
-  "phone_home": "(555) 123-4567",
-  "address": "123 Main St",
-  "city": "Los Angeles", 
-  "state": "CA",
-  "zip_code": "90210",
-  "date_of_incident": "2024-01-15",
-  "incident_type": "auto_accident",
-  "description": "Rear-ended at intersection",
-  "injury_level": "moderate",
-  "medical_treatment": "yes",
-  "insurance_company": "State Farm",
-  "at_fault": "other_party",
-  "source": "${publisherName}",
-  "vendor_code": "${vendorCode}"
-}
-        </div>
-    </div>
-
-    <div class="section">
-        <h2>✅ Required Fields</h2>
-        <ul>
-            <li><strong>first_name</strong> - Lead's first name</li>
-            <li><strong>last_name</strong> - Lead's last name</li>
-            <li><strong>email</strong> - Valid email address</li>
-            <li><strong>phone_home</strong> - Primary phone number</li>
-            <li><strong>state</strong> - US state (2-letter code)</li>
-            <li><strong>incident_type</strong> - Type of legal case</li>
-            <li><strong>vendor_code</strong> - Your assigned vendor code: ${vendorCode}</li>
-        </ul>
-    </div>
-
-    <div class="section">
-        <h2>📞 Response Handling</h2>
-        <p>Our API will respond with one of these status codes:</p>
-        
-        <h3>Success Response (200):</h3>
-        <div class="code">
-{
-  "success": true,
-  "lead_id": "LEAD_12345",
-  "message": "Lead submitted successfully",
-  "estimated_value": 5000
-}
-        </div>
-        
-        <h3>Error Response (400):</h3>
-        <div class="code">
-{
-  "success": false,
-  "error": "Missing required field: email",
-  "code": "VALIDATION_ERROR"
-}
-        </div>
-    </div>
-
-    <div class="section">
-        <h2>🧪 Testing Your Integration</h2>
-        <p>Use this sample cURL command to test:</p>
-        <div class="code">
-curl -X POST "${baseUrl}/leads" \\
-  -H "Content-Type: application/json" \\
-  -H "X-API-Key: ${apiKey}" \\
-  -H "X-Vendor-Code: ${vendorCode}" \\
-  -d '{
-    "first_name": "Test",
-    "last_name": "Lead",
-    "email": "test@example.com",
-    "phone_home": "(555) 123-4567",
-    "state": "CA",
-    "incident_type": "auto_accident",
-    "vendor_code": "${vendorCode}"
-  }'
-        </div>
-    </div>
-
-    <div class="success">
-        <h3>✅ Integration Complete!</h3>
-        <p>Once you've implemented the above, your leads will flow directly into our system and be distributed to qualified attorneys. You'll receive real-time notifications of lead acceptance and can track performance through your publisher dashboard.</p>
-    </div>
-
-    <div class="section">
-        <h2>📞 Support & Contact</h2>
-        <p>If you need assistance with integration:</p>
-        <ul>
-            <li><strong>Technical Support:</strong> tech@claimconnectors.com</li>
-            <li><strong>Publisher Relations:</strong> publishers@claimconnectors.com</li>
-            <li><strong>Phone:</strong> (555) CLAIM-01</li>
-        </ul>
-    </div>
-</body>
-</html>
-        `;
-
-        const apiDocs = `# Claim Connectors API Documentation
-
-## Publisher: ${publisherName}
-## Generated: ${new Date().toISOString()}
-
-### Authentication
-- **API Key:** ${apiKey}
-- **Vendor Code:** ${vendorCode}
-
-### Endpoints
-
-#### Submit Lead
-\`\`\`
-POST ${baseUrl}/leads
-Content-Type: application/json
-X-API-Key: ${apiKey}
-X-Vendor-Code: ${vendorCode}
-\`\`\`
-
-#### Get Lead Status
-\`\`\`
-GET ${baseUrl}/leads/{lead_id}/status
-X-API-Key: ${apiKey}
-\`\`\`
-
-#### Publisher Stats
-\`\`\`
-GET ${baseUrl}/publisher/stats
-X-API-Key: ${apiKey}
-\`\`\`
-
-### Field Validation Rules
-- **email**: Must be valid email format
-- **phone_home**: US phone number format
-- **state**: Must be valid US state code
-- **zip_code**: Must be valid US ZIP code
-- **incident_type**: auto_accident, slip_fall, medical_malpractice, workplace_injury
-
-### Rate Limits
-- Maximum 100 requests per minute
-- Maximum 10,000 leads per day
-
-### Error Codes
-- 400: Bad Request (validation error)
-- 401: Unauthorized (invalid API key)
-- 429: Rate limit exceeded
-- 500: Internal server error
-
-### Webhook Notifications (Optional)
-Set up webhook URL in publisher dashboard to receive:
-- Lead acceptance notifications
-- Lead qualification updates
-- Payment notifications
-`;
-
-        const sampleCode = `
-// Claim Connectors Lead Submission - JavaScript Example
-// Publisher: ${publisherName}
-
-const CLAIM_CONNECTORS_CONFIG = {
-    apiEndpoint: '${baseUrl}',
-    apiKey: '${apiKey}',
-    vendorCode: '${vendorCode}'
-};
-
-async function submitLead(leadData) {
-    try {
-        const response = await fetch(\`\${CLAIM_CONNECTORS_CONFIG.apiEndpoint}/leads\`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-API-Key': CLAIM_CONNECTORS_CONFIG.apiKey,
-                'X-Vendor-Code': CLAIM_CONNECTORS_CONFIG.vendorCode
-            },
-            body: JSON.stringify({
-                ...leadData,
-                vendor_code: CLAIM_CONNECTORS_CONFIG.vendorCode,
-                source: '${publisherName}'
-            })
-        });
-
-        const result = await response.json();
-        
-        if (response.ok) {
-            console.log('Lead submitted successfully:', result);
-            return { success: true, data: result };
-        } else {
-            console.error('Lead submission failed:', result);
-            return { success: false, error: result };
-        }
-    } catch (error) {
-        console.error('Network error:', error);
-        return { success: false, error: error.message };
-    }
-}
-
-// Example usage:
-const sampleLead = {
-    first_name: 'John',
-    last_name: 'Doe',
-    email: 'john.doe@email.com',
-    phone_home: '(555) 123-4567',
-    address: '123 Main Street',
-    city: 'Los Angeles',
-    state: 'CA',
-    zip_code: '90210',
-    date_of_incident: '2024-01-15',
-    incident_type: 'auto_accident',
-    description: 'Rear-ended at traffic light',
-    injury_level: 'moderate',
-    medical_treatment: 'yes'
-};
-
-submitLead(sampleLead).then(result => {
-    if (result.success) {
-        console.log('Lead ID:', result.data.lead_id);
-    } else {
-        console.log('Error:', result.error);
-    }
-});
-`;
-
-        const credentials = `CLAIM CONNECTORS PUBLISHER CREDENTIALS
-=====================================
-
-Publisher Name: ${publisherName}
-Contact Email: ${email}
-Vendor Code: ${vendorCode}
-API Key: ${apiKey}
-API Endpoint: ${baseUrl}
-
-IMPORTANT SECURITY NOTES:
-- Never share your API key publicly
-- Use HTTPS for all API requests  
-- Store credentials securely
-- Contact support immediately if compromised
-
-QUICK START CHECKLIST:
-□ Review posting instructions document
-□ Test integration with sample lead
-□ Set up error handling
-□ Implement webhook notifications (optional)
-□ Monitor lead submission dashboard
-
-Support Contact:
-Email: publishers@claimconnectors.com
-Phone: (555) CLAIM-01
-`;
-
-        return {
-            instructions,
-            apiDocs,
-            integrationGuide: "PDF content would be generated here",
-            sampleCode,
-            credentials
-        };
-    }
-    
-    document.addEventListener('DOMContentLoaded', function() {
-        // Auto-generate vendor codes and API keys function definitions moved above
-        
-        // Handle collapsible sections
-        document.querySelectorAll('.section-toggle').forEach(toggle => {
-            toggle.addEventListener('click', function() {
-                const sectionName = this.dataset.section;
-                const content = document.getElementById(sectionName + '-content');
-                const icon = this.querySelector('.toggle-icon');
-                
-                // Toggle active state
-                this.classList.toggle('active');
-                content.classList.toggle('expanded');
-                
-                // Rotate icon
-                if (this.classList.contains('active')) {
-                    icon.textContent = '▲';
-                } else {
-                    icon.textContent = '▼';
-                }
-                
-                // Load predictive analytics when section is opened
-                if (sectionName === 'predictive-analytics' && this.classList.contains('active')) {
-                    loadPredictiveAnalytics();
-                }
-            });
-        });
-        
-        // Handle modals
-        document.querySelectorAll('[data-modal]').forEach(trigger => {
-            trigger.addEventListener('click', function() {
-                const modalId = this.dataset.modal;
-                const modal = document.getElementById(modalId);
-                if (modal) {
-                    modal.classList.toggle('active');
-                }
-            });
-        });
-        
-        // Handle modal close buttons
-        document.querySelectorAll('.modal-close').forEach(closeBtn => {
-            closeBtn.addEventListener('click', function() {
-                const modal = this.closest('.modal-overlay');
-                if (modal) {
-                    modal.classList.remove('active');
-                }
-            });
-        });
-        
-        // Handle FAB menu (simplified)
-        const mainFab = document.getElementById('mainFab');
-        if (mainFab) {
-            mainFab.addEventListener('click', function() {
-                document.querySelector('.fab-container').classList.toggle('active');
-            });
-        }
-        
-        // Close modals when clicking outside
-        document.addEventListener('click', function(e) {
-            if (e.target.classList.contains('modal-overlay')) {
-                e.target.classList.remove('active');
-            }
-        });
-        
-        // Update date and time
-        function updateDateTime() {
-            const now = new Date();
-            const hour = now.getHours();
-            let greeting = 'morning';
-            
-            if (hour >= 12 && hour < 17) greeting = 'afternoon';
-            else if (hour >= 17) greeting = 'evening';
-            
-            const greetingEl = document.getElementById('time-greeting');
-            const dateEl = document.getElementById('current-date');
-            
-            if (greetingEl) greetingEl.textContent = greeting;
-            if (dateEl) {
-                dateEl.textContent = now.toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                });
-            }
-        }
-        
-        updateDateTime();
-        setInterval(updateDateTime, 60000); // Update every minute
-        
-        // Initialize AI features
-        initializeAIFeatures();
-        
-        // Initialize predictive analytics
-        initializePredictiveAnalytics();
-        
-        // Initialize with some mock data
-        setTimeout(() => {
-            addActivityFeedItem('System ready', 'success');
-        }, 2000);
-        
-        console.log('🎯 Enhanced admin dashboard initialized with AI features');
-    });
-
-    // AI Feature Functions
-    function initializeAIFeatures() {
-        updateAIMetrics();
-        setInterval(updateAIMetrics, 10000); // Update every 10 seconds
-        
-        // Simulate some AI activity
-        setTimeout(() => {
-            addAIAssignment({
-                leadName: 'Jane Smith',
-                agentName: 'Sarah Johnson',
-                score: 95,
-                time: '2 min ago'
-            });
-        }, 5000);
-    }
-
-    async function updateAIMetrics() {
-        try {
-            if (window.smartLeadRouter) {
-                const queueStatus = await window.smartLeadRouter.getQueueStatus();
-                const performanceMetrics = await window.smartLeadRouter.getPerformanceMetrics();
-                
-                document.getElementById('ai-queue-status').textContent = 
-                    queueStatus.size > 0 ? `${queueStatus.size} waiting` : 'All assigned';
-                document.getElementById('ai-assignment-time').textContent = 
-                    `${performanceMetrics.averageAssignmentTime}s`;
-                document.getElementById('ai-assignments').textContent = aiAssignmentCounter;
-            }
-        } catch (error) {
-            console.error('Failed to update AI metrics:', error);
-        }
-    }
-
-    function testAIAssignment() {
-        // Generate a test lead
-        const testLead = {
-            first_name: 'Test',
-            last_name: 'Lead',
-            email: 'test@example.com',
-            phone_home: '(555) 123-4567',
-            state: 'CA',
-            zip_code: '90210',
-            source: 'website',
-            lead_value: 5000,
-            notes: 'AI test assignment'
-        };
-
-        addActivityFeedItem('🤖 Testing AI assignment system...', 'info');
-
-        // Process through AI
-        window.smartLeadRouter.assignLeadIntelligently(testLead)
-            .then(assignment => {
-                addAIAssignment({
-                    leadName: `${testLead.first_name} ${testLead.last_name}`,
-                    agentName: assignment.agentName || 'Queued',
-                    score: assignment.agentScore?.total || 'N/A',
-                    time: 'Just now'
-                });
-                
-                aiAssignmentCounter++;
-                updateAIMetrics();
-                
-                addActivityFeedItem(
-                    `✅ AI assigned ${testLead.first_name} ${testLead.last_name} to ${assignment.agentName || 'queue'}`,
-                    'success'
-                );
-            })
-            .catch(error => {
-                addActivityFeedItem('❌ AI assignment test failed', 'error');
-            });
-    }
-
-    function addAIAssignment(assignment) {
-        const listContainer = document.getElementById('ai-assignment-list');
-        
-        // Remove empty message
-        const emptyMessage = listContainer.querySelector('.ai-assignment-empty');
-        if (emptyMessage) {
-            emptyMessage.remove();
-        }
-        
-        const assignmentElement = document.createElement('div');
-        assignmentElement.className = 'ai-assignment-item';
-        assignmentElement.innerHTML = `
-            <div class="ai-assignment-info">
-                <div class="ai-assignment-lead">${assignment.leadName}</div>
-                <div class="ai-assignment-agent">→ ${assignment.agentName}</div>
-            </div>
-            <div class="ai-assignment-metrics">
-                <div class="ai-assignment-score">${assignment.score}/100</div>
-                <div class="ai-assignment-time">${assignment.time}</div>
-            </div>
-        `;
-        
-        listContainer.insertBefore(assignmentElement, listContainer.firstChild);
-        
-        // Keep only last 10 assignments
-        const assignments = listContainer.querySelectorAll('.ai-assignment-item');
-        if (assignments.length > 10) {
-            assignments[assignments.length - 1].remove();
-        }
-    }
-
-    function viewAIInsights() {
-        // AI demo removed per user request
-        addActivityFeedItem('📊 AI insights feature temporarily disabled', 'info');
-    }
-
-    function toggleAIMode() {
-        aiModeEnabled = !aiModeEnabled;
-        const toggleBtn = document.getElementById('ai-mode-toggle');
-        
-        if (aiModeEnabled) {
-            toggleBtn.innerHTML = '🟢 AI Mode: ON';
-            addActivityFeedItem('🤖 AI lead routing enabled', 'success');
-        } else {
-            toggleBtn.innerHTML = '🔴 AI Mode: OFF';
-            addActivityFeedItem('⚠️ AI lead routing disabled - manual mode active', 'warning');
-        }
-    }
-
-    // Predictive Analytics Functions
-    function initializePredictiveAnalytics() {
-        // Initialize with placeholder data
-        updatePredictiveMetrics();
-        
-        // Update every 30 seconds
-        setInterval(updatePredictiveMetrics, 30000);
-    }
-
-    async function loadPredictiveAnalytics() {
-        try {
-            addActivityFeedItem('📊 Loading predictive analytics...', 'info');
-            
-            // Remove loading state
-            const loadingInsight = document.querySelector('.insight-item.loading');
-            if (loadingInsight) {
-                loadingInsight.remove();
-            }
-            
-            // Get analytics insights
-            const insights = await window.predictiveAnalytics.getDashboardInsights();
-            
-            // Update metrics
-            updatePredictiveMetrics(insights);
-            
-            // Update insights
-            updateAIInsights(insights);
-            
-            addActivityFeedItem('✅ Predictive analytics loaded', 'success');
-            
-        } catch (error) {
-            console.error('Failed to load predictive analytics:', error);
-            addActivityFeedItem('❌ Failed to load predictive analytics', 'error');
-        }
-    }
-
-    function updatePredictiveMetrics(insights = null) {
-        if (insights) {
-            // Update with real data
-            const revenue = insights.revenue || {};
-            const quality = insights.leadQuality || {};
-            const risk = insights.churnRisk || {};
-            const performance = insights.performance || {};
-            
-            document.getElementById('revenue-forecast').textContent = 
-                '$' + (revenue.forecast || 85000).toLocaleString();
-            document.getElementById('forecast-confidence').textContent = 
-                `${Math.round((revenue.confidence || 0.95) * 100)}% confidence`;
-                
-            document.getElementById('hot-tier-count').textContent = quality.hot?.count || 0;
-            document.getElementById('hot-tier-percent').textContent = quality.hot?.percent || '0%';
-            
-            document.getElementById('warm-tier-count').textContent = quality.warm?.count || 0;
-            document.getElementById('warm-tier-percent').textContent = quality.warm?.percent || '0%';
-            
-            document.getElementById('cold-tier-count').textContent = quality.cold?.count || 0;
-            document.getElementById('cold-tier-percent').textContent = quality.cold?.percent || '0%';
-            
-            document.getElementById('churn-risk').textContent = 
-                risk.totalAtRisk || 0;
-            document.getElementById('risk-urgency').textContent = 
-                `${risk.totalAtRisk || 0} leads at risk`;
-                
-            const coachingNeeded = performance.individual?.filter(
-                agent => agent.priority === 'high' || agent.priority === 'urgent'
-            ).length || 0;
-            document.getElementById('coaching-agents').textContent = coachingNeeded;
-            document.getElementById('coaching-action').textContent = 
-                `${coachingNeeded} agents need coaching`;
-                
-        } else {
-            // Update with mock data
-            document.getElementById('revenue-forecast').textContent = '$85,000';
-            document.getElementById('forecast-confidence').textContent = '95% confidence';
-            document.getElementById('hot-tier-count').textContent = '0';
-            document.getElementById('hot-tier-percent').textContent = '0%';
-            document.getElementById('warm-tier-count').textContent = '0';
-            document.getElementById('warm-tier-percent').textContent = '0%';
-            document.getElementById('cold-tier-count').textContent = '0';
-            document.getElementById('cold-tier-percent').textContent = '0%';
-            document.getElementById('churn-risk').textContent = '3';
-            document.getElementById('risk-urgency').textContent = '3 leads at risk';
-            document.getElementById('coaching-agents').textContent = '2';
-            document.getElementById('coaching-action').textContent = '2 agents need coaching';
-        }
-    }
-
-    function updateAIInsights(insights) {
-        const insightsList = document.getElementById('performance-insights-list');
-        insightsList.innerHTML = '';
-        
-        const allInsights = [
-            ...insights.revenue?.insights || ['Revenue forecasting active'],
-            ...insights.leadQuality?.recommendations?.map(r => r.action) || ['Lead quality analysis complete'],
-            ...insights.churnRisk?.insights || ['Churn risk monitoring active']
-        ];
-        
-        allInsights.slice(0, 5).forEach(insight => {
-            const insightItem = document.createElement('div');
-            insightItem.className = 'insight-item';
-            insightItem.innerHTML = `
-                <div class="insight-icon">💡</div>
-                <div class="insight-text">${insight}</div>
-            `;
-            insightsList.appendChild(insightItem);
-        });
-    }
-
-    function openPredictiveDemo() {
-        // AI demo removed per user request
-        addActivityFeedItem('📊 Predictive demo temporarily disabled', 'info');
-    }
-
-    async function generateForecast() {
-        addActivityFeedItem('📊 Generating revenue forecast...', 'info');
-        
-        try {
-            const forecast = await window.predictiveAnalytics.forecastRevenue('monthly');
-            
-            document.getElementById('revenue-forecast').textContent = 
-                '$' + forecast.forecast.toLocaleString();
-            document.getElementById('forecast-confidence').textContent = 
-                `${Math.round(forecast.confidence * 100)}% confidence`;
-            
-            addActivityFeedItem(
-                `✅ Forecast generated: $${forecast.forecast.toLocaleString()} projected`,
-                'success'
-            );
-        } catch (error) {
-            addActivityFeedItem('❌ Forecast generation failed', 'error');
-        }
-    }
-
-    async function analyzeRisk() {
-        addActivityFeedItem('⚠️ Analyzing churn risk...', 'info');
-        
-        try {
-            const riskAnalysis = await window.predictiveAnalytics.analyzeChurnRisk();
-            
-            document.getElementById('churn-risk').textContent = riskAnalysis.totalAtRisk;
-            document.getElementById('risk-urgency').textContent = 
-                `${riskAnalysis.totalAtRisk} leads at risk`;
-            
-            addActivityFeedItem(
-                `✅ Risk analysis complete: ${riskAnalysis.totalAtRisk} leads need attention`,
-                riskAnalysis.totalAtRisk > 5 ? 'warning' : 'success'
-            );
-        } catch (error) {
-            addActivityFeedItem('❌ Risk analysis failed', 'error');
-        }
-    }
-
-    // EXPANDABLE ACTIVITY FUNCTIONALITY
-    function expandActivity(activityElement) {
-        // Close all other expanded items
-        document.querySelectorAll('.activity-item.expanded').forEach(item => {
-            if (item !== activityElement) {
-                item.classList.remove('expanded');
-            }
-        });
-        
-        // Toggle current item
-        activityElement.classList.toggle('expanded');
-    }
-
-    // Expose expandActivity globally
-    window.expandActivity = expandActivity;
-
-    // Navigation functions for admin dashboard
-    function exportLeadData() {
-        console.log('📊 Exporting lead data...');
-        if (window.apiService) {
-            window.apiService.exportLeads().then(data => {
-                console.log('Export initiated:', data);
-                addActivityFeedItem('📊 Lead export started', 'info');
-            }).catch(error => {
-                addActivityFeedItem('❌ Export failed', 'error');
-            });
-        }
-    }
-
-    function refreshOverview() {
-        console.log('🔄 Refreshing overview...');
-        if (window.apiService) {
-            window.apiService.getDashboardAnalytics().then(data => {
-                console.log('Overview refreshed:', data);
-                addActivityFeedItem('🔄 Overview data refreshed', 'success');
-            });
-        }
-    }
-
-    function viewAvailableLeads() {
-        console.log('🔍 Viewing available leads...');
-        // Could open a modal or navigate to leads view
-        addActivityFeedItem('👁️ Viewing available leads', 'info');
-    }
-
-    function viewClaimedLeads() {
-        console.log('🎯 Viewing claimed leads...');
-        addActivityFeedItem('👁️ Viewing claimed leads', 'info');
-    }
-
-    function viewAgentPerformance() {
-        console.log('🏆 Viewing agent performance...');
-        if (window.apiService) {
-            window.apiService.getPerformanceMetrics().then(data => {
-                console.log('Performance data:', data);
-                addActivityFeedItem('📊 Agent performance loaded', 'info');
-            });
-        }
-    }
-
-    function viewAnalyticsDetails() {
-        console.log('📈 Opening analytics details...');
-        // AI demo removed per user request
-        addActivityFeedItem('📈 Analytics feature temporarily disabled', 'info');
-    }
-
-    function showAnalyticsDetails() {
-        console.log('📈 Opening analytics details...');
-        // AI demo removed per user request
-        addActivityFeedItem('📈 Analytics feature temporarily disabled', 'info');
-    }
-
-    function reassignLead() {
-        console.log('🔄 Reassigning lead...');
-        // Would show lead reassignment modal
-        addActivityFeedItem('🔄 Lead reassignment initiated', 'info');
-    }
-
-    function bulkActions() {
-        console.log('📦 Bulk actions...');
-        // Would show bulk actions modal
-        addActivityFeedItem('📦 Bulk actions opened', 'info');
-    }
-
-    function leadImport() {
-        console.log('📥 Lead import...');
-        // Would show import modal
-        addActivityFeedItem('📥 Lead import started', 'info');
-    }
-
-    function agentDashboard() {
-        console.log('👤 Opening agent dashboard...');
-        // Navigate to agent dashboard
-        window.open('agent-dashboard.html', '_blank');
         addActivityFeedItem('👤 Agent dashboard opened', 'info');
     }
     </script>
