@@ -162,7 +162,7 @@ function handleLogout() {
             sessionStorage.clear();
             alert('Logged out successfully!');
             setTimeout(() => {
-                window.location.href = 'index.html';
+                window.location.href = 'login.html';
             }, 500);
         }
     } catch (error) {

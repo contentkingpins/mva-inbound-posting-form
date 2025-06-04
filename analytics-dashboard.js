@@ -64,7 +64,7 @@ function checkAuthentication() {
     
     if (!isAdmin) {
         console.log('❌ Admin access required for analytics dashboard');
-        window.location.href = 'index.html';
+        window.location.href = 'login.html';
         return false;
     }
     

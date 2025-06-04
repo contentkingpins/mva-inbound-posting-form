@@ -1562,12 +1562,12 @@
                 } catch (storageError) {
                     console.warn('Error clearing storage:', storageError);
                 }
-                window.location.href = 'index.html';
+                window.location.href = 'login.html';
             }
         } catch (error) {
             console.error('Error during logout:', error);
             // Force navigation even if there's an error
-            window.location.href = 'index.html';
+            window.location.href = 'login.html';
         }
     }
 
