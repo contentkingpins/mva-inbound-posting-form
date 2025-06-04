@@ -443,6 +443,22 @@
         color: var(--accent-purple);
     }
 
+    /* Urgency/Priority badges */
+    .status-badge.high {
+        background: rgba(239, 68, 68, 0.2);
+        color: var(--error);
+    }
+
+    .status-badge.medium {
+        background: rgba(245, 158, 11, 0.2);
+        color: var(--warning);
+    }
+
+    .status-badge.low {
+        background: rgba(16, 185, 129, 0.2);
+        color: var(--success);
+    }
+
     /* Form Styles */
     .form-input {
         width: 100%;
@@ -579,6 +595,171 @@
             flex-direction: column;
         }
     }
+
+    /* Lead Detail Modal */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        backdrop-filter: blur(10px);
+    }
+
+    .modal-overlay.active {
+        display: flex;
+    }
+
+    .modal-content {
+        background: var(--bg-secondary);
+        border: 2px solid var(--border-accent);
+        border-radius: var(--radius-lg);
+        padding: 2rem;
+        max-width: 600px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+        position: relative;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .modal-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: var(--text-muted);
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: var(--radius-md);
+        transition: all var(--transition-base);
+    }
+
+    .modal-close:hover {
+        background: var(--bg-accent);
+        color: var(--text-primary);
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        display: block;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .form-textarea {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        background: var(--bg-accent);
+        border: 2px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        color: var(--text-primary);
+        font-size: 0.875rem;
+        font-family: var(--font-family);
+        transition: all var(--transition-base);
+        resize: vertical;
+        min-height: 80px;
+    }
+
+    .form-textarea:focus {
+        outline: none;
+        border-color: var(--accent-blue);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    .modal-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+        margin-top: 2rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-subtle);
+    }
+
+    .disposition-section {
+        background: var(--bg-accent);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .disposition-title {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .disposition-options {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 0.75rem;
+    }
+
+    .disposition-btn {
+        padding: 0.75rem 1rem;
+        border: 2px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        background: var(--bg-secondary);
+        color: var(--text-primary);
+        cursor: pointer;
+        transition: all var(--transition-base);
+        font-size: 0.875rem;
+        font-weight: 500;
+        text-align: center;
+    }
+
+    .disposition-btn:hover {
+        border-color: var(--accent-blue);
+        background: var(--bg-accent);
+    }
+
+    .disposition-btn.selected {
+        border-color: var(--accent-blue);
+        background: var(--accent-blue);
+        color: white;
+    }
+
+    /* Create Lead Modal */
+    .create-lead-form {
+        display: grid;
+        gap: 1.5rem;
+    }
     </style>
 </head>
 <body>
@@ -599,9 +780,6 @@
                 <div class="header-date" id="current-date"></div>
                 <button class="btn btn-info btn-sm" onclick="window.location.href='agent-analytics.html'">
                     📊 Analytics
-                </button>
-                <button class="btn btn-secondary btn-sm" onclick="window.location.href='admin.html'">
-                    ⚡ Admin View
                 </button>
                 <button class="btn btn-warning btn-sm" onclick="logout()">
                     🚪 Logout
@@ -702,7 +880,6 @@
                 </div>
                 <div class="section-actions">
                     <button class="btn btn-secondary" onclick="exportMyLeads()">📤 Export</button>
-                    <button class="btn btn-info" onclick="scheduleCallback()">📞 Schedule Call</button>
                 </div>
             </div>
             
@@ -727,12 +904,6 @@
                     <div class="action-description">Add a new lead manually</div>
                 </button>
                 
-                <button class="action-card" onclick="scheduleCallback()">
-                    <div class="action-icon">📞</div>
-                    <div class="action-title">Schedule Callback</div>
-                    <div class="action-description">Set reminder for follow-up</div>
-                </button>
-                
                 <button class="action-card" onclick="generateReport()">
                     <div class="action-icon">📊</div>
                     <div class="action-title">Generate Report</div>
@@ -744,9 +915,187 @@
                     <div class="action-title">View Analytics</div>
                     <div class="action-description">Check your conversion stats</div>
                 </button>
+
+                <button class="action-card" onclick="refreshLeads()">
+                    <div class="action-icon">🔄</div>
+                    <div class="action-title">Refresh Leads</div>
+                    <div class="action-description">Update available leads list</div>
+                </button>
             </div>
         </section>
     </main>
+
+    <!-- Lead Detail Modal -->
+    <div class="modal-overlay" id="leadModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">📋 Lead Details</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            
+            <form id="leadForm" onsubmit="saveLead(event)">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Name *</label>
+                        <input type="text" id="leadName" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Type *</label>
+                        <select id="leadType" class="form-input" required>
+                            <option value="">Select Type</option>
+                            <option value="Auto Accident">Auto Accident</option>
+                            <option value="Slip & Fall">Slip & Fall</option>
+                            <option value="Medical Malpractice">Medical Malpractice</option>
+                            <option value="Workplace Injury">Workplace Injury</option>
+                            <option value="Product Liability">Product Liability</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Phone *</label>
+                        <input type="tel" id="leadPhone" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" id="leadEmail" class="form-input">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">State</label>
+                        <input type="text" id="leadState" class="form-input" maxlength="2">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Incident Date</label>
+                        <input type="date" id="leadIncidentDate" class="form-input">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Urgency</label>
+                        <select id="leadUrgency" class="form-input">
+                            <option value="Low">Low Priority</option>
+                            <option value="Medium" selected>Medium Priority</option>
+                            <option value="High">High Priority</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Last Contact</label>
+                        <input type="text" id="leadLastContact" class="form-input" readonly>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea id="leadDescription" class="form-textarea" placeholder="Describe the incident or case details..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Notes</label>
+                    <textarea id="leadNotes" class="form-textarea" placeholder="Add your notes about this lead..."></textarea>
+                </div>
+                
+                <!-- Disposition Section (only shown for claimed leads) -->
+                <div class="disposition-section" id="dispositionSection" style="display: none;">
+                    <h4 class="disposition-title">🎯 Lead Disposition</h4>
+                    <div class="disposition-options">
+                        <button type="button" class="disposition-btn" data-disposition="Not Contacted">Not Contacted</button>
+                        <button type="button" class="disposition-btn" data-disposition="Contacted">Contacted</button>
+                        <button type="button" class="disposition-btn" data-disposition="Interested">Interested</button>
+                        <button type="button" class="disposition-btn" data-disposition="Not Interested">Not Interested</button>
+                        <button type="button" class="disposition-btn" data-disposition="Callback Scheduled">Callback Scheduled</button>
+                        <button type="button" class="disposition-btn" data-disposition="Documents Requested">Documents Requested</button>
+                        <button type="button" class="disposition-btn" data-disposition="Retained">Retained</button>
+                        <button type="button" class="disposition-btn" data-disposition="No Answer">No Answer</button>
+                        <button type="button" class="disposition-btn" data-disposition="Wrong Number">Wrong Number</button>
+                        <button type="button" class="disposition-btn" data-disposition="Do Not Call">Do Not Call</button>
+                    </div>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="saveBtn">💾 Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create Lead Modal -->
+    <div class="modal-overlay" id="createLeadModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">📝 Create New Lead</h3>
+                <button class="modal-close" onclick="closeCreateModal()">&times;</button>
+            </div>
+            
+            <form id="createLeadForm" onsubmit="saveNewLead(event)" class="create-lead-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Name *</label>
+                        <input type="text" id="newLeadName" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Type *</label>
+                        <select id="newLeadType" class="form-input" required>
+                            <option value="">Select Type</option>
+                            <option value="Auto Accident">Auto Accident</option>
+                            <option value="Slip & Fall">Slip & Fall</option>
+                            <option value="Medical Malpractice">Medical Malpractice</option>
+                            <option value="Workplace Injury">Workplace Injury</option>
+                            <option value="Product Liability">Product Liability</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Phone *</label>
+                        <input type="tel" id="newLeadPhone" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" id="newLeadEmail" class="form-input">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">State</label>
+                        <input type="text" id="newLeadState" class="form-input" maxlength="2" placeholder="CA">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Incident Date</label>
+                        <input type="date" id="newLeadIncidentDate" class="form-input">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Urgency</label>
+                    <select id="newLeadUrgency" class="form-input">
+                        <option value="Low">Low Priority</option>
+                        <option value="Medium" selected>Medium Priority</option>
+                        <option value="High">High Priority</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea id="newLeadDescription" class="form-textarea" placeholder="Describe the incident or case details..." required></textarea>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeCreateModal()">Cancel</button>
+                    <button type="submit" class="btn btn-success">✨ Create Lead</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <!-- Scripts -->
     <script>
@@ -759,10 +1108,12 @@
             phone: '(555) 123-4567',
             email: 'sarah.johnson@email.com',
             state: 'CA',
-            value: '$1,200',
             status: 'available',
             incidentDate: '2024-05-28',
-            description: 'Rear-end collision on highway'
+            description: 'Rear-end collision on highway',
+            urgency: 'High',
+            lastContact: 'Never contacted',
+            notes: ''
         },
         {
             id: 'lead_002',
@@ -771,10 +1122,12 @@
             phone: '(555) 987-6543',
             email: 'michael.chen@email.com',
             state: 'NY',
-            value: '$800',
             status: 'available',
             incidentDate: '2024-05-29',
-            description: 'Grocery store incident'
+            description: 'Grocery store incident',
+            urgency: 'Medium',
+            lastContact: 'Never contacted',
+            notes: ''
         },
         {
             id: 'lead_003',
@@ -783,10 +1136,12 @@
             phone: '(555) 456-7890',
             email: 'emily.rodriguez@email.com',
             state: 'TX',
-            value: '$2,500',
             status: 'available',
             incidentDate: '2024-05-27',
-            description: 'Surgical complication'
+            description: 'Surgical complication',
+            urgency: 'High',
+            lastContact: 'Never contacted',
+            notes: ''
         }
     ];
 
@@ -798,11 +1153,14 @@
             phone: '(555) 234-5678',
             email: 'david.wilson@email.com',
             state: 'FL',
-            value: '$1,500',
             status: 'contacted',
             claimedDate: '2024-06-01',
             lastContact: '2024-06-03',
-            nextAction: 'Follow up call scheduled'
+            nextAction: 'Follow up call scheduled',
+            disposition: 'Interested',
+            urgency: 'Medium',
+            description: 'Multi-vehicle accident',
+            notes: 'Client interested, needs more time to decide'
         },
         {
             id: 'lead_102',
@@ -811,11 +1169,14 @@
             phone: '(555) 345-6789',
             email: 'lisa.thompson@email.com',
             state: 'CA',
-            value: '$900',
             status: 'retained',
             claimedDate: '2024-05-30',
             lastContact: '2024-06-02',
-            nextAction: 'Document review scheduled'
+            nextAction: 'Document review scheduled',
+            disposition: 'Retained',
+            urgency: 'Low',
+            description: 'Back injury at construction site',
+            notes: 'Client signed retainer, gathering medical records'
         }
     ];
 
@@ -841,7 +1202,7 @@
                         <div class="lead-name">${lead.name}</div>
                         <div class="lead-type">${lead.type}</div>
                     </div>
-                    <div class="lead-value">${lead.value}</div>
+                    <div class="status-badge ${lead.urgency.toLowerCase()}">${lead.urgency} Priority</div>
                 </div>
                 <div class="lead-details">
                     <div class="lead-detail">
@@ -860,13 +1221,17 @@
                         <span>📅</span>
                         <span>Incident: ${lead.incidentDate}</span>
                     </div>
+                    <div class="lead-detail">
+                        <span>💬</span>
+                        <span>${lead.description}</span>
+                    </div>
                 </div>
                 <div class="lead-actions">
+                    <button class="action-btn-sm view" onclick="event.stopPropagation(); viewLeadDetails('${lead.id}')">
+                        👁️ View & Edit
+                    </button>
                     <button class="action-btn-sm claim" onclick="event.stopPropagation(); claimLead('${lead.id}')">
                         ⚡ Claim
-                    </button>
-                    <button class="action-btn-sm view" onclick="event.stopPropagation(); viewLeadDetails('${lead.id}')">
-                        👁️ View
                     </button>
                 </div>
             </div>
@@ -896,8 +1261,10 @@
                         <div class="lead-type">${lead.type}</div>
                     </div>
                     <div>
-                        <div class="lead-value">${lead.value}</div>
                         <span class="status-badge ${lead.status}">${lead.status}</span>
+                        <div style="margin-top: 0.5rem;">
+                            <span class="status-badge ${lead.urgency.toLowerCase()}">${lead.urgency} Priority</span>
+                        </div>
                     </div>
                 </div>
                 <div class="lead-details">
@@ -914,16 +1281,20 @@
                         <span>Claimed: ${lead.claimedDate}</span>
                     </div>
                     <div class="lead-detail">
+                        <span>🎯</span>
+                        <span>Disposition: ${lead.disposition || 'Not set'}</span>
+                    </div>
+                    <div class="lead-detail">
                         <span>⏰</span>
                         <span>${lead.nextAction}</span>
                     </div>
                 </div>
                 <div class="lead-actions">
+                    <button class="action-btn-sm view" onclick="event.stopPropagation(); viewLeadDetails('${lead.id}')">
+                        ✏️ View & Edit
+                    </button>
                     <button class="action-btn-sm contact" onclick="event.stopPropagation(); contactLead('${lead.id}')">
                         📞 Contact
-                    </button>
-                    <button class="action-btn-sm update" onclick="event.stopPropagation(); updateLead('${lead.id}')">
-                        ✏️ Update
                     </button>
                 </div>
             </div>
@@ -987,42 +1358,124 @@
     function viewLeadDetails(leadId) {
         try {
             const lead = mockAvailableLeads.find(l => l.id === leadId) || mockMyLeads.find(l => l.id === leadId);
-            if (lead) {
-                alert(`Lead Details:\n\nName: ${lead.name || 'N/A'}\nType: ${lead.type || 'N/A'}\nValue: ${lead.value || 'N/A'}\nPhone: ${lead.phone || 'N/A'}\nEmail: ${lead.email || 'N/A'}\nState: ${lead.state || 'N/A'}\nStatus: ${(lead.status || 'Unknown').toUpperCase()}`);
-            } else {
+            if (!lead) {
                 alert('Lead not found. The lead may have been updated by another user.');
+                return;
             }
+
+            // Populate form fields
+            document.getElementById('leadName').value = lead.name || '';
+            document.getElementById('leadType').value = lead.type || '';
+            document.getElementById('leadPhone').value = lead.phone || '';
+            document.getElementById('leadEmail').value = lead.email || '';
+            document.getElementById('leadState').value = lead.state || '';
+            document.getElementById('leadIncidentDate').value = lead.incidentDate || '';
+            document.getElementById('leadUrgency').value = lead.urgency || 'Medium';
+            document.getElementById('leadLastContact').value = lead.lastContact || 'Never contacted';
+            document.getElementById('leadDescription').value = lead.description || '';
+            document.getElementById('leadNotes').value = lead.notes || '';
+
+            // Set up modal title and current lead
+            const modalTitle = document.getElementById('modalTitle');
+            modalTitle.textContent = `📋 ${lead.name} - ${lead.type}`;
+            
+            // Store current lead ID for saving
+            document.getElementById('leadForm').dataset.leadId = leadId;
+
+            // Show/hide disposition section based on whether lead is claimed
+            const dispositionSection = document.getElementById('dispositionSection');
+            const isMyLead = mockMyLeads.some(l => l.id === leadId);
+            
+            if (isMyLead) {
+                dispositionSection.style.display = 'block';
+                // Set current disposition
+                const currentDisposition = lead.disposition || 'Not Contacted';
+                document.querySelectorAll('.disposition-btn').forEach(btn => {
+                    btn.classList.remove('selected');
+                    if (btn.dataset.disposition === currentDisposition) {
+                        btn.classList.add('selected');
+                    }
+                });
+            } else {
+                dispositionSection.style.display = 'none';
+            }
+
+            // Show modal
+            document.getElementById('leadModal').classList.add('active');
         } catch (error) {
             console.error('Error viewing lead details:', error);
             alert('Error loading lead details. Please try again.');
         }
     }
 
-    function contactLead(leadId) {
-        try {
-            const lead = mockMyLeads.find(l => l.id === leadId);
-            if (lead) {
-                alert(`Contacting ${lead.name || 'Lead'}...\n\nPhone: ${lead.phone || 'N/A'}\nEmail: ${lead.email || 'N/A'}\n\nContact interface would open here.`);
-            } else {
-                alert('Lead not found.');
-            }
-        } catch (error) {
-            console.error('Error contacting lead:', error);
-            alert('Error opening contact interface. Please try again.');
-        }
+    // Modal handling functions
+    function closeModal() {
+        document.getElementById('leadModal').classList.remove('active');
     }
 
-    function updateLead(leadId) {
+    function closeCreateModal() {
+        document.getElementById('createLeadModal').classList.remove('active');
+        document.getElementById('createLeadForm').reset();
+    }
+
+    // Handle disposition button clicks
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('disposition-btn')) {
+            document.querySelectorAll('.disposition-btn').forEach(btn => btn.classList.remove('selected'));
+            e.target.classList.add('selected');
+        }
+    });
+
+    // Save lead changes
+    function saveLead(event) {
+        event.preventDefault();
+        
         try {
-            const lead = mockMyLeads.find(l => l.id === leadId);
-            if (lead) {
-                alert(`Updating ${lead.name || 'Lead'}...\n\nLead update form would open here.`);
-            } else {
-                alert('Lead not found.');
+            const leadId = event.target.dataset.leadId;
+            const lead = mockAvailableLeads.find(l => l.id === leadId) || mockMyLeads.find(l => l.id === leadId);
+            
+            if (!lead) {
+                alert('Lead not found. Please refresh the page.');
+                return;
             }
+
+            // Update lead data
+            lead.name = document.getElementById('leadName').value;
+            lead.type = document.getElementById('leadType').value;
+            lead.phone = document.getElementById('leadPhone').value;
+            lead.email = document.getElementById('leadEmail').value;
+            lead.state = document.getElementById('leadState').value;
+            lead.incidentDate = document.getElementById('leadIncidentDate').value;
+            lead.urgency = document.getElementById('leadUrgency').value;
+            lead.description = document.getElementById('leadDescription').value;
+            lead.notes = document.getElementById('leadNotes').value;
+
+            // Update disposition if it's a claimed lead
+            const selectedDisposition = document.querySelector('.disposition-btn.selected');
+            if (selectedDisposition && mockMyLeads.some(l => l.id === leadId)) {
+                lead.disposition = selectedDisposition.dataset.disposition;
+                lead.lastContact = new Date().toISOString().split('T')[0];
+                
+                // Update status based on disposition
+                if (lead.disposition === 'Retained') {
+                    lead.status = 'retained';
+                } else if (lead.disposition === 'Contacted' || lead.disposition === 'Interested') {
+                    lead.status = 'contacted';
+                } else {
+                    lead.status = 'claimed';
+                }
+            }
+
+            // Re-render displays
+            renderAvailableLeads();
+            renderMyLeads();
+            updateStats();
+            closeModal();
+            
+            alert(`✅ Lead updated successfully!\n\n${lead.name} has been updated.`);
         } catch (error) {
-            console.error('Error updating lead:', error);
-            alert('Error opening update form. Please try again.');
+            console.error('Error saving lead:', error);
+            alert('Error saving changes. Please try again.');
         }
     }
 
@@ -1062,17 +1515,10 @@
 
     function createNewLead() {
         try {
-            alert('Create New Lead - Feature coming soon!\n\nThis will open a form to manually add new leads to the system.');
+            document.getElementById('createLeadModal').classList.add('active');
         } catch (error) {
-            console.error('Error in createNewLead:', error);
-        }
-    }
-
-    function scheduleCallback() {
-        try {
-            alert('Schedule Callback - Feature coming soon!\n\nThis will open a calendar interface to schedule follow-up calls.');
-        } catch (error) {
-            console.error('Error in scheduleCallback:', error);
+            console.error('Error opening create lead modal:', error);
+            alert('Error opening create lead form. Please try again.');
         }
     }
 
@@ -1095,7 +1541,11 @@
 
     function exportMyLeads() {
         try {
-            alert('Export functionality - Feature coming soon!\n\nThis will export your active leads as CSV or Excel file.');
+            if (mockMyLeads.length === 0) {
+                alert('No active leads to export.\n\nClaim some leads first to export your data.');
+                return;
+            }
+            alert(`Export functionality - Feature coming soon!\n\nThis will export your ${mockMyLeads.length} active leads as CSV or Excel file.`);
         } catch (error) {
             console.error('Error in exportMyLeads:', error);
         }
@@ -1118,6 +1568,57 @@
             console.error('Error during logout:', error);
             // Force navigation even if there's an error
             window.location.href = 'index.html';
+        }
+    }
+
+    function contactLead(leadId) {
+        try {
+            const lead = mockMyLeads.find(l => l.id === leadId);
+            if (lead) {
+                // Open lead details for editing/disposition
+                viewLeadDetails(leadId);
+            } else {
+                alert('Lead not found.');
+            }
+        } catch (error) {
+            console.error('Error contacting lead:', error);
+            alert('Error opening lead details. Please try again.');
+        }
+    }
+
+    // Create new lead functions
+    function saveNewLead(event) {
+        event.preventDefault();
+        
+        try {
+            // Create new lead object
+            const newLead = {
+                id: 'lead_' + Date.now(),
+                name: document.getElementById('newLeadName').value,
+                type: document.getElementById('newLeadType').value,
+                phone: document.getElementById('newLeadPhone').value,
+                email: document.getElementById('newLeadEmail').value,
+                state: document.getElementById('newLeadState').value.toUpperCase(),
+                status: 'available',
+                incidentDate: document.getElementById('newLeadIncidentDate').value,
+                description: document.getElementById('newLeadDescription').value,
+                urgency: document.getElementById('newLeadUrgency').value,
+                lastContact: 'Never contacted',
+                notes: ''
+            };
+
+            // Add to available leads
+            mockAvailableLeads.push(newLead);
+            
+            // Re-render displays
+            renderAvailableLeads();
+            updateStats();
+            closeCreateModal();
+            
+            alert(`✅ Lead created successfully!\n\n${newLead.name} has been added to available leads.`);
+        } catch (error) {
+            console.error('Error creating new lead:', error);
+            alert('Error creating lead. Please try again.');
         }
     }
 
