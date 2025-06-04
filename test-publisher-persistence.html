@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Publisher Persistence</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .btn {
+            background: #4299e1;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover { background: #3182ce; }
+        .result {
+            background: #f7fafc;
+            border-left: 4px solid #4299e1;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { border-left-color: #48bb78; background: #f0fff4; }
+        .error { border-left-color: #f56565; background: #fff5f5; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Publisher Persistence Test</h1>
+    
+    <div class="test-container">
+        <h2>📊 Current Publishers in Storage</h2>
+        <button class="btn" onclick="loadAndShowPublishers()">🔄 Load Publishers</button>
+        <button class="btn" onclick="clearAllPublishers()">🗑️ Clear All</button>
+        <div id="publishers-display"></div>
+    </div>
+    
+    <div class="test-container">
+        <h2>➕ Add Test Publisher</h2>
+        <input type="text" id="test-name" placeholder="Publisher Name" value="Test Publisher">
+        <input type="email" id="test-email" placeholder="Email" value="test@example.com">
+        <button class="btn" onclick="addTestPublisher()">Add Publisher</button>
+    </div>
+    
+    <div class="test-container">
+        <h2>🔬 Test Results</h2>
+        <div id="test-results"></div>
+    </div>
+
+    <script>
+        function logResult(message, isSuccess = true) {
+            const resultsDiv = document.getElementById('test-results');
+            const resultItem = document.createElement('div');
+            resultItem.className = `result ${isSuccess ? 'success' : 'error'}`;
+            resultItem.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            resultsDiv.insertBefore(resultItem, resultsDiv.firstChild);
+        }
+
+        function loadAndShowPublishers() {
+            try {
+                const stored = localStorage.getItem('claim_connectors_publishers');
+                const publishersDiv = document.getElementById('publishers-display');
+                
+                if (stored) {
+                    const publishers = JSON.parse(stored);
+                    publishersDiv.innerHTML = `
+                        <div class="result success">
+                            <strong>Found ${publishers.length} publishers in localStorage:</strong><br>
+                            ${publishers.map(p => `• ${p.name} (${p.email}) - ${p.status}`).join('<br>')}
+                        </div>
+                    `;
+                    logResult(`✅ Loaded ${publishers.length} publishers from localStorage`);
+                } else {
+                    publishersDiv.innerHTML = '<div class="result">No publishers found in localStorage</div>';
+                    logResult('⚠️ No publishers found in localStorage');
+                }
+            } catch (error) {
+                publishersDiv.innerHTML = `<div class="result error">Error: ${error.message}</div>`;
+                logResult(`❌ Error loading publishers: ${error.message}`, false);
+            }
+        }
+
+        function addTestPublisher() {
+            try {
+                const name = document.getElementById('test-name').value;
+                const email = document.getElementById('test-email').value;
+                
+                if (!name || !email) {
+                    logResult('❌ Please fill in name and email', false);
+                    return;
+                }
+
+                // Get existing publishers
+                const stored = localStorage.getItem('claim_connectors_publishers');
+                let publishers = stored ? JSON.parse(stored) : [];
+                
+                // Create new publisher
+                const newPublisher = {
+                    id: 'pub_' + Date.now(),
+                    name: name,
+                    email: email,
+                    vendorCode: 'PUB' + Date.now().toString().slice(-6),
+                    apiKey: 'api_' + Math.random().toString(36).substr(2, 16),
+                    trackingId: 'TRK_' + Math.random().toString(36).substr(2, 8).toUpperCase(),
+                    status: 'active',
+                    leads: 0,
+                    revenue: 0,
+                    lastActivity: new Date().toISOString()
+                };
+                
+                // Add to array
+                publishers.push(newPublisher);
+                
+                // Save to localStorage
+                localStorage.setItem('claim_connectors_publishers', JSON.stringify(publishers));
+                
+                logResult(`✅ Added publisher "${name}" with tracking ID ${newPublisher.trackingId}`);
+                
+                // Clear form
+                document.getElementById('test-name').value = '';
+                document.getElementById('test-email').value = '';
+                
+                // Refresh display
+                loadAndShowPublishers();
+                
+            } catch (error) {
+                logResult(`❌ Error adding publisher: ${error.message}`, false);
+            }
+        }
+
+        function clearAllPublishers() {
+            if (confirm('Clear all publishers from localStorage?')) {
+                localStorage.removeItem('claim_connectors_publishers');
+                logResult('🗑️ All publishers cleared from localStorage');
+                loadAndShowPublishers();
+            }
+        }
+
+        // Test localStorage availability
+        function testLocalStorage() {
+            try {
+                localStorage.setItem('test', 'test');
+                localStorage.removeItem('test');
+                logResult('✅ localStorage is available and working');
+            } catch (error) {
+                logResult(`❌ localStorage test failed: ${error.message}`, false);
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            logResult('🚀 Publisher Persistence Test initialized');
+            testLocalStorage();
+            loadAndShowPublishers();
+        });
+    </script>
+</body>
+</html> 
