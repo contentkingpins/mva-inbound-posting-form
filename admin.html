@@ -22,6 +22,9 @@
     <!-- CountUp.js for number animations -->
     <script src="https://unpkg.com/countup.js@2.8.0/dist/countUp.umd.js"></script>
     
+    <!-- JSZip for creating downloadable publisher packages -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    
     <!-- MASTER DARK THEME - Single source of truth -->
     <link rel="stylesheet" href="css/master-dark-theme.css">
     
@@ -516,9 +519,6 @@
                 </button>
                 <button class="btn btn-info btn-sm" onclick="openAddPublisherModal()">
                     🏢 Add Publisher
-                </button>
-                <button class="btn btn-secondary btn-sm" onclick="window.open('smart-lead-router-demo.html', '_blank')">
-                    🤖 AI Demo
                 </button>
                 <button class="btn btn-secondary btn-sm" id="refresh-all">🔄 Refresh</button>
             </div>
@@ -1226,7 +1226,8 @@
     }
 
     function viewAIInsights() {
-        window.open('smart-lead-router-demo.html', '_blank');
+        // AI demo removed per user request
+        addActivityFeedItem('📊 AI insights feature temporarily disabled', 'info');
     }
 
     function toggleAIMode() {
@@ -1351,7 +1352,8 @@
     }
 
     function openPredictiveDemo() {
-        window.open('predictive-analytics-demo.html', '_blank');
+        // AI demo removed per user request
+        addActivityFeedItem('📊 Predictive demo temporarily disabled', 'info');
     }
 
     async function generateForecast() {
@@ -1484,8 +1486,8 @@
 
     function showAnalyticsDetails() {
         console.log('📈 Opening analytics details...');
-        window.open('predictive-analytics-demo.html', '_blank');
-        addActivityFeedItem('📈 Analytics details opened', 'info');
+        // AI demo removed per user request
+        addActivityFeedItem('📈 Analytics feature temporarily disabled', 'info');
     }
 
     function reassignLead() {
@@ -1581,9 +1583,352 @@
         
         console.log('🏢 Creating publisher:', { name, email, vendorCode, apiKey, status });
         
+        // Generate and download posting instructions and API documentation
+        generatePublisherPackage(name, email, vendorCode, apiKey);
+        
         // Here you would call your API to create the publisher
         addActivityFeedItem(`🏢 Publisher "${name}" created successfully`, 'success');
+        addActivityFeedItem(`📄 Publisher package downloaded for ${name}`, 'info');
         closeModal('add-publisher-modal');
+    }
+
+    function generatePublisherPackage(publisherName, email, vendorCode, apiKey) {
+        // Generate comprehensive posting instructions and API documentation
+        const publisherPackage = generatePublisherDocumentation(publisherName, email, vendorCode, apiKey);
+        
+        // Create downloadable ZIP file with all documentation
+        const zip = new JSZip();
+        
+        // Add posting instructions
+        zip.file("posting-instructions.html", publisherPackage.instructions);
+        zip.file("api-documentation.md", publisherPackage.apiDocs);
+        zip.file("integration-guide.pdf", publisherPackage.integrationGuide);
+        zip.file("sample-code.js", publisherPackage.sampleCode);
+        zip.file("publisher-credentials.txt", publisherPackage.credentials);
+        
+        // Generate and download the ZIP file
+        zip.generateAsync({type:"blob"}).then(function(content) {
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(content);
+            link.download = `${publisherName.replace(/\s+/g, '-')}-publisher-package.zip`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+    }
+
+    function generatePublisherDocumentation(publisherName, email, vendorCode, apiKey) {
+        const baseUrl = window.APP_CONFIG?.apiEndpoint || 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod';
+        
+        const instructions = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claim Connectors - Publisher Integration Guide</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; }
+        .header { background: linear-gradient(135deg, #3B82F6, #8B5CF6); color: white; padding: 30px; border-radius: 10px; text-align: center; margin-bottom: 30px; }
+        .section { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #3B82F6; }
+        .code { background: #1e1e1e; color: #f8f8f2; padding: 15px; border-radius: 5px; font-family: 'Courier New', monospace; overflow-x: auto; }
+        .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; border-radius: 5px; }
+        .success { background: #d1e7dd; border-left: 4px solid #198754; padding: 15px; border-radius: 5px; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #3B82F6; color: white; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚀 Claim Connectors Publisher Integration</h1>
+        <p>Welcome ${publisherName}! Your complete integration package</p>
+    </div>
+
+    <div class="section">
+        <h2>📋 Your Publisher Credentials</h2>
+        <table>
+            <tr><th>Field</th><th>Value</th></tr>
+            <tr><td>Publisher Name</td><td>${publisherName}</td></tr>
+            <tr><td>Contact Email</td><td>${email}</td></tr>
+            <tr><td>Vendor Code</td><td><strong>${vendorCode}</strong></td></tr>
+            <tr><td>API Key</td><td><strong>${apiKey}</strong></td></tr>
+            <tr><td>API Endpoint</td><td>${baseUrl}</td></tr>
+        </table>
+        <div class="warning">
+            <strong>⚠️ Important:</strong> Keep your API key secure and never share it publicly. This key identifies your leads and ensures proper attribution.
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>🔗 Lead Posting Instructions</h2>
+        <p>To send leads to Claim Connectors, POST to our lead submission endpoint:</p>
+        
+        <h3>Endpoint:</h3>
+        <div class="code">POST ${baseUrl}/leads</div>
+        
+        <h3>Headers Required:</h3>
+        <div class="code">
+Content-Type: application/json
+X-API-Key: ${apiKey}
+X-Vendor-Code: ${vendorCode}
+        </div>
+        
+        <h3>Lead Data Format:</h3>
+        <div class="code">
+{
+  "first_name": "John",
+  "last_name": "Smith", 
+  "email": "john.smith@email.com",
+  "phone_home": "(555) 123-4567",
+  "address": "123 Main St",
+  "city": "Los Angeles", 
+  "state": "CA",
+  "zip_code": "90210",
+  "date_of_incident": "2024-01-15",
+  "incident_type": "auto_accident",
+  "description": "Rear-ended at intersection",
+  "injury_level": "moderate",
+  "medical_treatment": "yes",
+  "insurance_company": "State Farm",
+  "at_fault": "other_party",
+  "source": "${publisherName}",
+  "vendor_code": "${vendorCode}"
+}
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>✅ Required Fields</h2>
+        <ul>
+            <li><strong>first_name</strong> - Lead's first name</li>
+            <li><strong>last_name</strong> - Lead's last name</li>
+            <li><strong>email</strong> - Valid email address</li>
+            <li><strong>phone_home</strong> - Primary phone number</li>
+            <li><strong>state</strong> - US state (2-letter code)</li>
+            <li><strong>incident_type</strong> - Type of legal case</li>
+            <li><strong>vendor_code</strong> - Your assigned vendor code: ${vendorCode}</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>📞 Response Handling</h2>
+        <p>Our API will respond with one of these status codes:</p>
+        
+        <h3>Success Response (200):</h3>
+        <div class="code">
+{
+  "success": true,
+  "lead_id": "LEAD_12345",
+  "message": "Lead submitted successfully",
+  "estimated_value": 5000
+}
+        </div>
+        
+        <h3>Error Response (400):</h3>
+        <div class="code">
+{
+  "success": false,
+  "error": "Missing required field: email",
+  "code": "VALIDATION_ERROR"
+}
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>🧪 Testing Your Integration</h2>
+        <p>Use this sample cURL command to test:</p>
+        <div class="code">
+curl -X POST "${baseUrl}/leads" \\
+  -H "Content-Type: application/json" \\
+  -H "X-API-Key: ${apiKey}" \\
+  -H "X-Vendor-Code: ${vendorCode}" \\
+  -d '{
+    "first_name": "Test",
+    "last_name": "Lead",
+    "email": "test@example.com",
+    "phone_home": "(555) 123-4567",
+    "state": "CA",
+    "incident_type": "auto_accident",
+    "vendor_code": "${vendorCode}"
+  }'
+        </div>
+    </div>
+
+    <div class="success">
+        <h3>✅ Integration Complete!</h3>
+        <p>Once you've implemented the above, your leads will flow directly into our system and be distributed to qualified attorneys. You'll receive real-time notifications of lead acceptance and can track performance through your publisher dashboard.</p>
+    </div>
+
+    <div class="section">
+        <h2>📞 Support & Contact</h2>
+        <p>If you need assistance with integration:</p>
+        <ul>
+            <li><strong>Technical Support:</strong> tech@claimconnectors.com</li>
+            <li><strong>Publisher Relations:</strong> publishers@claimconnectors.com</li>
+            <li><strong>Phone:</strong> (555) CLAIM-01</li>
+        </ul>
+    </div>
+</body>
+</html>
+        `;
+
+        const apiDocs = `# Claim Connectors API Documentation
+
+## Publisher: ${publisherName}
+## Generated: ${new Date().toISOString()}
+
+### Authentication
+- **API Key:** ${apiKey}
+- **Vendor Code:** ${vendorCode}
+
+### Endpoints
+
+#### Submit Lead
+\`\`\`
+POST ${baseUrl}/leads
+Content-Type: application/json
+X-API-Key: ${apiKey}
+X-Vendor-Code: ${vendorCode}
+\`\`\`
+
+#### Get Lead Status
+\`\`\`
+GET ${baseUrl}/leads/{lead_id}/status
+X-API-Key: ${apiKey}
+\`\`\`
+
+#### Publisher Stats
+\`\`\`
+GET ${baseUrl}/publisher/stats
+X-API-Key: ${apiKey}
+\`\`\`
+
+### Field Validation Rules
+- **email**: Must be valid email format
+- **phone_home**: US phone number format
+- **state**: Must be valid US state code
+- **zip_code**: Must be valid US ZIP code
+- **incident_type**: auto_accident, slip_fall, medical_malpractice, workplace_injury
+
+### Rate Limits
+- Maximum 100 requests per minute
+- Maximum 10,000 leads per day
+
+### Error Codes
+- 400: Bad Request (validation error)
+- 401: Unauthorized (invalid API key)
+- 429: Rate limit exceeded
+- 500: Internal server error
+
+### Webhook Notifications (Optional)
+Set up webhook URL in publisher dashboard to receive:
+- Lead acceptance notifications
+- Lead qualification updates
+- Payment notifications
+`;
+
+        const sampleCode = `
+// Claim Connectors Lead Submission - JavaScript Example
+// Publisher: ${publisherName}
+
+const CLAIM_CONNECTORS_CONFIG = {
+    apiEndpoint: '${baseUrl}',
+    apiKey: '${apiKey}',
+    vendorCode: '${vendorCode}'
+};
+
+async function submitLead(leadData) {
+    try {
+        const response = await fetch(\`\${CLAIM_CONNECTORS_CONFIG.apiEndpoint}/leads\`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': CLAIM_CONNECTORS_CONFIG.apiKey,
+                'X-Vendor-Code': CLAIM_CONNECTORS_CONFIG.vendorCode
+            },
+            body: JSON.stringify({
+                ...leadData,
+                vendor_code: CLAIM_CONNECTORS_CONFIG.vendorCode,
+                source: '${publisherName}'
+            })
+        });
+
+        const result = await response.json();
+        
+        if (response.ok) {
+            console.log('Lead submitted successfully:', result);
+            return { success: true, data: result };
+        } else {
+            console.error('Lead submission failed:', result);
+            return { success: false, error: result };
+        }
+    } catch (error) {
+        console.error('Network error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// Example usage:
+const sampleLead = {
+    first_name: 'John',
+    last_name: 'Doe',
+    email: 'john.doe@email.com',
+    phone_home: '(555) 123-4567',
+    address: '123 Main Street',
+    city: 'Los Angeles',
+    state: 'CA',
+    zip_code: '90210',
+    date_of_incident: '2024-01-15',
+    incident_type: 'auto_accident',
+    description: 'Rear-ended at traffic light',
+    injury_level: 'moderate',
+    medical_treatment: 'yes'
+};
+
+submitLead(sampleLead).then(result => {
+    if (result.success) {
+        console.log('Lead ID:', result.data.lead_id);
+    } else {
+        console.log('Error:', result.error);
+    }
+});
+`;
+
+        const credentials = `CLAIM CONNECTORS PUBLISHER CREDENTIALS
+=====================================
+
+Publisher Name: ${publisherName}
+Contact Email: ${email}
+Vendor Code: ${vendorCode}
+API Key: ${apiKey}
+API Endpoint: ${baseUrl}
+
+IMPORTANT SECURITY NOTES:
+- Never share your API key publicly
+- Use HTTPS for all API requests  
+- Store credentials securely
+- Contact support immediately if compromised
+
+QUICK START CHECKLIST:
+□ Review posting instructions document
+□ Test integration with sample lead
+□ Set up error handling
+□ Implement webhook notifications (optional)
+□ Monitor lead submission dashboard
+
+Support Contact:
+Email: publishers@claimconnectors.com
+Phone: (555) CLAIM-01
+`;
+
+        return {
+            instructions,
+            apiDocs,
+            integrationGuide: "PDF content would be generated here",
+            sampleCode,
+            credentials
+        };
     }
     </script>
 
