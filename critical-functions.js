@@ -104,34 +104,6 @@ function handleSendAgentInvite() {
     }
 }
 
-function handleCreatePublisher() {
-    try {
-        const name = document.getElementById('new-publisher-name').value.trim();
-        const email = document.getElementById('new-publisher-email').value.trim();
-        const vendorCode = document.getElementById('new-publisher-code').value;
-        const apiKey = document.getElementById('new-publisher-api-key').value;
-        
-        if (!name || !email) {
-            alert('Please fill in Publisher Name and Contact Email');
-            return;
-        }
-        
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            alert('Please enter a valid email address');
-            return;
-        }
-        
-        console.log('🏢 Creating publisher:', { name, email, vendorCode, apiKey });
-        alert('Publisher "' + name + '" created successfully!\nVendor Code: ' + vendorCode + '\nAPI Key: ' + apiKey);
-        closeModal('add-publisher-modal');
-        
-    } catch (error) {
-        console.error('Error creating publisher:', error);
-        alert('Error creating publisher: ' + error.message);
-    }
-}
-
 function handleLogout() {
     try {
         if (confirm('Are you sure you want to logout?')) {
@@ -172,7 +144,6 @@ window.openAddAgentModal = openAddAgentModal;
 window.openAddPublisherModal = openAddPublisherModal;
 window.closeModal = closeModal;
 window.handleSendAgentInvite = handleSendAgentInvite;
-window.handleCreatePublisher = handleCreatePublisher;
 window.handleLogout = handleLogout;
 window.expandChart = expandChart;
 window.expandActivity = expandActivity;

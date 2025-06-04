@@ -3,6 +3,1077 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Claim Connectors</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    
+    <!-- Preconnect to CDNs -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://unpkg.com/lucide@latest/dist/lucide.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    
+    <!-- CountUp.js for number animations -->
+    <script src="https://unpkg.com/countup.js@2.8.0/dist/countUp.umd.js"></script>
+    
+    <!-- Critical functions -->
+    <script src="critical-functions.js"></script>
+    
+    <!-- JSZip for creating downloadable publisher packages -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    
+    <!-- jsPDF for generating PDF instructions -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Build-Time Injected Configuration -->
+    <script>
+    window.APP_CONFIG = {
+        "userPoolId": "us-east-1_lhc964tLD",
+        "clientId": "5t6mane4fnvineksoqb4ta0iu1",
+        "apiEndpoint": "https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod",
+        "apiUrl": "https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod",
+        "apiKey": "",
+        "buildTime": "2025-05-29T01:13:52.266Z",
+        "buildEnv": "production"
+    };
+    window.preloadedConfig = window.APP_CONFIG;
+    console.log('🔧 Configuration injected at build time');
+    </script>
+    
+    <!-- Admin Dashboard Styles -->
+    <style>
+    /* Dark Theme Variables */
+    :root {
+        --bg-primary: #0F0F23;
+        --bg-secondary: #1A1A2E;
+        --bg-accent: #16213E;
+        --bg-glass: rgba(26, 26, 46, 0.95);
+        --text-primary: #FFFFFF;
+        --text-secondary: #CBD5E1;
+        --text-muted: #9CA3AF;
+        --accent-blue: #3B82F6;
+        --accent-purple: #8B5CF6;
+        --success: #10B981;
+        --warning: #F59E0B;
+        --error: #EF4444;
+        --border-subtle: rgba(139, 92, 246, 0.2);
+        --border-accent: rgba(59, 130, 246, 0.3);
+        --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        --space-4: 1rem;
+        --space-6: 1.5rem;
+        --radius-md: 0.5rem;
+        --radius-lg: 0.75rem;
+        --radius-xl: 1rem;
+        --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+        --transition-base: 0.3s ease;
+    }
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+        font-family: var(--font-family);
+        background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+        color: var(--text-primary);
+        min-height: 100vh;
+        line-height: 1.6;
+    }
+    
+    /* Header Styles */
+    .admin-header {
+        background: var(--bg-glass);
+        backdrop-filter: blur(20px);
+        border-bottom: 1px solid var(--border-subtle);
+        padding: var(--space-4) var(--space-6);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+    
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    
+    .header-title {
+        color: var(--accent-purple);
+        font-size: 1.5rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .header-greeting {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+    
+    .ai-badge {
+        background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-left: 0.5rem;
+    }
+    
+    .header-right {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+    
+    .header-date {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    
+    /* Main Content */
+    .admin-main {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: var(--space-6);
+        min-height: calc(100vh - 80px);
+    }
+    
+    .admin-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    /* Stats Grid */
+    .quick-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+        background: var(--bg-glass);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        padding: 1.25rem;
+        transition: all var(--transition-base);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card:hover {
+        border-color: var(--accent-purple);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(139, 92, 246, 0.2);
+    }
+
+    .stat-icon {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+        color: var(--accent-purple);
+    }
+
+    .stat-content {
+        flex: 1;
+    }
+
+    .stat-value {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: var(--text-primary);
+        line-height: 1;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+    }
+
+    .stat-change {
+        font-size: 0.75rem;
+        font-weight: 500;
+        padding: 0.25rem 0.5rem;
+        border-radius: var(--radius-md);
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--success);
+        display: inline-block;
+    }
+    
+    /* Sections */
+    .admin-section {
+        background: var(--bg-glass);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        padding: 2rem;
+        margin-bottom: 2rem;
+        transition: all var(--transition-base);
+    }
+
+    .admin-section:hover {
+        border-color: var(--accent-purple);
+        box-shadow: 0 8px 20px rgba(139, 92, 246, 0.1);
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .section-title {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex: 1;
+    }
+
+    .section-title h2 {
+        color: var(--text-primary);
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .section-icon {
+        font-size: 1.5rem;
+        color: var(--accent-purple);
+    }
+
+    .section-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+    
+    /* Buttons */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        border: none;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all var(--transition-base);
+        text-decoration: none;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, var(--accent-blue), #2563EB);
+        color: white;
+        border: 1px solid var(--accent-blue);
+    }
+
+    .btn-secondary {
+        background: linear-gradient(135deg, var(--bg-accent), var(--bg-secondary));
+        color: var(--text-primary);
+        border: 1px solid var(--border-accent);
+    }
+
+    .btn-success {
+        background: linear-gradient(135deg, var(--success), #059669);
+        color: white;
+        border: 1px solid var(--success);
+    }
+
+    .btn-info {
+        background: linear-gradient(135deg, #3B82F6, #2563EB);
+        color: white;
+        border: 1px solid #3B82F6;
+    }
+
+    .btn-warning {
+        background: linear-gradient(135deg, var(--warning), #D97706);
+        color: white;
+        border: 1px solid var(--warning);
+    }
+
+    .btn-danger {
+        background: linear-gradient(135deg, var(--error), #DC2626);
+        color: white;
+        border: 1px solid var(--error);
+    }
+
+    .btn-sm {
+        padding: 0.5rem 1rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    
+    /* Activity Feed */
+    .activity-feed {
+        max-height: 400px;
+        overflow-y: auto;
+        padding-right: 0.5rem;
+    }
+
+    .activity-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        background: var(--bg-secondary);
+        border-radius: var(--radius-md);
+        border-left: 3px solid var(--accent-purple);
+        transition: all var(--transition-base);
+        cursor: pointer;
+    }
+
+    .activity-item:hover {
+        background: var(--bg-accent);
+        transform: translateX(4px);
+    }
+    
+    /* Management Actions */
+    .management-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .action-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 1.5rem;
+        background: var(--bg-secondary);
+        border: 2px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        color: var(--text-primary);
+        text-decoration: none;
+        transition: all var(--transition-base);
+        cursor: pointer;
+    }
+
+    .action-btn:hover {
+        border-color: var(--accent-blue);
+        background: var(--bg-accent);
+        transform: translateY(-2px);
+    }
+
+    .btn-icon {
+        font-size: 2rem;
+        color: var(--accent-purple);
+    }
+
+    .btn-text {
+        font-weight: 600;
+        text-align: center;
+    }
+    
+    /* Publisher Management Styles */
+    .publisher-management { margin-top: 2rem; }
+    .publisher-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .publisher-filters { display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; }
+    .filter-group { flex: 1; min-width: 200px; }
+    .table-container { background: var(--bg-secondary); border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--border-subtle); }
+    .admin-table { width: 100%; border-collapse: collapse; }
+    .admin-table th { background: var(--bg-accent); color: var(--text-primary); padding: 1rem; text-align: left; font-weight: 600; border-bottom: 1px solid var(--border-subtle); }
+    .admin-table td { padding: 1rem; border-bottom: 1px solid var(--border-subtle); color: var(--text-primary); }
+    .admin-table tr:hover { background: var(--bg-accent); }
+    .publisher-info { display: flex; flex-direction: column; gap: 0.25rem; }
+    .publisher-name { font-weight: 600; color: var(--text-primary); }
+    .publisher-email { font-size: 0.875rem; color: var(--text-secondary); }
+    .status-badge { padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.75rem; font-weight: 600; }
+    .status-badge.active { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+    .status-badge.inactive { background: rgba(239, 68, 68, 0.2); color: var(--error); }
+    .status-badge.pending { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
+    .status-badge.suspended { background: rgba(139, 92, 246, 0.2); color: var(--accent-purple); }
+    .vendor-code { font-family: 'Courier New', monospace; background: var(--bg-accent); padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.875rem; }
+    .api-key-display { font-family: 'Courier New', monospace; background: var(--bg-accent); padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.875rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
+    .api-key-display.no-key { color: var(--text-muted); background: transparent; }
+    .action-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .action-btn-sm { padding: 0.25rem 0.5rem; border: none; border-radius: 0.25rem; font-size: 0.75rem; cursor: pointer; transition: all 0.2s ease; white-space: nowrap; }
+    .action-btn-sm.view { background: var(--accent-blue); color: white; }
+    .action-btn-sm.edit { background: var(--warning); color: white; }
+    .action-btn-sm.pdf { background: var(--success); color: white; }
+    .action-btn-sm.api { background: var(--accent-purple); color: white; }
+    .action-btn-sm.toggle { background: var(--bg-accent); color: var(--text-primary); border: 1px solid var(--border-subtle); }
+    .action-btn-sm.delete { background: var(--error); color: white; }
+    .bulk-actions-bar { background: var(--bg-glass); backdrop-filter: blur(20px); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1rem; margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; }
+    .bulk-info { color: var(--text-primary); font-weight: 600; }
+    .bulk-buttons { display: flex; gap: 0.5rem; }
+    .publisher-count { background: var(--accent-purple); color: white; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.75rem; font-weight: 600; }
+    
+    /* Form Styles */
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        display: block;
+        color: var(--text-primary);
+        font-size: 0.875rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .form-input {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        background: var(--bg-secondary);
+        border: 2px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        color: var(--text-primary);
+        font-size: 0.875rem;
+        font-family: var(--font-family);
+        transition: all var(--transition-base);
+    }
+
+    .form-input:focus {
+        outline: none;
+        border-color: var(--accent-blue);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        background: var(--bg-accent);
+    }
+
+    .form-input::placeholder {
+        color: var(--text-muted);
+    }
+
+    .form-input:disabled,
+    .form-input[readonly] {
+        background: var(--bg-accent);
+        color: var(--text-muted);
+        cursor: not-allowed;
+    }
+
+    select.form-input {
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23CBD5E1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 0.75rem center;
+        background-size: 1rem;
+        padding-right: 2.5rem;
+        appearance: none;
+        cursor: pointer;
+    }
+    
+    /* Modal Styles */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(10px);
+        z-index: 10000;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-overlay.active {
+        display: flex !important;
+    }
+
+    .glass-modal {
+        background: var(--bg-glass);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-xl);
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+        max-width: 500px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .modal-header {
+        padding: 2rem 2rem 1rem;
+        border-bottom: 1px solid var(--border-subtle);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-title {
+        color: var(--text-primary);
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        font-size: 2rem;
+        cursor: pointer;
+        padding: 0;
+        line-height: 1;
+        transition: color var(--transition-base);
+    }
+
+    .modal-close:hover {
+        color: var(--text-primary);
+    }
+
+    .modal-body {
+        padding: 2rem;
+    }
+
+    .modal-footer {
+        padding: 1rem 2rem 2rem;
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .admin-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .header-content {
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .header-right {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+        }
+        
+        .section-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .glass-modal {
+            width: 95%;
+            margin: 1rem;
+        }
+        
+        .modal-header,
+        .modal-body,
+        .modal-footer {
+            padding: 1.5rem;
+        }
+        
+        .modal-footer {
+            flex-direction: column;
+        }
+        
+        .modal-footer .btn {
+            width: 100%;
+        }
+    }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="admin-header">
+        <div class="header-content">
+            <div class="header-left">
+                <h1 class="header-title">
+                    <span class="header-icon">⚡</span>
+                    Claim Connectors Admin
+                </h1>
+                <div class="header-greeting">
+                    Good <span id="time-greeting">morning</span>, <span id="admin-name">Admin</span> 
+                    <span class="ai-badge">⚡ Powered by Angel Dust OS</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="header-date" id="current-date"></div>
+                <button class="btn btn-success btn-sm" onclick="openAddAgentModal()">
+                    👤 Add Agent
+                </button>
+                <button class="btn btn-info btn-sm" onclick="openAddPublisherModal()">
+                    🏢 Add Publisher
+                </button>
+                <button class="btn btn-secondary btn-sm" id="refresh-all">🔄 Refresh</button>
+                <button class="btn btn-warning btn-sm" onclick="handleLogout()">
+                    🚪 Logout
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="admin-main">
+        <!-- Quick Stats Grid -->
+        <div class="quick-stats-grid">
+            <div class="stat-card leads">
+                <div class="stat-icon">📋</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="total-leads">0</div>
+                    <div class="stat-label">Total Leads</div>
+                    <div class="stat-change positive" id="leads-change">+12% this week</div>
+                </div>
+            </div>
+            
+            <div class="stat-card agents">
+                <div class="stat-icon">👥</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="active-agents">0</div>
+                    <div class="stat-label">Active Agents</div>
+                    <div class="stat-change positive" id="agents-change">3 online now</div>
+                </div>
+            </div>
+            
+            <div class="stat-card conversion">
+                <div class="stat-icon">🎯</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="conversion-rate">0%</div>
+                    <div class="stat-label">Close Rate</div>
+                    <div class="stat-change positive" id="conversion-change">+5% improvement</div>
+                </div>
+            </div>
+            
+            <div class="stat-card revenue">
+                <div class="stat-icon">💰</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="monthly-revenue">$0</div>
+                    <div class="stat-label">Monthly Revenue</div>
+                    <div class="stat-change positive" id="revenue-change">On track</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity & Lead Management -->
+        <div class="admin-grid">
+            <section class="admin-section recent-activity">
+                <div class="section-header">
+                    <div class="section-title">
+                        <span class="section-icon">📝</span>
+                        <h2>Recent Activity</h2>
+                    </div>
+                </div>
+                
+                <div class="activity-feed" id="activity-feed">
+                    <!-- Activity items will be populated here -->
+                </div>
+            </section>
+            
+            <section class="admin-section lead-management">
+                <div class="section-header">
+                    <div class="section-title">
+                        <span class="section-icon">⚙️</span>
+                        <h2>Lead Management</h2>
+                    </div>
+                </div>
+                
+                <div class="management-actions">
+                    <button class="action-btn" onclick="reassignLead()">
+                        <span class="btn-icon">🔄</span>
+                        <span class="btn-text">Reassign Lead</span>
+                    </button>
+                    
+                    <button class="action-btn" onclick="bulkActions()">
+                        <span class="btn-icon">📦</span>
+                        <span class="btn-text">Bulk Actions</span>
+                    </button>
+                    
+                    <button class="action-btn" onclick="leadImport()">
+                        <span class="btn-icon">📥</span>
+                        <span class="btn-text">Import Leads</span>
+                    </button>
+                    
+                    <button class="action-btn" onclick="agentDashboard()">
+                        <span class="btn-icon">👤</span>
+                        <span class="btn-text">Agent View</span>
+                    </button>
+                </div>
+            </section>
+        </div>
+
+        <!-- Publisher Management Section -->
+        <section class="admin-section publisher-management">
+            <div class="section-header">
+                <div class="section-title">
+                    <span class="section-icon">🏢</span>
+                    <h2>Publisher Management</h2>
+                    <span class="publisher-count" id="publisher-count">0 publishers</span>
+                </div>
+                <div class="section-actions">
+                    <button class="btn btn-secondary" onclick="refreshPublishers()">🔄 Refresh</button>
+                    <button class="btn btn-info" onclick="openAddPublisherModal()">➕ Add Publisher</button>
+                    <button class="btn btn-warning" onclick="exportPublishers()">📊 Export</button>
+                </div>
+            </div>
+
+            <!-- Publisher Stats Overview -->
+            <div class="publisher-stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">🏢</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="total-publishers">0</div>
+                        <div class="stat-label">Total Publishers</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🟢</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="active-publishers">0</div>
+                        <div class="stat-label">Active</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📋</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="total-publisher-leads">0</div>
+                        <div class="stat-label">Total Leads</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="total-publisher-revenue">$0</div>
+                        <div class="stat-label">Total Revenue</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Publisher Filters -->
+            <div class="publisher-filters">
+                <div class="filter-group">
+                    <input type="text" id="publisher-search" placeholder="Search publishers..." class="form-input">
+                </div>
+                <div class="filter-group">
+                    <select id="publisher-status-filter" class="form-input">
+                        <option value="">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="pending">Pending</option>
+                        <option value="suspended">Suspended</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <select id="publisher-sort" class="form-input">
+                        <option value="name">Sort by Name</option>
+                        <option value="revenue">Sort by Revenue</option>
+                        <option value="leads">Sort by Leads</option>
+                        <option value="created">Sort by Date</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Publishers Table -->
+            <div class="table-container">
+                <table class="admin-table" id="publishers-table">
+                    <thead>
+                        <tr>
+                            <th>
+                                <input type="checkbox" id="select-all-publishers" onchange="toggleSelectAllPublishers()">
+                            </th>
+                            <th>Publisher</th>
+                            <th>Status</th>
+                            <th>Vendor Code</th>
+                            <th>Tracking ID</th>
+                            <th>API Key</th>
+                            <th>Leads</th>
+                            <th>Revenue</th>
+                            <th>Last Activity</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="publishers-table-body">
+                        <!-- Publishers will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Bulk Actions Bar -->
+            <div class="bulk-actions-bar" id="bulk-publishers-actions" style="display: none;">
+                <div class="bulk-info">
+                    <span id="selected-publishers-count">0</span> publishers selected
+                </div>
+                <div class="bulk-buttons">
+                    <button class="btn btn-secondary" onclick="bulkActivatePublishers()">🟢 Activate</button>
+                    <button class="btn btn-warning" onclick="bulkDeactivatePublishers()">🔴 Deactivate</button>
+                    <button class="btn btn-info" onclick="bulkDownloadPdfs()">📄 Download PDFs</button>
+                    <button class="btn btn-danger" onclick="bulkDeletePublishers()">🗑️ Delete</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Add Agent Modal -->
+    <div class="modal-overlay" id="add-agent-modal">
+        <div class="modal glass-modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Add New Agent</h3>
+                <button class="modal-close" onclick="closeModal('add-agent-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="new-agent-email" placeholder="agent@example.com" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Role</label>
+                    <select id="new-agent-role" class="form-input">
+                        <option value="agent">Agent - Manage leads</option>
+                        <option value="viewer">Viewer - View only</option>
+                        <option value="admin">Admin - Full access</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('add-agent-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="handleSendAgentInvite()">Send Invite</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Publisher Modal -->
+    <div class="modal-overlay" id="add-publisher-modal">
+        <div class="modal glass-modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Add New Publisher</h3>
+                <button class="modal-close" onclick="closeModal('add-publisher-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Publisher Name</label>
+                    <input type="text" id="new-publisher-name" placeholder="Publisher Name" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label>Contact Email</label>
+                    <input type="email" id="new-publisher-email" placeholder="contact@publisher.com" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label>Vendor Code</label>
+                    <input type="text" id="new-publisher-code" placeholder="AUTO-GENERATED" class="form-input" readonly>
+                </div>
+                <div class="form-group">
+                    <label>API Key</label>
+                    <input type="text" id="new-publisher-api-key" placeholder="AUTO-GENERATED" class="form-input" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="new-publisher-status" class="form-input">
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="pending">Pending</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('add-publisher-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="handleCreatePublisher()">Create Publisher</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+    // Publisher Management Functions
+    let selectedPublishers = new Set();
+    let allPublishers = [
+        // Starting with empty array - no test data
+    ];
+
+    // Generate unique tracking ID for publisher traffic
+    function generateTrackingId() {
+        // Generate a unique 12-character tracking ID (TRK_XXXXXXXX)
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let trackingId = 'TRK_';
+        for (let i = 0; i < 8; i++) {
+            trackingId += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return trackingId;
+    }
+
+    function generateVendorCode() {
+        const prefix = 'PUB';
+        const timestamp = Date.now().toString().slice(-6);
+        const random = Math.random().toString(36).substr(2, 4).toUpperCase();
+        return prefix + timestamp + random;
+    }
+
+    function generateAPIKey() {
+        return 'api_' + Math.random().toString(36).substr(2, 32);
+    }
+
+    function addActivityFeedItem(message, type = 'info') {
+        const feed = document.getElementById('activity-feed');
+        if (!feed) return;
+        
+        const activity = document.createElement('div');
+        activity.className = 'activity-item';
+        activity.innerHTML = `
+            <div class="activity-icon ${type}">
+                ${type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️'}
+            </div>
+            <div class="activity-content">
+                <div class="activity-message">${message}</div>
+                <div class="activity-time">${new Date().toLocaleTimeString()}</div>
+            </div>
+        `;
+        
+        feed.insertBefore(activity, feed.firstChild);
+        
+        // Keep only last 20 items
+        const items = feed.querySelectorAll('.activity-item');
+        if (items.length > 20) {
+            items[items.length - 1].remove();
+        }
+    }
+
+    // Publisher creation function with tracking ID
+    window.handleCreatePublisher = function() {
+        const name = document.getElementById('new-publisher-name').value;
+        const email = document.getElementById('new-publisher-email').value;
+        const vendorCode = document.getElementById('new-publisher-code').value;
+        const apiKey = document.getElementById('new-publisher-api-key').value;
+        const status = document.getElementById('new-publisher-status').value;
+        
+        if (!name || !email) {
+            alert('Please fill in all required fields');
+            return;
+        }
+        
+        console.log('🏢 Creating publisher:', { name, email, vendorCode, apiKey, status });
+        
+        // Generate unique tracking ID for this publisher
+        const trackingId = generateTrackingId();
+        console.log('📊 Generated tracking ID:', trackingId);
+        
+        // Create new publisher object
+        const newPublisher = {
+            id: 'pub_' + Date.now(),
+            name: name,
+            email: email,
+            vendorCode: vendorCode,
+            apiKey: apiKey,
+            trackingId: trackingId, // Add tracking ID for traffic monitoring
+            status: status || 'pending',
+            leads: 0,
+            revenue: 0,
+            lastActivity: new Date().toISOString()
+        };
+        
+        // Add to publishers array
+        allPublishers.push(newPublisher);
+        
+        // IMMEDIATELY update all displays
+        setTimeout(() => {
+            renderPublishersTable();
+            updatePublisherStats();
+            updatePublisherCount();
+            console.log('✅ Publisher table updated with new publisher');
+        }, 100);
+        
+        // Generate and download posting instructions and API documentation
+        generatePublisherPackage(name, email, vendorCode, apiKey);
+        
+        // Generate PDF with proper error handling and timing
+        setTimeout(() => {
+            try {
+                if (typeof window.jspdf !== 'undefined') {
+                    downloadPublisherInstructionsAsPdf(name, email, vendorCode, apiKey);
+                    addActivityFeedItem(`📄 PDF instructions generated for ${name}`, 'success');
+                } else {
+                    console.warn('jsPDF not loaded, skipping PDF generation');
+                    addActivityFeedItem(`⚠️ PDF generation skipped - library not loaded`, 'warning');
+                }
+            } catch (error) {
+                console.error('PDF generation failed:', error);
+                addActivityFeedItem(`❌ PDF generation failed for ${name}`, 'error');
+            }
+        }, 1500);
+        
+        // Add activity feed items
+        addActivityFeedItem(`🏢 Publisher "${name}" created successfully`, 'success');
+        addActivityFeedItem(`📄 Publisher package downloaded for ${name}`, 'info');
+        closeModal('add-publisher-modal');
+    };
+
+    function generatePublisherPackage(publisherName, email, vendorCode, apiKey) {
+        // Generate comprehensive posting instructions and API documentation
+        const publisherPackage = generatePublisherDocumentation(publisherName, email, vendorCode, apiKey);
+        
+        // Create downloadable ZIP file with all documentation
+        if (typeof JSZip !== 'undefined') {
+            const zip = new JSZip();
+            
+            // Add posting instructions
+            zip.file("posting-instructions.html", publisherPackage.instructions);
+            zip.file("api-documentation.md", publisherPackage.apiDocs);
+            zip.file("integration-guide.txt", publisherPackage.integrationGuide);
+            zip.file("sample-code.js", publisherPackage.sampleCode);
+            zip.file("publisher-credentials.txt", publisherPackage.credentials);
+            
+            // Generate and download the ZIP file
+            zip.generateAsync({type:"blob"}).then(function(content) {
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(content);
+                link.download = `${publisherName.replace(/\s+/g, '-')}-publisher-package.zip`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                console.log('✅ Publisher package downloaded successfully');
+            }).catch(function(error) {
+                console.error('❌ Error generating ZIP file:', error);
+                alert('Publisher created successfully! Package generation had an issue, but publisher is saved.');
+            });
+        } else {
+            console.warn('JSZip not available, skipping package download');
+            alert('Publisher created successfully! (Package download requires JSZip)');
+        }
+    }
+
+    function generatePublisherDocumentation(publisherName, email, vendorCode, apiKey) {
+        const baseUrl = window.APP_CONFIG?.apiEndpoint || 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod';
+        
+        // Find the publisher to get the tracking ID
+        const publisher = allPublishers.find(p => p.name === publisherName && p.email === email);
+        const trackingId = publisher?.trackingId || 'Not Available';
+        
+        const instructions = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Claim Connectors - Publisher Integration Guide</title>
     <style>
         body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; }
@@ -80,6 +1151,7 @@ X-Vendor-Code: ${vendorCode}
 ### Authentication
 - **API Key:** ${apiKey}
 - **Vendor Code:** ${vendorCode}
+- **Tracking ID:** ${trackingId}
 
 ### Endpoints
 
@@ -110,7 +1182,8 @@ X-Vendor-Code: ${vendorCode}
 const CLAIM_CONNECTORS_CONFIG = {
     apiEndpoint: '${baseUrl}',
     apiKey: '${apiKey}',
-    vendorCode: '${vendorCode}'
+    vendorCode: '${vendorCode}',
+    trackingId: '${trackingId}'
 };
 
 async function submitLead(leadData) {
@@ -120,11 +1193,13 @@ async function submitLead(leadData) {
             headers: {
                 'Content-Type': 'application/json',
                 'X-API-Key': CLAIM_CONNECTORS_CONFIG.apiKey,
-                'X-Vendor-Code': CLAIM_CONNECTORS_CONFIG.vendorCode
+                'X-Vendor-Code': CLAIM_CONNECTORS_CONFIG.vendorCode,
+                'X-Tracking-ID': CLAIM_CONNECTORS_CONFIG.trackingId
             },
             body: JSON.stringify({
                 ...leadData,
                 vendor_code: CLAIM_CONNECTORS_CONFIG.vendorCode,
+                tracking_id: CLAIM_CONNECTORS_CONFIG.trackingId,
                 source: '${publisherName}'
             })
         });
@@ -314,324 +1389,6 @@ Phone: (555) CLAIM-01`;
         }
     }
 
-    // Expose functions to global scope immediately
-    window.generateVendorCode = generateVendorCode;
-    window.generateAPIKey = generateAPIKey;
-    window.openAddAgentModal = openAddAgentModal;
-    window.openAddPublisherModal = openAddPublisherModal;
-    window.closeModal = closeModal;
-    window.handleSendAgentInvite = handleSendAgentInvite;
-    window.handleCreatePublisher = handleCreatePublisher;
-    window.addActivityFeedItem = addActivityFeedItem;
-    window.handleLogout = handleLogout;
-    window.generatePublisherPackage = generatePublisherPackage;
-    window.generatePublisherDocumentation = generatePublisherDocumentation;
-    window.downloadPublisherInstructionsAsPdf = downloadPublisherInstructionsAsPdf;
-
-    console.log('✅ All modal functions are now globally accessible');
-    
-    // Add publisher management CSS styles
-    const publisherCSS = `
-        .publisher-management { margin-top: 2rem; }
-        .publisher-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
-        .publisher-filters { display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; }
-        .filter-group { flex: 1; min-width: 200px; }
-        .table-container { background: var(--bg-secondary); border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--border-subtle); }
-        .admin-table { width: 100%; border-collapse: collapse; }
-        .admin-table th { background: var(--bg-accent); color: var(--text-primary); padding: 1rem; text-align: left; font-weight: 600; border-bottom: 1px solid var(--border-subtle); }
-        .admin-table td { padding: 1rem; border-bottom: 1px solid var(--border-subtle); color: var(--text-primary); }
-        .admin-table tr:hover { background: var(--bg-accent); }
-        .publisher-info { display: flex; flex-direction: column; gap: 0.25rem; }
-        .publisher-name { font-weight: 600; color: var(--text-primary); }
-        .publisher-email { font-size: 0.875rem; color: var(--text-secondary); }
-        .status-badge { padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.75rem; font-weight: 600; }
-        .status-badge.active { background: rgba(16, 185, 129, 0.2); color: var(--success); }
-        .status-badge.inactive { background: rgba(239, 68, 68, 0.2); color: var(--error); }
-        .status-badge.pending { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
-        .status-badge.suspended { background: rgba(139, 92, 246, 0.2); color: var(--accent-purple); }
-        .vendor-code { font-family: 'Courier New', monospace; background: var(--bg-accent); padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.875rem; }
-        .api-key-display { font-family: 'Courier New', monospace; background: var(--bg-accent); padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.875rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
-        .api-key-display.no-key { color: var(--text-muted); background: transparent; }
-        .action-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-        .action-btn-sm { padding: 0.25rem 0.5rem; border: none; border-radius: 0.25rem; font-size: 0.75rem; cursor: pointer; transition: all 0.2s ease; white-space: nowrap; }
-        .action-btn-sm.view { background: var(--accent-blue); color: white; }
-        .action-btn-sm.edit { background: var(--warning); color: white; }
-        .action-btn-sm.pdf { background: var(--success); color: white; }
-        .action-btn-sm.api { background: var(--accent-purple); color: white; }
-        .action-btn-sm.toggle { background: var(--bg-accent); color: var(--text-primary); border: 1px solid var(--border-subtle); }
-        .action-btn-sm.delete { background: var(--error); color: white; }
-        .bulk-actions-bar { background: var(--bg-glass); backdrop-filter: blur(20px); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1rem; margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; }
-        .bulk-info { color: var(--text-primary); font-weight: 600; }
-        .bulk-buttons { display: flex; gap: 0.5rem; }
-        .publisher-count { background: var(--accent-purple); color: white; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.75rem; font-weight: 600; }
-    `;
-    
-    const style = document.createElement('style');
-    style.textContent = publisherCSS;
-    document.head.appendChild(style);
-    
-    document.addEventListener('DOMContentLoaded', function() {
-        // Handle modal close buttons
-        document.querySelectorAll('.modal-close').forEach(closeBtn => {
-            closeBtn.addEventListener('click', function() {
-                const modal = this.closest('.modal-overlay');
-                if (modal) {
-                    modal.classList.remove('active');
-                }
-            });
-        });
-        
-        // Handle FAB menu (simplified)
-        const mainFab = document.getElementById('mainFab');
-        if (mainFab) {
-            mainFab.addEventListener('click', function() {
-                document.querySelector('.fab-container').classList.toggle('active');
-            });
-        }
-        
-        // Close modals when clicking outside
-        document.addEventListener('click', function(e) {
-            if (e.target.classList.contains('modal-overlay')) {
-                e.target.classList.remove('active');
-            }
-        });
-        
-        // Update date and time
-        function updateDateTime() {
-            const now = new Date();
-            const hour = now.getHours();
-            let greeting = 'morning';
-            
-            if (hour >= 12 && hour < 17) greeting = 'afternoon';
-            else if (hour >= 17) greeting = 'evening';
-            
-            const greetingEl = document.getElementById('time-greeting');
-            const dateEl = document.getElementById('current-date');
-            
-            if (greetingEl) greetingEl.textContent = greeting;
-            if (dateEl) {
-                dateEl.textContent = now.toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                });
-            }
-        }
-        
-        updateDateTime();
-        setInterval(updateDateTime, 60000); // Update every minute
-        
-        // Initialize with some mock data
-        setTimeout(() => {
-            addActivityFeedItem('System ready', 'success');
-        }, 2000);
-        
-        console.log('🎯 Enhanced admin dashboard initialized');
-    });
-
-    // EXPANDABLE ACTIVITY FUNCTIONALITY
-    function expandActivity(activityElement) {
-        // Close all other expanded items
-        document.querySelectorAll('.activity-item.expanded').forEach(item => {
-            if (item !== activityElement) {
-                item.classList.remove('expanded');
-            }
-        });
-        
-        // Toggle current item
-        activityElement.classList.toggle('expanded');
-    }
-
-    // Expose expandActivity globally
-    window.expandActivity = expandActivity;
-
-    // Navigation functions for admin dashboard
-    function exportLeadData() {
-        console.log('📊 Exporting lead data...');
-        addActivityFeedItem('📊 Lead export started', 'info');
-    }
-
-    function refreshOverview() {
-        console.log('🔄 Refreshing overview...');
-        addActivityFeedItem('🔄 Overview data refreshed', 'success');
-    }
-
-    function viewAvailableLeads() {
-        console.log('🔍 Viewing available leads...');
-        addActivityFeedItem('👁️ Available leads view opened', 'info');
-    }
-
-    function viewClaimedLeads() {
-        alert('Claimed Leads View - Coming Soon!');
-        addActivityFeedItem('👁️ Claimed leads view opened', 'info');
-    }
-
-    function showAnalyticsDetails() {
-        console.log('📈 Opening analytics details...');
-        addActivityFeedItem('📈 Analytics feature temporarily disabled', 'info');
-    }
-
-    function reassignLead() {
-        alert('Reassign Lead - Coming Soon!');
-        addActivityFeedItem('🔄 Lead reassignment opened', 'info');
-    }
-
-    function bulkActions() {
-        console.log('📦 Opening bulk actions modal...');
-        
-        const bulkActionsModal = `
-            <div class="modal-overlay active" id="bulk-actions-modal">
-                <div class="modal glass-modal">
-                    <div class="modal-header">
-                        <h3 class="modal-title">📦 Bulk Lead Actions</h3>
-                        <button class="modal-close" onclick="closeModal('bulk-actions-modal')">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="bulk-actions-grid">
-                            <button class="bulk-action-btn" onclick="bulkReassignLeads()">
-                                <span style="font-size: 2rem;">🔄</span>
-                                <span>Reassign Leads</span>
-                                <small>Reassign leads to different agents</small>
-                            </button>
-                            <button class="bulk-action-btn" onclick="bulkUpdateStatus()">
-                                <span style="font-size: 2rem;">📝</span>
-                                <span>Update Status</span>
-                                <small>Change lead status in bulk</small>
-                            </button>
-                            <button class="bulk-action-btn" onclick="bulkExportLeads()">
-                                <span style="font-size: 2rem;">📊</span>
-                                <span>Export Leads</span>
-                                <small>Download selected leads as CSV</small>
-                            </button>
-                            <button class="bulk-action-btn" onclick="bulkDeleteLeads()">
-                                <span style="font-size: 2rem;">🗑️</span>
-                                <span>Delete Leads</span>
-                                <small>Permanently remove leads</small>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        document.body.insertAdjacentHTML('beforeend', bulkActionsModal);
-        addActivityFeedItem('📦 Bulk actions modal opened', 'info');
-    }
-
-    function agentDashboard() {
-        console.log('👤 Opening agent dashboard...');
-        
-        const agentDashboardModal = `
-            <div class="modal-overlay active" id="agent-dashboard-modal">
-                <div class="modal glass-modal" style="max-width: 800px;">
-                    <div class="modal-header">
-                        <h3 class="modal-title">👤 Agent Dashboard</h3>
-                        <button class="modal-close" onclick="closeModal('agent-dashboard-modal')">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
-                            <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px; text-align: center;">
-                                <div style="font-size: 2rem; color: var(--success);">24</div>
-                                <div style="color: var(--text-secondary);">Total Agents</div>
-                            </div>
-                            <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px; text-align: center;">
-                                <div style="font-size: 2rem; color: var(--accent-blue);">18</div>
-                                <div style="color: var(--text-secondary);">Online Now</div>
-                            </div>
-                            <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px; text-align: center;">
-                                <div style="font-size: 2rem; color: var(--warning);">156</div>
-                                <div style="color: var(--text-secondary);">Active Leads</div>
-                            </div>
-                        </div>
-                        <div class="management-actions">
-                            <button class="action-btn" onclick="viewAgentPerformance()">
-                                <span class="btn-icon">📊</span>
-                                <span class="btn-text">View Performance</span>
-                            </button>
-                            <button class="action-btn" onclick="manageAgentAccess()">
-                                <span class="btn-icon">🔐</span>
-                                <span class="btn-text">Manage Access</span>
-                            </button>
-                            <button class="action-btn" onclick="openAddAgentModal(); closeModal('agent-dashboard-modal')">
-                                <span class="btn-icon">➕</span>
-                                <span class="btn-text">Add New Agent</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        document.body.insertAdjacentHTML('beforeend', agentDashboardModal);
-        addActivityFeedItem('👤 Agent dashboard opened', 'info');
-    }
-
-    function leadImport() {
-        console.log('📥 Opening lead import modal...');
-        
-        const leadImportModal = `
-            <div class="modal-overlay active" id="lead-import-modal">
-                <div class="modal glass-modal">
-                    <div class="modal-header">
-                        <h3 class="modal-title">📥 Import Leads</h3>
-                        <button class="modal-close" onclick="closeModal('lead-import-modal')">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <div style="text-align: center; margin-bottom: 2rem;">
-                            <div style="font-size: 4rem; color: var(--accent-blue); margin-bottom: 1rem;">📄</div>
-                            <h4>Upload CSV File</h4>
-                            <p style="color: var(--text-secondary);">Import leads from a CSV file. Maximum 1000 leads per upload.</p>
-                        </div>
-                        <div class="form-group">
-                            <label>Select CSV File</label>
-                            <input type="file" accept=".csv" class="form-input" id="lead-import-file">
-                        </div>
-                        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px; margin: 1rem 0;">
-                            <strong>Required CSV Format:</strong><br>
-                            <code style="font-size: 0.8rem;">first_name,last_name,email,phone,state,incident_type</code>
-                        </div>
-                        <div class="modal-footer">
-                            <button class="btn btn-secondary" onclick="closeModal('lead-import-modal')">Cancel</button>
-                            <button class="btn btn-primary" onclick="processLeadImport()">Upload & Import</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        document.body.insertAdjacentHTML('beforeend', leadImportModal);
-        addActivityFeedItem('📥 Lead import modal opened', 'info');
-    }
-
-    // CHART MODAL FUNCTIONALITY
-    function expandChart(type) {
-        console.log(`📊 Expanding chart: ${type}`);
-        addActivityFeedItem(`📊 Opened ${type} chart`, 'info');
-        
-        // For now, just show a simple message
-        // In the future, this could open actual chart modals
-        alert(`Chart view for "${type}" - Feature coming soon!`);
-    }
-
-    function closeChartModal() {
-        console.log('❌ Closing chart modal');
-        const modal = document.getElementById('chart-modal');
-        if (modal) {
-            modal.classList.remove('active');
-        }
-    }
-
-    // Expose all functions globally
-    window.expandChart = expandChart;
-    window.closeChartModal = closeChartModal;
-
-    // Publisher Management Functions
-    let selectedPublishers = new Set();
-    let allPublishers = [
-        // Starting with empty array - no test data
-    ];
-
     function loadPublishers() {
         renderPublishersTable();
         updatePublisherStats();
@@ -721,7 +1478,7 @@ Phone: (555) CLAIM-01`;
     function viewPublisher(id) {
         const publisher = allPublishers.find(p => p.id === id);
         if (publisher) {
-            alert(`Publisher Details:\n\nName: ${publisher.name}\nEmail: ${publisher.email}\nStatus: ${publisher.status}\nLeads: ${publisher.leads}\nRevenue: $${publisher.revenue}`);
+            alert(`Publisher Details:\n\nName: ${publisher.name}\nEmail: ${publisher.email}\nStatus: ${publisher.status}\nTracking ID: ${publisher.trackingId}\nLeads: ${publisher.leads}\nRevenue: $${publisher.revenue}`);
         }
     }
 
@@ -750,7 +1507,7 @@ Phone: (555) CLAIM-01`;
     function regenerateApiKey(id) {
         const publisher = allPublishers.find(p => p.id === id);
         if (publisher && confirm(`Regenerate API key for ${publisher.name}?`)) {
-            publisher.apiKey = 'api_' + Math.random().toString(36).substr(2, 15);
+            publisher.apiKey = generateAPIKey();
             renderPublishersTable();
             addActivityFeedItem(`🔄 API key regenerated for ${publisher.name}`, 'success');
         }
@@ -759,7 +1516,7 @@ Phone: (555) CLAIM-01`;
     function generateApiKey(id) {
         const publisher = allPublishers.find(p => p.id === id);
         if (publisher) {
-            publisher.apiKey = 'api_' + Math.random().toString(36).substr(2, 15);
+            publisher.apiKey = generateAPIKey();
             renderPublishersTable();
             addActivityFeedItem(`🔑 API key generated for ${publisher.name}`, 'success');
         }
@@ -819,42 +1576,6 @@ Phone: (555) CLAIM-01`;
             bulkBar.style.display = selectedPublishers.size > 0 ? 'flex' : 'none';
             count.textContent = selectedPublishers.size;
         }
-    }
-
-    // Filter Functions
-    function filterPublishers() {
-        const search = document.getElementById('publisher-search').value.toLowerCase();
-        const statusFilter = document.getElementById('publisher-status-filter').value;
-        
-        let filtered = allPublishers.filter(publisher => {
-            const matchesSearch = publisher.name.toLowerCase().includes(search) || 
-                                publisher.email.toLowerCase().includes(search);
-            const matchesStatus = !statusFilter || publisher.status === statusFilter;
-            return matchesSearch && matchesStatus;
-        });
-
-        renderPublishersTable(filtered);
-    }
-
-    function sortPublishers() {
-        const sortBy = document.getElementById('publisher-sort').value;
-        
-        allPublishers.sort((a, b) => {
-            switch(sortBy) {
-                case 'name':
-                    return a.name.localeCompare(b.name);
-                case 'revenue':
-                    return b.revenue - a.revenue;
-                case 'leads':
-                    return b.leads - a.leads;
-                case 'created':
-                    return new Date(b.lastActivity || 0) - new Date(a.lastActivity || 0);
-                default:
-                    return 0;
-            }
-        });
-        
-        renderPublishersTable();
     }
 
     // Bulk Actions
@@ -926,8 +1647,8 @@ Phone: (555) CLAIM-01`;
 
     function exportPublishers() {
         const csvContent = "data:text/csv;charset=utf-8," + 
-            "Name,Email,Vendor Code,Status,Leads,Revenue\n" +
-            allPublishers.map(p => `"${p.name}","${p.email}","${p.vendorCode}","${p.status}",${p.leads},${p.revenue}`).join("\n");
+            "Name,Email,Vendor Code,Tracking ID,Status,Leads,Revenue\n" +
+            allPublishers.map(p => `"${p.name}","${p.email}","${p.vendorCode}","${p.trackingId}","${p.status}",${p.leads},${p.revenue}`).join("\n");
         
         const link = document.createElement("a");
         link.setAttribute("href", encodeURI(csvContent));
@@ -939,23 +1660,43 @@ Phone: (555) CLAIM-01`;
         addActivityFeedItem('📊 Publishers exported to CSV', 'success');
     }
 
-    // Add event listeners for publisher filters
-    setTimeout(() => {
-        const searchInput = document.getElementById('publisher-search');
-        const statusFilter = document.getElementById('publisher-status-filter');
-        const sortSelect = document.getElementById('publisher-sort');
+    // Filter Functions
+    function filterPublishers() {
+        const search = document.getElementById('publisher-search').value.toLowerCase();
+        const statusFilter = document.getElementById('publisher-status-filter').value;
         
-        if (searchInput) searchInput.addEventListener('input', filterPublishers);
-        if (statusFilter) statusFilter.addEventListener('change', filterPublishers);
-        if (sortSelect) sortSelect.addEventListener('change', sortPublishers);
-        
-        // Load initial data ONLY after DOM is ready
-        console.log('🏢 Loading initial publisher data...');
-        loadPublishers();
-        console.log('✅ Publisher management initialized');
-    }, 2000); // Increased delay to ensure DOM is fully ready
+        let filtered = allPublishers.filter(publisher => {
+            const matchesSearch = publisher.name.toLowerCase().includes(search) || 
+                                publisher.email.toLowerCase().includes(search);
+            const matchesStatus = !statusFilter || publisher.status === statusFilter;
+            return matchesSearch && matchesStatus;
+        });
 
-    // Expose publisher functions globally
+        renderPublishersTable(filtered);
+    }
+
+    function sortPublishers() {
+        const sortBy = document.getElementById('publisher-sort').value;
+        
+        allPublishers.sort((a, b) => {
+            switch(sortBy) {
+                case 'name':
+                    return a.name.localeCompare(b.name);
+                case 'revenue':
+                    return b.revenue - a.revenue;
+                case 'leads':
+                    return b.leads - a.leads;
+                case 'created':
+                    return new Date(b.lastActivity || 0) - new Date(a.lastActivity || 0);
+                default:
+                    return 0;
+            }
+        });
+        
+        renderPublishersTable();
+    }
+
+    // Expose all functions globally
     window.viewPublisher = viewPublisher;
     window.editPublisher = editPublisher;
     window.downloadPublisherPdf = downloadPublisherPdf;
@@ -971,82 +1712,119 @@ Phone: (555) CLAIM-01`;
     window.bulkDeletePublishers = bulkDeletePublishers;
     window.refreshPublishers = refreshPublishers;
     window.exportPublishers = exportPublishers;
+    window.generatePublisherPackage = generatePublisherPackage;
+    window.generatePublisherDocumentation = generatePublisherDocumentation;
+    window.downloadPublisherInstructionsAsPdf = downloadPublisherInstructionsAsPdf;
 
-    // Add missing bulk action functions
-    function bulkReassignLeads() {
-        alert('Bulk Reassign Leads - Coming Soon!');
-        closeModal('bulk-actions-modal');
-        addActivityFeedItem('🔄 Bulk reassign initiated', 'info');
+    // Navigation functions for admin dashboard
+    function exportLeadData() {
+        console.log('📊 Exporting lead data...');
+        addActivityFeedItem('📊 Lead export started', 'info');
     }
 
-    function bulkUpdateStatus() {
-        alert('Bulk Update Status - Coming Soon!');
-        closeModal('bulk-actions-modal');
-        addActivityFeedItem('📝 Bulk status update initiated', 'info');
+    function refreshOverview() {
+        console.log('🔄 Refreshing overview...');
+        addActivityFeedItem('🔄 Overview data refreshed', 'success');
     }
 
-    function bulkExportLeads() {
-        alert('Bulk Export Leads - Coming Soon!');
-        closeModal('bulk-actions-modal');
-        addActivityFeedItem('📊 Bulk export initiated', 'success');
+    function viewAvailableLeads() {
+        console.log('🔍 Viewing available leads...');
+        addActivityFeedItem('👁️ Available leads view opened', 'info');
     }
 
-    function bulkDeleteLeads() {
-        if (confirm('Delete selected leads? This cannot be undone.')) {
-            alert('Bulk Delete Leads - Coming Soon!');
-            closeModal('bulk-actions-modal');
-            addActivityFeedItem('🗑️ Bulk delete initiated', 'warning');
-        }
+    function viewClaimedLeads() {
+        alert('Claimed Leads View - Coming Soon!');
+        addActivityFeedItem('👁️ Claimed leads view opened', 'info');
     }
 
-    function viewAgentPerformance() {
-        alert('Agent Performance View - Coming Soon!');
-        addActivityFeedItem('📊 Agent performance view opened', 'info');
+    function showAnalyticsDetails() {
+        console.log('📈 Opening analytics details...');
+        addActivityFeedItem('📈 Analytics feature temporarily disabled', 'info');
     }
 
-    function manageAgentAccess() {
-        alert('Manage Agent Access - Coming Soon!');
-        addActivityFeedItem('🔐 Agent access management opened', 'info');
+    function reassignLead() {
+        alert('Reassign Lead - Coming Soon!');
+        addActivityFeedItem('🔄 Lead reassignment opened', 'info');
     }
 
-    function processLeadImport() {
-        const fileInput = document.getElementById('lead-import-file');
-        if (!fileInput || !fileInput.files[0]) {
-            alert('Please select a CSV file first');
-            return;
-        }
-        
-        alert(`Importing leads from: ${fileInput.files[0].name} - Coming Soon!`);
-        closeModal('lead-import-modal');
-        addActivityFeedItem('📥 Lead import processing...', 'info');
+    function bulkActions() {
+        alert('Bulk Actions - Coming Soon!');
+        addActivityFeedItem('📦 Bulk actions opened', 'info');
     }
 
-    // Expose the new functions globally
+    function agentDashboard() {
+        alert('Agent Dashboard - Coming Soon!');
+        addActivityFeedItem('👤 Agent dashboard opened', 'info');
+    }
+
+    function leadImport() {
+        alert('Lead Import - Coming Soon!');
+        addActivityFeedItem('📥 Lead import opened', 'info');
+    }
+
+    // Expose navigation functions globally
+    window.exportLeadData = exportLeadData;
+    window.refreshOverview = refreshOverview;
+    window.viewAvailableLeads = viewAvailableLeads;
+    window.viewClaimedLeads = viewClaimedLeads;
+    window.showAnalyticsDetails = showAnalyticsDetails;
+    window.reassignLead = reassignLead;
     window.bulkActions = bulkActions;
     window.agentDashboard = agentDashboard;
     window.leadImport = leadImport;
-    window.viewAvailableLeads = viewAvailableLeads;
-    window.viewClaimedLeads = viewClaimedLeads;
-    window.reassignLead = reassignLead;
-    window.bulkReassignLeads = bulkReassignLeads;
-    window.bulkUpdateStatus = bulkUpdateStatus;
-    window.bulkExportLeads = bulkExportLeads;
-    window.bulkDeleteLeads = bulkDeleteLeads;
-    window.viewAgentPerformance = viewAgentPerformance;
-    window.manageAgentAccess = manageAgentAccess;
-    window.processLeadImport = processLeadImport;
 
-    // Generate unique tracking ID for publisher traffic
-    function generateTrackingId() {
-        // Generate a unique 12-character tracking ID (TRK_XXXXXXXX)
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        let trackingId = 'TRK_';
-        for (let i = 0; i < 8; i++) {
-            trackingId += chars.charAt(Math.floor(Math.random() * chars.length));
+    // Initialize dashboard
+    document.addEventListener('DOMContentLoaded', function() {
+        // Update date and time
+        function updateDateTime() {
+            const now = new Date();
+            const hour = now.getHours();
+            let greeting = 'morning';
+            
+            if (hour >= 12 && hour < 17) greeting = 'afternoon';
+            else if (hour >= 17) greeting = 'evening';
+            
+            const greetingEl = document.getElementById('time-greeting');
+            const dateEl = document.getElementById('current-date');
+            
+            if (greetingEl) greetingEl.textContent = greeting;
+            if (dateEl) {
+                dateEl.textContent = now.toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+            }
         }
-        return trackingId;
-    }
+        
+        updateDateTime();
+        setInterval(updateDateTime, 60000); // Update every minute
 
+        // Add event listeners for publisher filters
+        setTimeout(() => {
+            const searchInput = document.getElementById('publisher-search');
+            const statusFilter = document.getElementById('publisher-status-filter');
+            const sortSelect = document.getElementById('publisher-sort');
+            
+            if (searchInput) searchInput.addEventListener('input', filterPublishers);
+            if (statusFilter) statusFilter.addEventListener('change', filterPublishers);
+            if (sortSelect) sortSelect.addEventListener('change', sortPublishers);
+            
+            // Load initial data
+            console.log('🏢 Loading initial publisher data...');
+            loadPublishers();
+            console.log('✅ Publisher management initialized');
+        }, 1000);
+        
+        // Initialize with some mock data
+        setTimeout(() => {
+            addActivityFeedItem('🎯 Admin dashboard initialized', 'success');
+            addActivityFeedItem('🏢 Publisher management ready', 'info');
+        }, 2000);
+        
+        console.log('🎯 Enhanced admin dashboard initialized');
+    });
     </script>
 </body>
 </html>
