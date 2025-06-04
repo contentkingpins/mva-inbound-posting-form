@@ -215,7 +215,7 @@ Phone: (555) CLAIM-01
 
         tbody.innerHTML = allPublishers.map(publisher => `
             <tr>
-                <td><input type="checkbox" value="${publisher.id}"></td>
+                <td><input type="checkbox" value="${publisher.id}" onchange="togglePublisherSelection('${publisher.id}', this.checked)"></td>
                 <td>
                     <div class="publisher-info">
                         <div class="publisher-name">${publisher.name}</div>
@@ -232,11 +232,13 @@ Phone: (555) CLAIM-01
                 <td>
                     <button class="action-btn-sm view" onclick="viewPublisher('${publisher.id}')">👁️</button>
                     <button class="action-btn-sm edit" onclick="editPublisher('${publisher.id}')">✏️</button>
+                    <button class="action-btn-sm delete" onclick="deletePublisher('${publisher.id}')">🗑️</button>
                 </td>
             </tr>
         `).join('');
         
         console.log('📊 Publishers table updated with', allPublishers.length, 'publishers');
+        updateBulkActionsVisibility();
     }
 
     function updatePublisherCount() {
@@ -279,6 +281,147 @@ Phone: (555) CLAIM-01
                 renderPublishersTable();
                 addActivityFeedItem(`📝 Publisher updated to "${newName}"`, 'info');
             }
+        }
+    };
+
+    // Bulk Actions Management
+    function togglePublisherSelection(id, checked) {
+        if (checked) {
+            selectedPublishers.add(id);
+        } else {
+            selectedPublishers.delete(id);
+        }
+        updateBulkActionsVisibility();
+    }
+
+    function updateBulkActionsVisibility() {
+        const bulkBar = document.getElementById('bulk-publishers-actions');
+        const count = document.getElementById('selected-publishers-count');
+        
+        if (bulkBar && count) {
+            bulkBar.style.display = selectedPublishers.size > 0 ? 'flex' : 'none';
+            count.textContent = selectedPublishers.size;
+        }
+    }
+
+    // Real Bulk Actions Implementation
+    window.bulkActivatePublishers = function() {
+        const selectedIds = Array.from(selectedPublishers);
+        if (selectedIds.length === 0) {
+            alert('Please select publishers to activate');
+            return;
+        }
+        
+        if (confirm(`Activate ${selectedIds.length} selected publishers?`)) {
+            selectedIds.forEach(id => {
+                const publisher = allPublishers.find(p => p.id === id);
+                if (publisher) {
+                    publisher.status = 'active';
+                }
+            });
+            
+            renderPublishersTable();
+            updatePublisherStats();
+            selectedPublishers.clear();
+            updateBulkActionsVisibility();
+            addActivityFeedItem(`🟢 ${selectedIds.length} publishers activated`, 'success');
+        }
+    };
+
+    window.bulkDeactivatePublishers = function() {
+        const selectedIds = Array.from(selectedPublishers);
+        if (selectedIds.length === 0) {
+            alert('Please select publishers to deactivate');
+            return;
+        }
+        
+        if (confirm(`Deactivate ${selectedIds.length} selected publishers?`)) {
+            selectedIds.forEach(id => {
+                const publisher = allPublishers.find(p => p.id === id);
+                if (publisher) {
+                    publisher.status = 'inactive';
+                }
+            });
+            
+            renderPublishersTable();
+            updatePublisherStats();
+            selectedPublishers.clear();
+            updateBulkActionsVisibility();
+            addActivityFeedItem(`🔴 ${selectedIds.length} publishers deactivated`, 'warning');
+        }
+    };
+
+    window.bulkDeletePublishers = function() {
+        const selectedIds = Array.from(selectedPublishers);
+        if (selectedIds.length === 0) {
+            alert('Please select publishers to delete');
+            return;
+        }
+        
+        if (confirm(`⚠️ DELETE ${selectedIds.length} selected publishers?\n\nThis action cannot be undone!`)) {
+            // Remove selected publishers from array
+            allPublishers = allPublishers.filter(p => !selectedIds.includes(p.id));
+            
+            renderPublishersTable();
+            updatePublisherStats();
+            updatePublisherCount();
+            selectedPublishers.clear();
+            updateBulkActionsVisibility();
+            addActivityFeedItem(`🗑️ ${selectedIds.length} publishers deleted`, 'warning');
+        }
+    };
+
+    window.bulkDownloadCredentials = function() {
+        const selectedIds = Array.from(selectedPublishers);
+        if (selectedIds.length === 0) {
+            alert('Please select publishers to download credentials');
+            return;
+        }
+        
+        // Download credentials for each selected publisher with delay
+        selectedIds.forEach((id, index) => {
+            const publisher = allPublishers.find(p => p.id === id);
+            if (publisher) {
+                setTimeout(() => {
+                    downloadPublisherCredentials(publisher);
+                }, index * 500); // 500ms delay between downloads
+            }
+        });
+        
+        addActivityFeedItem(`📄 ${selectedIds.length} credential files downloaded`, 'success');
+    };
+
+    // Select All functionality
+    window.toggleSelectAllPublishers = function() {
+        const selectAllCheckbox = document.getElementById('select-all-publishers');
+        const allCheckboxes = document.querySelectorAll('#publishers-table-body input[type="checkbox"]');
+        
+        if (selectAllCheckbox && selectAllCheckbox.checked) {
+            // Select all
+            allCheckboxes.forEach(checkbox => {
+                checkbox.checked = true;
+                selectedPublishers.add(checkbox.value);
+            });
+        } else {
+            // Deselect all
+            allCheckboxes.forEach(checkbox => {
+                checkbox.checked = false;
+                selectedPublishers.delete(checkbox.value);
+            });
+        }
+        
+        updateBulkActionsVisibility();
+    };
+
+    // Delete individual publisher
+    window.deletePublisher = function(id) {
+        const publisher = allPublishers.find(p => p.id === id);
+        if (publisher && confirm(`Delete publisher "${publisher.name}"?\n\nThis action cannot be undone!`)) {
+            allPublishers = allPublishers.filter(p => p.id !== id);
+            renderPublishersTable();
+            updatePublisherStats();
+            updatePublisherCount();
+            addActivityFeedItem(`🗑️ Publisher "${publisher.name}" deleted`, 'warning');
         }
     };
 

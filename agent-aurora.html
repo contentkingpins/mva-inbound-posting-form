@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agent Dashboard - MVA CRM</title>
+    <title>Agent Dashboard - Claim Connectors</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
     
     <!-- Preconnect to CDNs -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -12,12 +13,12 @@
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- MASTER DARK THEME - Single source of truth -->
-    <link rel="stylesheet" href="css/master-dark-theme.css">
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://unpkg.com/lucide@latest/dist/lucide.css">
     
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
+    
     <!-- Build-Time Injected Configuration -->
     <script>
     window.APP_CONFIG = {
@@ -25,11 +26,560 @@
         "clientId": "5t6mane4fnvineksoqb4ta0iu1",
         "apiEndpoint": "https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod",
         "apiUrl": "https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod",
-        "region": "us-east-1"
+        "apiKey": "",
+        "buildTime": "2025-05-29T01:13:52.266Z",
+        "buildEnv": "production"
     };
     window.preloadedConfig = window.APP_CONFIG;
     console.log('🔧 Agent configuration loaded');
     </script>
+    
+    <!-- UNIFIED DARK THEME - Matching Admin Dashboard -->
+    <style>
+    /* Dark Theme Variables - IDENTICAL to Admin Dashboard */
+    :root {
+        --bg-primary: #0F0F23;
+        --bg-secondary: #1A1A2E;
+        --bg-accent: #16213E;
+        --bg-glass: rgba(26, 26, 46, 0.95);
+        --text-primary: #FFFFFF;
+        --text-secondary: #CBD5E1;
+        --text-muted: #9CA3AF;
+        --accent-blue: #3B82F6;
+        --accent-purple: #8B5CF6;
+        --success: #10B981;
+        --warning: #F59E0B;
+        --error: #EF4444;
+        --border-subtle: rgba(139, 92, 246, 0.2);
+        --border-accent: rgba(59, 130, 246, 0.3);
+        --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        --space-4: 1rem;
+        --space-6: 1.5rem;
+        --radius-md: 0.5rem;
+        --radius-lg: 0.75rem;
+        --radius-xl: 1rem;
+        --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+        --transition-base: 0.3s ease;
+    }
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+        font-family: var(--font-family);
+        background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+        color: var(--text-primary);
+        min-height: 100vh;
+        line-height: 1.6;
+    }
+    
+    /* Header Styles - IDENTICAL to Admin */
+    .admin-header {
+        background: var(--bg-glass);
+        backdrop-filter: blur(20px);
+        border-bottom: 1px solid var(--border-subtle);
+        padding: var(--space-4) var(--space-6);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+    
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    
+    .header-title {
+        color: var(--accent-purple);
+        font-size: 1.5rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .header-greeting {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+    
+    .ai-badge {
+        background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-left: 0.5rem;
+    }
+    
+    .header-right {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+    
+    .header-date {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    
+    /* Main Content */
+    .admin-main {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: var(--space-6);
+        min-height: calc(100vh - 80px);
+    }
+    
+    /* Stats Grid - IDENTICAL to Admin */
+    .quick-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+        background: var(--bg-glass);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        padding: 1.25rem;
+        transition: all var(--transition-base);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card:hover {
+        border-color: var(--accent-purple);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(139, 92, 246, 0.2);
+    }
+
+    .stat-icon {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+        color: var(--accent-purple);
+    }
+
+    .stat-content {
+        flex: 1;
+    }
+
+    .stat-value {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: var(--text-primary);
+        line-height: 1;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+    }
+
+    .stat-change {
+        font-size: 0.75rem;
+        font-weight: 500;
+        padding: 0.25rem 0.5rem;
+        border-radius: var(--radius-md);
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--success);
+        display: inline-block;
+    }
+    
+    /* Sections - IDENTICAL to Admin */
+    .admin-section {
+        background: var(--bg-glass);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        padding: 2rem;
+        margin-bottom: 2rem;
+        transition: all var(--transition-base);
+    }
+
+    .admin-section:hover {
+        border-color: var(--accent-purple);
+        box-shadow: 0 8px 20px rgba(139, 92, 246, 0.1);
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .section-title {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex: 1;
+    }
+
+    .section-title h2 {
+        color: var(--text-primary);
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .section-icon {
+        font-size: 1.5rem;
+        color: var(--accent-purple);
+    }
+
+    .section-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+    
+    /* Buttons - IDENTICAL to Admin */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        border: none;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all var(--transition-base);
+        text-decoration: none;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, var(--accent-blue), #2563EB);
+        color: white;
+        border: 1px solid var(--accent-blue);
+    }
+
+    .btn-secondary {
+        background: linear-gradient(135deg, var(--bg-accent), var(--bg-secondary));
+        color: var(--text-primary);
+        border: 1px solid var(--border-accent);
+    }
+
+    .btn-success {
+        background: linear-gradient(135deg, var(--success), #059669);
+        color: white;
+        border: 1px solid var(--success);
+    }
+
+    .btn-info {
+        background: linear-gradient(135deg, #3B82F6, #2563EB);
+        color: white;
+        border: 1px solid #3B82F6;
+    }
+
+    .btn-warning {
+        background: linear-gradient(135deg, var(--warning), #D97706);
+        color: white;
+        border: 1px solid var(--warning);
+    }
+
+    .btn-danger {
+        background: linear-gradient(135deg, var(--error), #DC2626);
+        color: white;
+        border: 1px solid var(--error);
+    }
+
+    .btn-sm {
+        padding: 0.5rem 1rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    
+    /* Lead Cards */
+    .leads-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 1.5rem;
+        margin-top: 1.5rem;
+    }
+
+    .lead-card {
+        background: var(--bg-glass);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        transition: all var(--transition-base);
+        cursor: pointer;
+    }
+
+    .lead-card:hover {
+        border-color: var(--accent-blue);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(59, 130, 246, 0.2);
+    }
+
+    .lead-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+    }
+
+    .lead-name {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.25rem;
+    }
+
+    .lead-type {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+    }
+
+    .lead-value {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--success);
+    }
+
+    .lead-details {
+        margin-bottom: 1rem;
+    }
+
+    .lead-detail {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+    }
+
+    .lead-actions {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+    }
+
+    .action-btn-sm {
+        padding: 0.25rem 0.5rem;
+        border: none;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+        font-weight: 600;
+    }
+
+    .action-btn-sm.claim {
+        background: var(--success);
+        color: white;
+    }
+
+    .action-btn-sm.view {
+        background: var(--accent-blue);
+        color: white;
+    }
+
+    .action-btn-sm.contact {
+        background: var(--warning);
+        color: white;
+    }
+
+    .action-btn-sm.update {
+        background: var(--accent-purple);
+        color: white;
+    }
+
+    /* Status badges */
+    .status-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .status-badge.available {
+        background: rgba(16, 185, 129, 0.2);
+        color: var(--success);
+    }
+
+    .status-badge.claimed {
+        background: rgba(59, 130, 246, 0.2);
+        color: var(--accent-blue);
+    }
+
+    .status-badge.contacted {
+        background: rgba(245, 158, 11, 0.2);
+        color: var(--warning);
+    }
+
+    .status-badge.retained {
+        background: rgba(139, 92, 246, 0.2);
+        color: var(--accent-purple);
+    }
+
+    /* Form Styles */
+    .form-input {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        background: var(--bg-secondary);
+        border: 2px solid var(--border-subtle);
+        border-radius: var(--radius-md);
+        color: var(--text-primary);
+        font-size: 0.875rem;
+        font-family: var(--font-family);
+        transition: all var(--transition-base);
+    }
+
+    .form-input:focus {
+        outline: none;
+        border-color: var(--accent-blue);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        background: var(--bg-accent);
+    }
+
+    .form-input::placeholder {
+        color: var(--text-muted);
+    }
+
+    /* Loading States */
+    .loading-state {
+        text-align: center;
+        padding: 3rem;
+        color: var(--text-secondary);
+    }
+
+    .loading-spinner {
+        width: 32px;
+        height: 32px;
+        border: 3px solid var(--border-subtle);
+        border-top: 3px solid var(--accent-purple);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 1rem;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    /* Quick Actions Grid */
+    .quick-actions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+
+    .action-card {
+        background: var(--bg-glass);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all var(--transition-base);
+        color: var(--text-primary);
+        border: none;
+    }
+
+    .action-card:hover {
+        background: var(--bg-accent);
+        border-color: var(--border-accent);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(139, 92, 246, 0.2);
+    }
+
+    .action-icon {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+        color: var(--accent-purple);
+    }
+
+    .action-title {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: var(--text-primary);
+    }
+
+    .action-description {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+    }
+
+    /* Filter Section */
+    .filter-section {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+    }
+
+    .filter-group {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .quick-stats-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .header-content {
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .header-right {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+        }
+        
+        .section-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .leads-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .filter-section {
+            flex-direction: column;
+        }
+    }
+    </style>
 </head>
 <body>
     <!-- Header -->
@@ -37,20 +587,24 @@
         <div class="header-content">
             <div class="header-left">
                 <h1 class="header-title">
-                    <span class="header-icon">⚡</span>
+                    <span class="header-icon">👤</span>
                     Agent Dashboard
+                    <span class="ai-badge">⚡ Powered by Angel Dust OS</span>
                 </h1>
                 <div class="header-greeting">
-                    Welcome back, <span id="agent-name" style="color: var(--accent-purple);">Agent</span>
+                    Good <span id="time-greeting">morning</span>, <span id="agent-name">Agent</span> 
                 </div>
             </div>
             <div class="header-right">
                 <div class="header-date" id="current-date"></div>
-                <button class="btn btn-secondary btn-sm" onclick="window.location.href='agent-analytics.html'">
+                <button class="btn btn-info btn-sm" onclick="window.location.href='agent-analytics.html'">
                     📊 Analytics
                 </button>
-                <button class="btn btn-secondary btn-sm" onclick="logout()">
-                    Logout
+                <button class="btn btn-secondary btn-sm" onclick="window.location.href='admin.html'">
+                    ⚡ Admin View
+                </button>
+                <button class="btn btn-warning btn-sm" onclick="logout()">
+                    🚪 Logout
                 </button>
             </div>
         </div>
@@ -58,309 +612,452 @@
 
     <!-- Main Content -->
     <main class="admin-main">
-        <!-- Quick Stats Overview -->
-        <section class="stats-grid">
-            <div class="stat-card glass-card">
+        <!-- Quick Stats Grid -->
+        <div class="quick-stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">📋</div>
                 <div class="stat-content">
-                    <div class="stat-label">📋 Available Leads</div>
-                    <div class="stat-value" id="available-count">-</div>
-                    <div class="stat-subtext">ready to claim</div>
+                    <div class="stat-value" id="available-leads">12</div>
+                    <div class="stat-label">Available Leads</div>
+                    <div class="stat-change">Ready to claim</div>
                 </div>
             </div>
             
-            <div class="stat-card glass-card">
+            <div class="stat-card">
+                <div class="stat-icon">💼</div>
                 <div class="stat-content">
-                    <div class="stat-label">💼 My Active Leads</div>
-                    <div class="stat-value" id="active-count">-</div>
-                    <div class="stat-subtext">in progress</div>
+                    <div class="stat-value" id="my-active-leads">5</div>
+                    <div class="stat-label">My Active Leads</div>
+                    <div class="stat-change">In progress</div>
                 </div>
             </div>
             
-            <div class="stat-card glass-card">
+            <div class="stat-card">
+                <div class="stat-icon">✅</div>
                 <div class="stat-content">
-                    <div class="stat-label">✅ Retained</div>
-                    <div class="stat-value" id="retained-count">-</div>
-                    <div class="stat-subtext">this month</div>
+                    <div class="stat-value" id="retained-count">3</div>
+                    <div class="stat-label">Retained This Month</div>
+                    <div class="stat-change">Great work!</div>
                 </div>
             </div>
             
-            <div class="stat-card glass-card">
+            <div class="stat-card">
+                <div class="stat-icon">🎯</div>
                 <div class="stat-content">
-                    <div class="stat-label">📈 Conversion Rate</div>
-                    <div class="stat-value" id="conversion-rate">-%</div>
-                    <div class="stat-change positive">
-                        <span>↑ Track record</span>
-                    </div>
+                    <div class="stat-value" id="conversion-rate">60%</div>
+                    <div class="stat-label">Conversion Rate</div>
+                    <div class="stat-change">↑ Above average</div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Available Leads Section -->
+        <section class="admin-section">
+            <div class="section-header">
+                <div class="section-title">
+                    <span class="section-icon">📋</span>
+                    <h2>Available Leads</h2>
+                </div>
+                <div class="section-actions">
+                    <button class="btn btn-secondary" onclick="refreshLeads()">🔄 Refresh</button>
+                    <button class="btn btn-primary" onclick="claimRandomLead()">⚡ Claim Next</button>
+                </div>
+            </div>
+            
+            <!-- Filter Section -->
+            <div class="filter-section">
+                <div class="filter-group">
+                    <input type="text" id="search-leads" placeholder="🔍 Search leads..." class="form-input">
+                </div>
+                <div class="filter-group">
+                    <select id="filter-type" class="form-input">
+                        <option value="all">All Types</option>
+                        <option value="auto_accident">Auto Accident</option>
+                        <option value="slip_fall">Slip & Fall</option>
+                        <option value="medical_malpractice">Medical Malpractice</option>
+                        <option value="workplace_injury">Workplace Injury</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <select id="filter-value" class="form-input">
+                        <option value="all">All Values</option>
+                        <option value="high">High Value ($1000+)</option>
+                        <option value="medium">Medium Value ($500-$999)</option>
+                        <option value="low">Low Value (<$500)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="leads-grid" id="available-leads-grid">
+                <!-- Available leads will be populated here -->
             </div>
         </section>
 
-        <!-- Available Leads - Collapsible Section -->
-        <div class="collapsible-section">
-            <button class="section-toggle active" data-section="available-leads">
-                <span>📋 Available Leads</span>
-                <span class="toggle-icon">▼</span>
-            </button>
-            <div class="section-content expanded" id="available-leads-content">
-                <div class="section-header">
-                    <div class="search-filters">
-                        <input type="text" id="search-leads" placeholder="🔍 Search leads..." class="search-input">
-                        <select id="filter-type" class="select-input">
-                            <option value="all">All Types</option>
-                            <option value="motor_vehicle">Motor Vehicle</option>
-                            <option value="slip_fall">Slip & Fall</option>
-                            <option value="medical_malpractice">Medical Malpractice</option>
-                        </select>
-                    </div>
-                    <div class="action-buttons">
-                        <button class="btn btn-primary" onclick="refreshLeads()">🔄 Refresh</button>
-                    </div>
+        <!-- My Active Leads Section -->
+        <section class="admin-section">
+            <div class="section-header">
+                <div class="section-title">
+                    <span class="section-icon">💼</span>
+                    <h2>My Active Leads</h2>
                 </div>
-                
-                <div class="leads-grid" id="available-leads-grid">
-                    <div class="loading-state">
-                        <div class="loading-spinner"></div>
-                        <p>Loading available leads...</p>
-                    </div>
+                <div class="section-actions">
+                    <button class="btn btn-secondary" onclick="exportMyLeads()">📤 Export</button>
+                    <button class="btn btn-info" onclick="scheduleCallback()">📞 Schedule Call</button>
                 </div>
             </div>
-        </div>
+            
+            <div class="leads-grid" id="my-leads-grid">
+                <!-- My leads will be populated here -->
+            </div>
+        </section>
 
-        <!-- My Active Leads - Collapsible Section -->
-        <div class="collapsible-section">
-            <button class="section-toggle active" data-section="my-leads">
-                <span>💼 My Active Leads</span>
-                <span class="toggle-icon">▼</span>
-            </button>
-            <div class="section-content expanded" id="my-leads-content">
-                <div class="section-header">
-                    <div class="search-filters">
-                        <select id="filter-status" class="select-input">
-                            <option value="all">All Status</option>
-                            <option value="new">New</option>
-                            <option value="contacted">Contacted</option>
-                            <option value="qualified">Qualified</option>
-                            <option value="retained">Retained</option>
-                            <option value="docs-sent">Docs Sent</option>
-                        </select>
-                        <select id="sort-leads" class="select-input">
-                            <option value="date">Sort by Date</option>
-                            <option value="priority">Sort by Priority</option>
-                            <option value="value">Sort by Value</option>
-                        </select>
-                    </div>
-                    <div class="action-buttons">
-                        <button class="btn btn-secondary" onclick="exportMyLeads()">📤 Export</button>
-                    </div>
+        <!-- Quick Actions Section -->
+        <section class="admin-section">
+            <div class="section-header">
+                <div class="section-title">
+                    <span class="section-icon">⚡</span>
+                    <h2>Quick Actions</h2>
                 </div>
+            </div>
+            
+            <div class="quick-actions-grid">
+                <button class="action-card" onclick="createNewLead()">
+                    <div class="action-icon">📝</div>
+                    <div class="action-title">Create Lead</div>
+                    <div class="action-description">Add a new lead manually</div>
+                </button>
                 
-                <div class="leads-grid" id="my-leads-grid">
-                    <div class="loading-state">
-                        <div class="loading-spinner"></div>
-                        <p>Loading your leads...</p>
-                    </div>
-                </div>
+                <button class="action-card" onclick="scheduleCallback()">
+                    <div class="action-icon">📞</div>
+                    <div class="action-title">Schedule Callback</div>
+                    <div class="action-description">Set reminder for follow-up</div>
+                </button>
+                
+                <button class="action-card" onclick="generateReport()">
+                    <div class="action-icon">📊</div>
+                    <div class="action-title">Generate Report</div>
+                    <div class="action-description">Export your performance data</div>
+                </button>
+                
+                <button class="action-card" onclick="viewAnalytics()">
+                    <div class="action-icon">🎯</div>
+                    <div class="action-title">View Analytics</div>
+                    <div class="action-description">Check your conversion stats</div>
+                </button>
             </div>
-        </div>
-
-        <!-- Quick Actions - Collapsible Section -->
-        <div class="collapsible-section">
-            <button class="section-toggle" data-section="quick-actions">
-                <span>⚡ Quick Actions</span>
-                <span class="toggle-icon">▼</span>
-            </button>
-            <div class="section-content" id="quick-actions-content">
-                <div class="quick-actions-grid">
-                    <button class="action-card glass-card" onclick="createNewLead()">
-                        <div class="action-icon">📝</div>
-                        <div class="action-title">Create Lead</div>
-                        <div class="action-description">Add a new lead manually</div>
-                    </button>
-                    
-                    <button class="action-card glass-card" onclick="scheduleCallback()">
-                        <div class="action-icon">📞</div>
-                        <div class="action-title">Schedule Callback</div>
-                        <div class="action-description">Set reminder for follow-up</div>
-                    </button>
-                    
-                    <button class="action-card glass-card" onclick="generateReport()">
-                        <div class="action-icon">📊</div>
-                        <div class="action-title">Generate Report</div>
-                        <div class="action-description">Export your performance data</div>
-                    </button>
-                    
-                    <button class="action-card glass-card" onclick="viewAnalytics()">
-                        <div class="action-icon">🎯</div>
-                        <div class="action-title">View Analytics</div>
-                        <div class="action-description">Check your conversion stats</div>
-                    </button>
-                </div>
-            </div>
-        </div>
+        </section>
     </main>
 
-    <!-- Lead Details Modal -->
-    <div class="modal-overlay" id="lead-modal">
-        <div class="modal glass-modal">
-            <div class="modal-header">
-                <h3 class="modal-title" id="modal-title">Lead Details</h3>
-                <button class="modal-close" onclick="closeLeadModal()">&times;</button>
-            </div>
-            <div class="modal-body" id="lead-details">
-                <!-- Lead details will be inserted here -->
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeLeadModal()">Close</button>
-                <button class="btn btn-primary" id="modal-action-btn" style="display: none;">Save Changes</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Toast Notifications Container -->
-    <div id="toast-container" class="toast-container"></div>
-
     <!-- Scripts -->
-    <script src="js/api-service.js"></script>
-    <script src="agent-aurora.js"></script>
-    
-    <!-- Agent-specific JavaScript -->
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Handle collapsible sections
-        document.querySelectorAll('.section-toggle').forEach(toggle => {
-            toggle.addEventListener('click', function() {
-                const sectionName = this.dataset.section;
-                const content = document.getElementById(sectionName + '-content');
-                const icon = this.querySelector('.toggle-icon');
-                
-                // Toggle active state
-                this.classList.toggle('active');
-                content.classList.toggle('expanded');
-                
-                // Rotate icon
-                if (this.classList.contains('active')) {
-                    icon.textContent = '▲';
-                } else {
-                    icon.textContent = '▼';
-                }
-            });
-        });
+    // Mock data for demonstration
+    const mockAvailableLeads = [
+        {
+            id: 'lead_001',
+            name: 'Sarah Johnson',
+            type: 'Auto Accident',
+            phone: '(555) 123-4567',
+            email: 'sarah.johnson@email.com',
+            state: 'CA',
+            value: '$1,200',
+            status: 'available',
+            incidentDate: '2024-05-28',
+            description: 'Rear-end collision on highway'
+        },
+        {
+            id: 'lead_002',
+            name: 'Michael Chen',
+            type: 'Slip & Fall',
+            phone: '(555) 987-6543',
+            email: 'michael.chen@email.com',
+            state: 'NY',
+            value: '$800',
+            status: 'available',
+            incidentDate: '2024-05-29',
+            description: 'Grocery store incident'
+        },
+        {
+            id: 'lead_003',
+            name: 'Emily Rodriguez',
+            type: 'Medical Malpractice',
+            phone: '(555) 456-7890',
+            email: 'emily.rodriguez@email.com',
+            state: 'TX',
+            value: '$2,500',
+            status: 'available',
+            incidentDate: '2024-05-27',
+            description: 'Surgical complication'
+        }
+    ];
+
+    const mockMyLeads = [
+        {
+            id: 'lead_101',
+            name: 'David Wilson',
+            type: 'Auto Accident',
+            phone: '(555) 234-5678',
+            email: 'david.wilson@email.com',
+            state: 'FL',
+            value: '$1,500',
+            status: 'contacted',
+            claimedDate: '2024-06-01',
+            lastContact: '2024-06-03',
+            nextAction: 'Follow up call scheduled'
+        },
+        {
+            id: 'lead_102',
+            name: 'Lisa Thompson',
+            type: 'Workplace Injury',
+            phone: '(555) 345-6789',
+            email: 'lisa.thompson@email.com',
+            state: 'CA',
+            value: '$900',
+            status: 'retained',
+            claimedDate: '2024-05-30',
+            lastContact: '2024-06-02',
+            nextAction: 'Document review scheduled'
+        }
+    ];
+
+    // Render available leads
+    function renderAvailableLeads() {
+        const grid = document.getElementById('available-leads-grid');
+        if (!grid) return;
+
+        if (mockAvailableLeads.length === 0) {
+            grid.innerHTML = `
+                <div class="loading-state">
+                    <p>No available leads at the moment</p>
+                    <button class="btn btn-primary" onclick="refreshLeads()">🔄 Refresh</button>
+                </div>
+            `;
+            return;
+        }
+
+        grid.innerHTML = mockAvailableLeads.map(lead => `
+            <div class="lead-card" onclick="viewLeadDetails('${lead.id}')">
+                <div class="lead-header">
+                    <div>
+                        <div class="lead-name">${lead.name}</div>
+                        <div class="lead-type">${lead.type}</div>
+                    </div>
+                    <div class="lead-value">${lead.value}</div>
+                </div>
+                <div class="lead-details">
+                    <div class="lead-detail">
+                        <span>📞</span>
+                        <span>${lead.phone}</span>
+                    </div>
+                    <div class="lead-detail">
+                        <span>📧</span>
+                        <span>${lead.email}</span>
+                    </div>
+                    <div class="lead-detail">
+                        <span>📍</span>
+                        <span>${lead.state}</span>
+                    </div>
+                    <div class="lead-detail">
+                        <span>📅</span>
+                        <span>Incident: ${lead.incidentDate}</span>
+                    </div>
+                </div>
+                <div class="lead-actions">
+                    <button class="action-btn-sm claim" onclick="event.stopPropagation(); claimLead('${lead.id}')">
+                        ⚡ Claim
+                    </button>
+                    <button class="action-btn-sm view" onclick="event.stopPropagation(); viewLeadDetails('${lead.id}')">
+                        👁️ View
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Render my leads
+    function renderMyLeads() {
+        const grid = document.getElementById('my-leads-grid');
+        if (!grid) return;
+
+        if (mockMyLeads.length === 0) {
+            grid.innerHTML = `
+                <div class="loading-state">
+                    <p>No active leads yet</p>
+                    <button class="btn btn-primary" onclick="claimRandomLead()">⚡ Claim Your First Lead</button>
+                </div>
+            `;
+            return;
+        }
+
+        grid.innerHTML = mockMyLeads.map(lead => `
+            <div class="lead-card" onclick="viewLeadDetails('${lead.id}')">
+                <div class="lead-header">
+                    <div>
+                        <div class="lead-name">${lead.name}</div>
+                        <div class="lead-type">${lead.type}</div>
+                    </div>
+                    <div>
+                        <div class="lead-value">${lead.value}</div>
+                        <span class="status-badge ${lead.status}">${lead.status}</span>
+                    </div>
+                </div>
+                <div class="lead-details">
+                    <div class="lead-detail">
+                        <span>📞</span>
+                        <span>${lead.phone}</span>
+                    </div>
+                    <div class="lead-detail">
+                        <span>📧</span>
+                        <span>${lead.email}</span>
+                    </div>
+                    <div class="lead-detail">
+                        <span>📅</span>
+                        <span>Claimed: ${lead.claimedDate}</span>
+                    </div>
+                    <div class="lead-detail">
+                        <span>⏰</span>
+                        <span>${lead.nextAction}</span>
+                    </div>
+                </div>
+                <div class="lead-actions">
+                    <button class="action-btn-sm contact" onclick="event.stopPropagation(); contactLead('${lead.id}')">
+                        📞 Contact
+                    </button>
+                    <button class="action-btn-sm update" onclick="event.stopPropagation(); updateLead('${lead.id}')">
+                        ✏️ Update
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Lead actions
+    function claimLead(leadId) {
+        const lead = mockAvailableLeads.find(l => l.id === leadId);
+        if (lead) {
+            // Move lead from available to my leads
+            const index = mockAvailableLeads.findIndex(l => l.id === leadId);
+            mockAvailableLeads.splice(index, 1);
+            
+            // Add to my leads with updated status
+            lead.status = 'claimed';
+            lead.claimedDate = new Date().toISOString().split('T')[0];
+            lead.nextAction = 'Initial contact needed';
+            mockMyLeads.push(lead);
+            
+            // Update displays
+            renderAvailableLeads();
+            renderMyLeads();
+            updateStats();
+            
+            alert(`✅ Lead claimed successfully!\n\nYou now have ${mockMyLeads.length} active leads.`);
+        }
+    }
+
+    function claimRandomLead() {
+        if (mockAvailableLeads.length > 0) {
+            const randomLead = mockAvailableLeads[0];
+            claimLead(randomLead.id);
+        } else {
+            alert('No available leads to claim at the moment.');
+        }
+    }
+
+    function viewLeadDetails(leadId) {
+        const lead = mockAvailableLeads.find(l => l.id === leadId) || mockMyLeads.find(l => l.id === leadId);
+        if (lead) {
+            alert(`Lead Details:\n\nName: ${lead.name}\nType: ${lead.type}\nValue: ${lead.value}\nPhone: ${lead.phone}\nEmail: ${lead.email}\nState: ${lead.state}\nStatus: ${lead.status.toUpperCase()}`);
+        }
+    }
+
+    function contactLead(leadId) {
+        alert('Opening contact interface for lead...');
+        // Implement contact functionality
+    }
+
+    function updateLead(leadId) {
+        alert('Opening lead update form...');
+        // Implement update functionality
+    }
+
+    function updateStats() {
+        document.getElementById('available-leads').textContent = mockAvailableLeads.length;
+        document.getElementById('my-active-leads').textContent = mockMyLeads.length;
         
+        const retainedCount = mockMyLeads.filter(lead => lead.status === 'retained').length;
+        document.getElementById('retained-count').textContent = retainedCount;
+        
+        const conversionRate = mockMyLeads.length > 0 ? Math.round((retainedCount / mockMyLeads.length) * 100) : 0;
+        document.getElementById('conversion-rate').textContent = conversionRate + '%';
+    }
+
+    // Quick action functions
+    function refreshLeads() {
+        alert('Refreshing leads...');
+        renderAvailableLeads();
+        renderMyLeads();
+    }
+
+    function createNewLead() {
+        alert('Create New Lead - Feature coming soon!');
+    }
+
+    function scheduleCallback() {
+        alert('Schedule Callback - Feature coming soon!');
+    }
+
+    function generateReport() {
+        alert('Generate Report - Feature coming soon!');
+    }
+
+    function viewAnalytics() {
+        window.location.href = 'agent-analytics.html';
+    }
+
+    function exportMyLeads() {
+        alert('Export functionality - Feature coming soon!');
+    }
+
+    function logout() {
+        if (confirm('Are you sure you want to logout?')) {
+            window.location.href = 'index.html';
+        }
+    }
+
+    // Initialize dashboard
+    document.addEventListener('DOMContentLoaded', function() {
         // Update date and time
         function updateDateTime() {
             const now = new Date();
-            document.getElementById('current-date').textContent = now.toLocaleDateString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
+            const hour = now.getHours();
+            let greeting = 'morning';
+            
+            if (hour >= 12 && hour < 17) greeting = 'afternoon';
+            else if (hour >= 17) greeting = 'evening';
+            
+            const greetingEl = document.getElementById('time-greeting');
+            const dateEl = document.getElementById('current-date');
+            
+            if (greetingEl) greetingEl.textContent = greeting;
+            if (dateEl) {
+                dateEl.textContent = now.toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+            }
         }
         
         updateDateTime();
         setInterval(updateDateTime, 60000);
+
+        // Initialize data
+        renderAvailableLeads();
+        renderMyLeads();
+        updateStats();
         
-        // Quick action handlers
-        window.createNewLead = function() {
-            // Open new lead modal or redirect
-            console.log('Create new lead clicked');
-        };
-        
-        window.scheduleCallback = function() {
-            // Open callback scheduler
-            console.log('Schedule callback clicked');
-        };
-        
-        window.generateReport = function() {
-            // Generate and download report
-            console.log('Generate report clicked');
-        };
-        
-        window.viewAnalytics = function() {
-            window.location.href = 'agent-analytics.html';
-        };
-        
-        window.exportMyLeads = function() {
-            // Export current leads to CSV
-            console.log('Export leads clicked');
-        };
-        
-        // Lead modal handlers
-        window.closeLeadModal = function() {
-            document.getElementById('lead-modal').classList.remove('active');
-        };
-        
-        console.log('🎯 Agent dashboard initialized with streamlined dark theme');
+        console.log('🎯 Agent dashboard initialized with unified dark theme');
     });
-    
-    // Additional CSS for action cards
-    const additionalCSS = `
-        .quick-actions-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: var(--space-4);
-            margin-top: var(--space-4);
-        }
-        
-        .action-card {
-            background: var(--bg-glass);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-lg);
-            padding: var(--space-5);
-            text-align: center;
-            cursor: pointer;
-            transition: all var(--transition-base);
-            color: var(--text-primary);
-        }
-        
-        .action-card:hover {
-            background: var(--bg-accent);
-            border-color: var(--border-accent);
-            transform: translateY(-2px);
-        }
-        
-        .action-icon {
-            font-size: 2rem;
-            margin-bottom: var(--space-3);
-        }
-        
-        .action-title {
-            font-size: var(--font-size-lg);
-            font-weight: 600;
-            margin-bottom: var(--space-2);
-            color: var(--text-primary);
-        }
-        
-        .action-description {
-            font-size: var(--font-size-sm);
-            color: var(--text-secondary);
-        }
-        
-        .leads-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: var(--space-4);
-            margin-top: var(--space-4);
-        }
-        
-        .loading-state {
-            text-align: center;
-            padding: var(--space-8);
-            color: var(--text-secondary);
-        }
-        
-        .toast-container {
-            position: fixed;
-            top: var(--space-8);
-            right: var(--space-8);
-            z-index: 1000;
-        }
-    `;
-    
-    // Inject additional CSS
-    const styleSheet = document.createElement('style');
-    styleSheet.textContent = additionalCSS;
-    document.head.appendChild(styleSheet);
     </script>
 </body>
 </html> 

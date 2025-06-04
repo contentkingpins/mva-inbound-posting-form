@@ -185,9 +185,24 @@ function viewAvailableLeads() { alert('Viewing available leads'); }
 function viewClaimedLeads() { alert('Viewing claimed leads'); }
 function showAnalyticsDetails() { alert('Analytics opened'); }
 function reassignLead() { alert('Lead reassignment'); }
-function bulkActions() { alert('Bulk actions'); }
-function leadImport() { alert('Lead import'); }
-function agentDashboard() { alert('Agent dashboard'); }
+function bulkActions() {
+    console.log('📦 Opening bulk actions...');
+    alert('Bulk Actions available in Publisher Management section below');
+}
+function leadImport() {
+    console.log('📥 Lead import feature...');
+    alert('Lead Import - Feature coming soon!');
+}
+function agentDashboard() {
+    console.log('👤 Navigating to agent dashboard...');
+    try {
+        // Navigate to agent dashboard
+        window.location.href = 'agent-aurora.html';
+    } catch (error) {
+        console.error('Error navigating to agent dashboard:', error);
+        alert('Error opening agent dashboard: ' + error.message);
+    }
+}
 
 // EXPOSE TO GLOBAL SCOPE
 window.openAddAgentModal = openAddAgentModal;
