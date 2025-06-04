@@ -1022,6 +1022,11 @@ async function handlePublisherSubmission() {
             setTimeout(() => {
                 showPublisherOnboardingSuccess(newPublisher);
             }, 500);
+            
+            // Also generate PDF instructions automatically
+            setTimeout(() => {
+                downloadPublisherInstructionsAsPdf(publisherData.name, publisherData.email, vendorCode, apiKey);
+            }, 1000);
         }
         
     } catch (error) {
@@ -1071,7 +1076,6 @@ function showPublisherOnboardingSuccess(publisher) {
                             </div>
                         </div>
                         
-                        ${publisher.apiKey ? `
                         <div class="api-section">
                             <h5>🔑 API Configuration</h5>
                             <div class="api-key-display">
@@ -1101,7 +1105,7 @@ function showPublisherOnboardingSuccess(publisher) {
                                 <h6>Submit Lead</h6>
                                 <div class="endpoint">
                                     <span class="method post">POST</span>
-                                    <span class="url">${window.APP_CONFIG.apiEndpoint}/leads/submit</span>
+                                    <span class="url">${window.APP_CONFIG?.apiEndpoint || 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod'}/leads/submit</span>
                                 </div>
                                 
                                 <p><strong>Request Body Example:</strong></p>
@@ -1129,7 +1133,7 @@ function showPublisherOnboardingSuccess(publisher) {
                             
                             <div class="endpoint-section">
                                 <h6>Rate Limits</h6>
-                                <p>Your current rate limit: <strong>${publisher.rateLimit} calls/hour</strong></p>
+                                <p>Your current rate limit: <strong>${publisher.rateLimit || 1000} calls/hour</strong></p>
                                 <ul>
                                     <li>Standard: 1,000 calls/hour</li>
                                     <li>Premium: 5,000 calls/hour</li> 
@@ -1147,13 +1151,12 @@ function showPublisherOnboardingSuccess(publisher) {
                                 </table>
                             </div>
                         </div>
-                        ` : ''}
                         
                         <div class="next-steps">
                             <h5>🚀 Next Steps</h5>
                             <ol>
                                 <li>Save the vendor code: <strong>${publisher.vendorCode}</strong></li>
-                                ${publisher.apiKey ? '<li>Securely store the API key</li>' : ''}
+                                <li>Securely store the API key</li>
                                 <li>Share integration details with ${publisher.name}</li>
                                 <li>Test lead submission</li>
                                 <li>Monitor performance in the dashboard</li>
@@ -1162,7 +1165,8 @@ function showPublisherOnboardingSuccess(publisher) {
                     </div>
                 </div>
                 <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" onclick="downloadInstructions('${publisher.id}')">📄 Download Instructions</button>
+                    <button type="button" class="btn btn-secondary" onclick="downloadInstructions('${publisher.id}')">📄 Download Markdown</button>
+                    <button type="button" class="btn btn-info" onclick="downloadPublisherPdfInstructions('${publisher.id}')">📄 Download PDF</button>
                     <button type="button" class="btn btn-primary" onclick="closeModal('publisherOnboardingModal')">Complete Onboarding</button>
                 </div>
             </div>
@@ -1278,6 +1282,163 @@ Claim Connectors CRM - Admin Dashboard
     
     showToast('Instructions downloaded!', 'success');
 };
+
+// Download publisher instructions as PDF
+window.downloadPublisherPdfInstructions = function(publisherId) {
+    const publisher = publishers.find(p => p.id === publisherId);
+    if (!publisher) return;
+    
+    downloadPublisherInstructionsAsPdf(publisher.name, publisher.email, publisher.vendorCode, publisher.apiKey);
+};
+
+// PDF generation function for publishers
+function downloadPublisherInstructionsAsPdf(publisherName, email, vendorCode, apiKey) {
+    // Check if jsPDF is available
+    if (typeof window.jspdf === 'undefined') {
+        console.warn('jsPDF not available, falling back to markdown download');
+        alert('PDF generation not available. Downloading markdown instructions instead.');
+        const publisher = publishers.find(p => p.name === publisherName);
+        if (publisher) {
+            window.downloadInstructions(publisher.id);
+        }
+        return;
+    }
+    
+    const { jsPDF } = window.jspdf;
+    const baseUrl = window.APP_CONFIG?.apiEndpoint || 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod';
+    
+    try {
+        // Create a new PDF document
+        const doc = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4'
+        });
+        
+        // Add header
+        doc.setFontSize(20);
+        doc.setFont(undefined, 'bold');
+        doc.text('Claim Connectors - API Integration', 20, 25);
+        
+        doc.setFontSize(16);
+        doc.text(`Publisher: ${publisherName}`, 20, 35);
+        
+        // Add publisher credentials section
+        doc.setFontSize(14);
+        doc.setFont(undefined, 'bold');
+        doc.text('Publisher Credentials', 20, 50);
+        
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        doc.text(`Publisher Name: ${publisherName}`, 25, 60);
+        doc.text(`Contact Email: ${email}`, 25, 67);
+        doc.text(`Vendor Code: ${vendorCode}`, 25, 74);
+        doc.text(`API Key: ${apiKey}`, 25, 81);
+        doc.text(`API Endpoint: ${baseUrl}`, 25, 88);
+        
+        // Add warning box
+        doc.setFontSize(9);
+        doc.setFont(undefined, 'bold');
+        doc.text('⚠️ IMPORTANT: Keep your API key secure and never share it publicly.', 25, 98);
+        
+        // Add API instructions section
+        doc.setFontSize(14);
+        doc.setFont(undefined, 'bold');
+        doc.text('Lead Submission Instructions', 20, 115);
+        
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        doc.text('To send leads to Claim Connectors, POST to our lead submission endpoint:', 25, 125);
+        
+        // Endpoint
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'bold');
+        doc.text('Endpoint:', 25, 135);
+        doc.setFont(undefined, 'normal');
+        doc.text(`POST ${baseUrl}/leads`, 25, 142);
+        
+        // Headers
+        doc.setFont(undefined, 'bold');
+        doc.text('Required Headers:', 25, 152);
+        
+        doc.setFont(undefined, 'normal');
+        doc.text('Content-Type: application/json', 25, 159);
+        doc.text(`X-API-Key: ${apiKey}`, 25, 166);
+        doc.text(`X-Vendor-Code: ${vendorCode}`, 25, 173);
+        
+        // Sample payload
+        doc.setFont(undefined, 'bold');
+        doc.text('Sample Lead Data:', 25, 183);
+        
+        doc.setFont('courier', 'normal');
+        doc.setFontSize(8);
+        const samplePayload = [
+            '{',
+            '  "first_name": "John",',
+            '  "last_name": "Smith",',
+            '  "email": "john.smith@email.com",',
+            '  "phone_home": "(555) 123-4567",',
+            '  "state": "CA",',
+            '  "incident_type": "auto_accident",',
+            `  "vendor_code": "${vendorCode}"`,
+            '}'
+        ];
+        
+        let yPos = 190;
+        samplePayload.forEach(line => {
+            doc.text(line, 25, yPos);
+            yPos += 5;
+        });
+        
+        // Add response format
+        doc.setFont(undefined, 'bold');
+        doc.setFontSize(10);
+        doc.text('Success Response Format:', 25, yPos + 10);
+        
+        doc.setFont('courier', 'normal');
+        doc.setFontSize(8);
+        yPos += 17;
+        const responseFormat = [
+            '{',
+            '  "status": "success",',
+            '  "lead_id": "uuid-string",',
+            '  "message": "Lead received"',
+            '}'
+        ];
+        
+        responseFormat.forEach(line => {
+            doc.text(line, 25, yPos);
+            yPos += 5;
+        });
+        
+        // Add support information
+        doc.setFont(undefined, 'bold');
+        doc.setFontSize(10);
+        doc.text('Support Contact:', 25, yPos + 15);
+        doc.setFont(undefined, 'normal');
+        doc.text('Email: publishers@claimconnectors.com', 25, yPos + 22);
+        doc.text('Phone: (555) CLAIM-01', 25, yPos + 29);
+        
+        // Add footer
+        doc.setFontSize(8);
+        doc.setTextColor(128, 128, 128);
+        doc.text(`Generated on: ${new Date().toLocaleString()}`, 20, 280);
+        doc.text('Claim Connectors - Lead Management System', 20, 285);
+        
+        // Generate the PDF filename
+        const filename = `${publisherName.replace(/[^a-zA-Z0-9]/g, '_')}_API_Instructions.pdf`;
+        
+        // Save the PDF
+        doc.save(filename);
+        
+        showToast('📄 PDF instructions downloaded successfully!', 'success');
+        console.log('✅ Publisher PDF instructions downloaded successfully');
+        
+    } catch (err) {
+        console.error('Failed to generate PDF: ', err);
+        showToast('❌ Failed to generate PDF. Please try again.', 'error');
+    }
+}
 
 // Show add agent modal
 function showAddAgentModal() {
@@ -1400,6 +1561,9 @@ function renderPublishersTable() {
                 <div class="action-buttons">
                     <button class="action-btn edit" onclick="editPublisher('${publisher.id}')">
                         ✏️ Edit
+                    </button>
+                    <button class="action-btn pdf" onclick="downloadPublisherPdfInstructions('${publisher.id}')" title="Download PDF Instructions">
+                        📄 PDF
                     </button>
                     ${publisher.apiKey ? 
                         `<button class="action-btn api" onclick="regenerateApiKey('${publisher.id}')">
@@ -1782,4 +1946,95 @@ function openVendorPricingModal() {
     
     // Open the modal
     openModal('custom-pricing-modal');
+}
+
+// Show bulk publisher actions
+function showBulkPublisherActions() {
+    if (selectedPublishers.size === 0) {
+        showToast('Please select publishers first', 'warning');
+        return;
+    }
+    
+    const actions = [
+        { label: 'Download PDFs', action: 'downloadPdfs', icon: '📄' },
+        { label: 'Export Data', action: 'export', icon: '📊' },
+        { label: 'Update Status', action: 'updateStatus', icon: '🔄' },
+        { label: 'Delete Selected', action: 'delete', icon: '🗑️' }
+    ];
+    
+    const actionList = actions.map(action => 
+        `<button class="bulk-action-btn" onclick="performBulkPublisherAction('${action.action}')">
+            ${action.icon} ${action.label}
+        </button>`
+    ).join('');
+    
+    const modalHtml = `
+        <div class="modal show" id="bulkPublisherActionsModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Bulk Actions (${selectedPublishers.size} publishers)</h3>
+                    <span class="close" onclick="closeModal('bulkPublisherActionsModal')">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="bulk-actions-grid">
+                        ${actionList}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+// Perform bulk publisher action
+function performBulkPublisherAction(action) {
+    const selectedIds = Array.from(selectedPublishers);
+    const selectedPublisherData = publishers.filter(p => selectedIds.includes(p.id));
+    
+    switch (action) {
+        case 'downloadPdfs':
+            downloadBulkPublisherPdfs(selectedPublisherData);
+            break;
+        case 'export':
+            exportSelectedPublishers(selectedPublisherData);
+            break;
+        case 'updateStatus':
+            showBulkStatusUpdateModal(selectedPublisherData);
+            break;
+        case 'delete':
+            if (confirm(`Delete ${selectedIds.length} selected publishers? This cannot be undone.`)) {
+                deleteSelectedPublishers(selectedIds);
+            }
+            break;
+    }
+    
+    closeModal('bulkPublisherActionsModal');
+}
+
+// Download PDFs for multiple publishers
+function downloadBulkPublisherPdfs(publisherList) {
+    if (publisherList.length === 0) return;
+    
+    showToast(`Generating ${publisherList.length} PDF files...`, 'info');
+    
+    // Download each PDF with a small delay to prevent browser blocking
+    publisherList.forEach((publisher, index) => {
+        setTimeout(() => {
+            if (publisher.apiKey) {
+                downloadPublisherInstructionsAsPdf(
+                    publisher.name, 
+                    publisher.email, 
+                    publisher.vendorCode, 
+                    publisher.apiKey
+                );
+            } else {
+                console.warn(`Skipping ${publisher.name} - no API key`);
+            }
+        }, index * 500); // 500ms delay between downloads
+    });
+    
+    setTimeout(() => {
+        showToast(`✅ Generated ${publisherList.length} PDF files`, 'success');
+    }, publisherList.length * 500 + 1000);
 } 

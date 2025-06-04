@@ -25,6 +25,8 @@
     <!-- JSZip for creating downloadable publisher packages -->
     <script src="critical-functions.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- jsPDF for generating PDF instructions -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -897,6 +899,86 @@
             right: 1rem;
         }
     }
+
+    /* Action button styles for publisher table */
+    .action-btn {
+        padding: 0.4rem 0.8rem;
+        border: none;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        margin: 0 2px;
+        transition: all 0.2s ease;
+    }
+
+    .action-btn.edit {
+        background: #3B82F6;
+        color: white;
+    }
+
+    .action-btn.edit:hover {
+        background: #2563EB;
+    }
+
+    .action-btn.pdf {
+        background: #059669;
+        color: white;
+    }
+
+    .action-btn.pdf:hover {
+        background: #047857;
+        transform: translateY(-1px);
+    }
+
+    .action-btn.api {
+        background: #F59E0B;
+        color: white;
+    }
+
+    .action-btn.api:hover {
+        background: #D97706;
+    }
+
+    .action-btn.delete {
+        background: #EF4444;
+        color: white;
+    }
+
+    .action-btn.delete:hover {
+        background: #DC2626;
+    }
+
+    /* Bulk actions modal styles */
+    .bulk-actions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin: 1rem 0;
+    }
+
+    .bulk-action-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 1.5rem;
+        background: var(--bg-secondary);
+        border: 2px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        color: var(--text-primary);
+        cursor: pointer;
+        transition: all var(--transition-base);
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
+    .bulk-action-btn:hover {
+        border-color: var(--accent-blue);
+        background: var(--bg-accent);
+        transform: translateY(-2px);
+    }
+
+    /* GLOBAL HELPER FUNCTIONS & FIXES */
     </style>
     
     <!-- Font Awesome for icons -->
@@ -1587,9 +1669,13 @@
         // Generate and download posting instructions and API documentation
         generatePublisherPackage(name, email, vendorCode, apiKey);
         
+        // Also generate and download PDF instructions
+        downloadPublisherInstructionsAsPdf(name, email, vendorCode, apiKey);
+        
         // Here you would call your API to create the publisher
         addActivityFeedItem(`🏢 Publisher "${name}" created successfully`, 'success');
         addActivityFeedItem(`📄 Publisher package downloaded for ${name}`, 'info');
+        addActivityFeedItem(`📄 PDF instructions downloaded for ${name}`, 'info');
         closeModal('add-publisher-modal');
     }
 
@@ -1846,6 +1932,142 @@ Phone: (555) CLAIM-01`;
         };
     }
 
+    // Download publisher instructions as PDF
+    function downloadPublisherInstructionsAsPdf(publisherName, email, vendorCode, apiKey) {
+        const { jsPDF } = window.jspdf;
+        const baseUrl = window.APP_CONFIG?.apiEndpoint || 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod';
+        
+        try {
+            // Create a new PDF document
+            const doc = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+            
+            // Add header
+            doc.setFontSize(20);
+            doc.setFont(undefined, 'bold');
+            doc.text('Claim Connectors - API Integration', 20, 25);
+            
+            doc.setFontSize(16);
+            doc.text(`Publisher: ${publisherName}`, 20, 35);
+            
+            // Add publisher credentials section
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text('Publisher Credentials', 20, 50);
+            
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'normal');
+            doc.text(`Publisher Name: ${publisherName}`, 25, 60);
+            doc.text(`Contact Email: ${email}`, 25, 67);
+            doc.text(`Vendor Code: ${vendorCode}`, 25, 74);
+            doc.text(`API Key: ${apiKey}`, 25, 81);
+            doc.text(`API Endpoint: ${baseUrl}`, 25, 88);
+            
+            // Add warning box
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'bold');
+            doc.text('⚠️ IMPORTANT: Keep your API key secure and never share it publicly.', 25, 98);
+            
+            // Add API instructions section
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text('Lead Submission Instructions', 20, 115);
+            
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'normal');
+            doc.text('To send leads to Claim Connectors, POST to our lead submission endpoint:', 25, 125);
+            
+            // Endpoint
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'bold');
+            doc.text('Endpoint:', 25, 135);
+            doc.setFont(undefined, 'normal');
+            doc.text(`POST ${baseUrl}/leads`, 25, 142);
+            
+            // Headers
+            doc.setFont(undefined, 'bold');
+            doc.text('Required Headers:', 25, 152);
+            doc.setFont(undefined, 'normal');
+            doc.text('Content-Type: application/json', 25, 159);
+            doc.text(`X-API-Key: ${apiKey}`, 25, 166);
+            doc.text(`X-Vendor-Code: ${vendorCode}`, 25, 173);
+            
+            // Sample payload
+            doc.setFont(undefined, 'bold');
+            doc.text('Sample Lead Data:', 25, 183);
+            
+            doc.setFont('courier', 'normal');
+            doc.setFontSize(8);
+            const samplePayload = [
+                '{',
+                '  "first_name": "John",',
+                '  "last_name": "Smith",',
+                '  "email": "john.smith@email.com",',
+                '  "phone_home": "(555) 123-4567",',
+                '  "state": "CA",',
+                '  "incident_type": "auto_accident",',
+                `  "vendor_code": "${vendorCode}"`,
+                '}'
+            ];
+            
+            let yPos = 190;
+            samplePayload.forEach(line => {
+                doc.text(line, 25, yPos);
+                yPos += 5;
+            });
+            
+            // Add response format
+            doc.setFont(undefined, 'bold');
+            doc.setFontSize(10);
+            doc.text('Success Response Format:', 25, yPos + 10);
+            
+            doc.setFont('courier', 'normal');
+            doc.setFontSize(8);
+            yPos += 17;
+            const responseFormat = [
+                '{',
+                '  "status": "success",',
+                '  "lead_id": "uuid-string",',
+                '  "message": "Lead received"',
+                '}'
+            ];
+            
+            responseFormat.forEach(line => {
+                doc.text(line, 25, yPos);
+                yPos += 5;
+            });
+            
+            // Add support information
+            doc.setFont(undefined, 'bold');
+            doc.setFontSize(10);
+            doc.text('Support Contact:', 25, yPos + 15);
+            doc.setFont(undefined, 'normal');
+            doc.text('Email: publishers@claimconnectors.com', 25, yPos + 22);
+            doc.text('Phone: (555) CLAIM-01', 25, yPos + 29);
+            
+            // Add footer
+            doc.setFontSize(8);
+            doc.setTextColor(128, 128, 128);
+            doc.text(`Generated on: ${new Date().toLocaleString()}`, 20, 280);
+            doc.text('Claim Connectors - Lead Management System', 20, 285);
+            
+            // Generate the PDF filename
+            const filename = `${publisherName.replace(/[^a-zA-Z0-9]/g, '_')}_API_Instructions.pdf`;
+            
+            // Save the PDF
+            doc.save(filename);
+            
+            console.log('✅ Publisher PDF instructions downloaded successfully');
+            
+        } catch (err) {
+            console.error('Failed to generate PDF: ', err);
+            alert('Failed to generate PDF. Please try again.');
+        }
+    }
+
     // Expose functions to global scope immediately
     window.generateVendorCode = generateVendorCode;
     window.generateAPIKey = generateAPIKey;
@@ -1858,6 +2080,7 @@ Phone: (555) CLAIM-01`;
     window.handleLogout = handleLogout;
     window.generatePublisherPackage = generatePublisherPackage;
     window.generatePublisherDocumentation = generatePublisherDocumentation;
+    window.downloadPublisherInstructionsAsPdf = downloadPublisherInstructionsAsPdf;
 
     console.log('✅ All modal functions are now globally accessible');
     

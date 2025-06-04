@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Publisher PDF Generation</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .btn {
+            background: #3B82F6;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        .btn:hover {
+            background: #2563EB;
+        }
+        .test-form {
+            margin: 20px 0;
+        }
+        .form-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .result {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f0f9ff;
+            border: 1px solid #3B82F6;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Test Publisher PDF Generation</h1>
+        <p>This page tests the PDF generation functionality for publisher API instructions.</p>
+        
+        <div class="test-form">
+            <div class="form-group">
+                <label for="publisherName">Publisher Name:</label>
+                <input type="text" id="publisherName" value="Test Legal Leads LLC" />
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Contact Email:</label>
+                <input type="email" id="email" value="contact@testlegalleads.com" />
+            </div>
+            
+            <div class="form-group">
+                <label for="vendorCode">Vendor Code:</label>
+                <input type="text" id="vendorCode" value="PUB123456TEST" />
+            </div>
+            
+            <div class="form-group">
+                <label for="apiKey">API Key:</label>
+                <input type="text" id="apiKey" value="api_test_key_12345abcdef67890" />
+            </div>
+        </div>
+        
+        <button class="btn" onclick="testPdfGeneration()">📄 Generate Test PDF</button>
+        <button class="btn" onclick="populateRandomData()">🎲 Random Test Data</button>
+        
+        <div id="result" class="result" style="display: none;">
+            <h3>✅ Test Results</h3>
+            <p id="resultText"></p>
+        </div>
+    </div>
+
+    <script>
+        // Set API endpoint configuration
+        window.APP_CONFIG = {
+            apiEndpoint: 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod'
+        };
+
+        function testPdfGeneration() {
+            const publisherName = document.getElementById('publisherName').value;
+            const email = document.getElementById('email').value;
+            const vendorCode = document.getElementById('vendorCode').value;
+            const apiKey = document.getElementById('apiKey').value;
+
+            if (!publisherName || !email || !vendorCode || !apiKey) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            try {
+                downloadPublisherInstructionsAsPdf(publisherName, email, vendorCode, apiKey);
+                showResult(`PDF generated successfully for ${publisherName}!`);
+            } catch (error) {
+                console.error('Test failed:', error);
+                showResult(`Test failed: ${error.message}`, false);
+            }
+        }
+
+        function populateRandomData() {
+            const timestamp = Date.now().toString().slice(-6);
+            document.getElementById('publisherName').value = `Test Publisher ${timestamp}`;
+            document.getElementById('email').value = `test${timestamp}@example.com`;
+            document.getElementById('vendorCode').value = `PUB${timestamp}TEST`;
+            document.getElementById('apiKey').value = `api_test_${timestamp}_abcdef123456`;
+        }
+
+        function showResult(message, success = true) {
+            const resultDiv = document.getElementById('result');
+            const resultText = document.getElementById('resultText');
+            
+            resultText.textContent = message;
+            resultDiv.style.display = 'block';
+            resultDiv.style.background = success ? '#f0f9ff' : '#fef2f2';
+            resultDiv.style.borderColor = success ? '#3B82F6' : '#EF4444';
+            
+            setTimeout(() => {
+                resultDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // PDF generation function for publishers (copied from admin files)
+        function downloadPublisherInstructionsAsPdf(publisherName, email, vendorCode, apiKey) {
+            const { jsPDF } = window.jspdf;
+            const baseUrl = window.APP_CONFIG?.apiEndpoint || 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod';
+            
+            try {
+                // Create a new PDF document
+                const doc = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4'
+                });
+                
+                // Add header
+                doc.setFontSize(20);
+                doc.setFont(undefined, 'bold');
+                doc.text('Claim Connectors - API Integration', 20, 25);
+                
+                doc.setFontSize(16);
+                doc.text(`Publisher: ${publisherName}`, 20, 35);
+                
+                // Add publisher credentials section
+                doc.setFontSize(14);
+                doc.setFont(undefined, 'bold');
+                doc.text('Publisher Credentials', 20, 50);
+                
+                doc.setFontSize(10);
+                doc.setFont(undefined, 'normal');
+                doc.text(`Publisher Name: ${publisherName}`, 25, 60);
+                doc.text(`Contact Email: ${email}`, 25, 67);
+                doc.text(`Vendor Code: ${vendorCode}`, 25, 74);
+                doc.text(`API Key: ${apiKey}`, 25, 81);
+                doc.text(`API Endpoint: ${baseUrl}`, 25, 88);
+                
+                // Add warning box
+                doc.setFontSize(9);
+                doc.setFont(undefined, 'bold');
+                doc.text('⚠️ IMPORTANT: Keep your API key secure and never share it publicly.', 25, 98);
+                
+                // Add API instructions section
+                doc.setFontSize(14);
+                doc.setFont(undefined, 'bold');
+                doc.text('Lead Submission Instructions', 20, 115);
+                
+                doc.setFontSize(10);
+                doc.setFont(undefined, 'normal');
+                doc.text('To send leads to Claim Connectors, POST to our lead submission endpoint:', 25, 125);
+                
+                // Endpoint
+                doc.setFontSize(12);
+                doc.setFont(undefined, 'bold');
+                doc.text('Endpoint:', 25, 135);
+                doc.setFont(undefined, 'normal');
+                doc.text(`POST ${baseUrl}/leads`, 25, 142);
+                
+                // Headers
+                doc.setFont(undefined, 'bold');
+                doc.text('Required Headers:', 25, 152);
+                doc.setFont(undefined, 'normal');
+                doc.text('Content-Type: application/json', 25, 159);
+                doc.text(`X-API-Key: ${apiKey}`, 25, 166);
+                doc.text(`X-Vendor-Code: ${vendorCode}`, 25, 173);
+                
+                // Sample payload
+                doc.setFont(undefined, 'bold');
+                doc.text('Sample Lead Data:', 25, 183);
+                
+                doc.setFont('courier', 'normal');
+                doc.setFontSize(8);
+                const samplePayload = [
+                    '{',
+                    '  "first_name": "John",',
+                    '  "last_name": "Smith",',
+                    '  "email": "john.smith@email.com",',
+                    '  "phone_home": "(555) 123-4567",',
+                    '  "state": "CA",',
+                    '  "incident_type": "auto_accident",',
+                    `  "vendor_code": "${vendorCode}"`,
+                    '}'
+                ];
+                
+                let yPos = 190;
+                samplePayload.forEach(line => {
+                    doc.text(line, 25, yPos);
+                    yPos += 5;
+                });
+                
+                // Add response format
+                doc.setFont(undefined, 'bold');
+                doc.setFontSize(10);
+                doc.text('Success Response Format:', 25, yPos + 10);
+                
+                doc.setFont('courier', 'normal');
+                doc.setFontSize(8);
+                yPos += 17;
+                const responseFormat = [
+                    '{',
+                    '  "status": "success",',
+                    '  "lead_id": "uuid-string",',
+                    '  "message": "Lead received"',
+                    '}'
+                ];
+                
+                responseFormat.forEach(line => {
+                    doc.text(line, 25, yPos);
+                    yPos += 5;
+                });
+                
+                // Add support information
+                doc.setFont(undefined, 'bold');
+                doc.setFontSize(10);
+                doc.text('Support Contact:', 25, yPos + 15);
+                doc.setFont(undefined, 'normal');
+                doc.text('Email: publishers@claimconnectors.com', 25, yPos + 22);
+                doc.text('Phone: (555) CLAIM-01', 25, yPos + 29);
+                
+                // Add footer
+                doc.setFontSize(8);
+                doc.setTextColor(128, 128, 128);
+                doc.text(`Generated on: ${new Date().toLocaleString()}`, 20, 280);
+                doc.text('Claim Connectors - Lead Management System', 20, 285);
+                
+                // Generate the PDF filename
+                const filename = `${publisherName.replace(/[^a-zA-Z0-9]/g, '_')}_API_Instructions.pdf`;
+                
+                // Save the PDF
+                doc.save(filename);
+                
+                console.log('✅ Publisher PDF instructions downloaded successfully');
+                
+            } catch (err) {
+                console.error('Failed to generate PDF: ', err);
+                throw new Error('PDF generation failed: ' + err.message);
+            }
+        }
+
+        // Auto-populate with test data on load
+        window.addEventListener('load', function() {
+            populateRandomData();
+        });
+    </script>
+</body>
+</html> 
