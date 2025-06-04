@@ -750,7 +750,7 @@
 
     <!-- Scripts -->
     <script>
-    // Mock data for demonstration
+    // Mock data for demonstration - STANDALONE AGENT DASHBOARD
     const mockAvailableLeads = [
         {
             id: 'lead_001',
@@ -930,12 +930,22 @@
         `).join('');
     }
 
-    // Lead actions
+    // Lead actions - ENHANCED ERROR HANDLING
     function claimLead(leadId) {
-        const lead = mockAvailableLeads.find(l => l.id === leadId);
-        if (lead) {
+        try {
+            const lead = mockAvailableLeads.find(l => l.id === leadId);
+            if (!lead) {
+                alert('Lead not found. Please refresh the page and try again.');
+                return;
+            }
+            
             // Move lead from available to my leads
             const index = mockAvailableLeads.findIndex(l => l.id === leadId);
+            if (index === -1) {
+                alert('Error claiming lead. Please try again.');
+                return;
+            }
+            
             mockAvailableLeads.splice(index, 1);
             
             // Add to my leads with updated status
@@ -944,119 +954,253 @@
             lead.nextAction = 'Initial contact needed';
             mockMyLeads.push(lead);
             
-            // Update displays
-            renderAvailableLeads();
-            renderMyLeads();
-            updateStats();
+            // Update displays safely
+            try {
+                renderAvailableLeads();
+                renderMyLeads();
+                updateStats();
+            } catch (renderError) {
+                console.error('Error updating displays after claiming lead:', renderError);
+            }
             
             alert(`✅ Lead claimed successfully!\n\nYou now have ${mockMyLeads.length} active leads.`);
+        } catch (error) {
+            console.error('Error claiming lead:', error);
+            alert('An error occurred while claiming the lead. Please try again.');
         }
     }
 
     function claimRandomLead() {
-        if (mockAvailableLeads.length > 0) {
-            const randomLead = mockAvailableLeads[0];
-            claimLead(randomLead.id);
-        } else {
-            alert('No available leads to claim at the moment.');
+        try {
+            if (mockAvailableLeads.length > 0) {
+                const randomLead = mockAvailableLeads[0];
+                claimLead(randomLead.id);
+            } else {
+                alert('No available leads to claim at the moment.');
+            }
+        } catch (error) {
+            console.error('Error claiming random lead:', error);
+            alert('An error occurred. Please refresh the page and try again.');
         }
     }
 
     function viewLeadDetails(leadId) {
-        const lead = mockAvailableLeads.find(l => l.id === leadId) || mockMyLeads.find(l => l.id === leadId);
-        if (lead) {
-            alert(`Lead Details:\n\nName: ${lead.name}\nType: ${lead.type}\nValue: ${lead.value}\nPhone: ${lead.phone}\nEmail: ${lead.email}\nState: ${lead.state}\nStatus: ${lead.status.toUpperCase()}`);
+        try {
+            const lead = mockAvailableLeads.find(l => l.id === leadId) || mockMyLeads.find(l => l.id === leadId);
+            if (lead) {
+                alert(`Lead Details:\n\nName: ${lead.name || 'N/A'}\nType: ${lead.type || 'N/A'}\nValue: ${lead.value || 'N/A'}\nPhone: ${lead.phone || 'N/A'}\nEmail: ${lead.email || 'N/A'}\nState: ${lead.state || 'N/A'}\nStatus: ${(lead.status || 'Unknown').toUpperCase()}`);
+            } else {
+                alert('Lead not found. The lead may have been updated by another user.');
+            }
+        } catch (error) {
+            console.error('Error viewing lead details:', error);
+            alert('Error loading lead details. Please try again.');
         }
     }
 
     function contactLead(leadId) {
-        alert('Opening contact interface for lead...');
-        // Implement contact functionality
+        try {
+            const lead = mockMyLeads.find(l => l.id === leadId);
+            if (lead) {
+                alert(`Contacting ${lead.name || 'Lead'}...\n\nPhone: ${lead.phone || 'N/A'}\nEmail: ${lead.email || 'N/A'}\n\nContact interface would open here.`);
+            } else {
+                alert('Lead not found.');
+            }
+        } catch (error) {
+            console.error('Error contacting lead:', error);
+            alert('Error opening contact interface. Please try again.');
+        }
     }
 
     function updateLead(leadId) {
-        alert('Opening lead update form...');
-        // Implement update functionality
+        try {
+            const lead = mockMyLeads.find(l => l.id === leadId);
+            if (lead) {
+                alert(`Updating ${lead.name || 'Lead'}...\n\nLead update form would open here.`);
+            } else {
+                alert('Lead not found.');
+            }
+        } catch (error) {
+            console.error('Error updating lead:', error);
+            alert('Error opening update form. Please try again.');
+        }
     }
 
     function updateStats() {
-        document.getElementById('available-leads').textContent = mockAvailableLeads.length;
-        document.getElementById('my-active-leads').textContent = mockMyLeads.length;
-        
-        const retainedCount = mockMyLeads.filter(lead => lead.status === 'retained').length;
-        document.getElementById('retained-count').textContent = retainedCount;
-        
-        const conversionRate = mockMyLeads.length > 0 ? Math.round((retainedCount / mockMyLeads.length) * 100) : 0;
-        document.getElementById('conversion-rate').textContent = conversionRate + '%';
+        try {
+            const availableEl = document.getElementById('available-leads');
+            const activeEl = document.getElementById('my-active-leads');
+            const retainedEl = document.getElementById('retained-count');
+            const conversionEl = document.getElementById('conversion-rate');
+            
+            if (availableEl) availableEl.textContent = mockAvailableLeads.length;
+            if (activeEl) activeEl.textContent = mockMyLeads.length;
+            
+            const retainedCount = mockMyLeads.filter(lead => lead.status === 'retained').length;
+            if (retainedEl) retainedEl.textContent = retainedCount;
+            
+            const conversionRate = mockMyLeads.length > 0 ? Math.round((retainedCount / mockMyLeads.length) * 100) : 0;
+            if (conversionEl) conversionEl.textContent = conversionRate + '%';
+        } catch (error) {
+            console.error('Error updating stats:', error);
+        }
     }
 
-    // Quick action functions
+    // Quick action functions - ENHANCED ERROR HANDLING
     function refreshLeads() {
-        alert('Refreshing leads...');
-        renderAvailableLeads();
-        renderMyLeads();
+        try {
+            console.log('🔄 Refreshing leads...');
+            renderAvailableLeads();
+            renderMyLeads();
+            updateStats();
+            alert('Leads refreshed successfully!');
+        } catch (error) {
+            console.error('Error refreshing leads:', error);
+            alert('Error refreshing leads. Please reload the page.');
+        }
     }
 
     function createNewLead() {
-        alert('Create New Lead - Feature coming soon!');
+        try {
+            alert('Create New Lead - Feature coming soon!\n\nThis will open a form to manually add new leads to the system.');
+        } catch (error) {
+            console.error('Error in createNewLead:', error);
+        }
     }
 
     function scheduleCallback() {
-        alert('Schedule Callback - Feature coming soon!');
+        try {
+            alert('Schedule Callback - Feature coming soon!\n\nThis will open a calendar interface to schedule follow-up calls.');
+        } catch (error) {
+            console.error('Error in scheduleCallback:', error);
+        }
     }
 
     function generateReport() {
-        alert('Generate Report - Feature coming soon!');
+        try {
+            alert('Generate Report - Feature coming soon!\n\nThis will export your performance data as PDF or Excel.');
+        } catch (error) {
+            console.error('Error in generateReport:', error);
+        }
     }
 
     function viewAnalytics() {
-        window.location.href = 'agent-analytics.html';
+        try {
+            window.location.href = 'agent-analytics.html';
+        } catch (error) {
+            console.error('Error navigating to analytics:', error);
+            alert('Error opening analytics page. Please try again.');
+        }
     }
 
     function exportMyLeads() {
-        alert('Export functionality - Feature coming soon!');
+        try {
+            alert('Export functionality - Feature coming soon!\n\nThis will export your active leads as CSV or Excel file.');
+        } catch (error) {
+            console.error('Error in exportMyLeads:', error);
+        }
     }
 
     function logout() {
-        if (confirm('Are you sure you want to logout?')) {
+        try {
+            if (confirm('Are you sure you want to logout?')) {
+                console.log('🚪 Agent logging out...');
+                // Clear any stored data
+                try {
+                    localStorage.removeItem('agent_session');
+                    sessionStorage.clear();
+                } catch (storageError) {
+                    console.warn('Error clearing storage:', storageError);
+                }
+                window.location.href = 'index.html';
+            }
+        } catch (error) {
+            console.error('Error during logout:', error);
+            // Force navigation even if there's an error
             window.location.href = 'index.html';
         }
     }
 
-    // Initialize dashboard
+    // Initialize dashboard - ENHANCED ERROR HANDLING
     document.addEventListener('DOMContentLoaded', function() {
-        // Update date and time
-        function updateDateTime() {
-            const now = new Date();
-            const hour = now.getHours();
-            let greeting = 'morning';
+        console.log('🎯 Agent dashboard initializing with error protection...');
+        
+        try {
+            // Update date and time with error handling
+            function updateDateTime() {
+                try {
+                    const now = new Date();
+                    const hour = now.getHours();
+                    let greeting = 'morning';
+                    
+                    if (hour >= 12 && hour < 17) greeting = 'afternoon';
+                    else if (hour >= 17) greeting = 'evening';
+                    
+                    const greetingEl = document.getElementById('time-greeting');
+                    const dateEl = document.getElementById('current-date');
+                    
+                    if (greetingEl) greetingEl.textContent = greeting;
+                    if (dateEl) {
+                        dateEl.textContent = now.toLocaleDateString('en-US', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error updating date/time:', error);
+                }
+            }
             
-            if (hour >= 12 && hour < 17) greeting = 'afternoon';
-            else if (hour >= 17) greeting = 'evening';
-            
-            const greetingEl = document.getElementById('time-greeting');
-            const dateEl = document.getElementById('current-date');
-            
-            if (greetingEl) greetingEl.textContent = greeting;
-            if (dateEl) {
-                dateEl.textContent = now.toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
+            // Safe initialization with fallbacks
+            updateDateTime();
+            setInterval(updateDateTime, 60000);
+
+            // Initialize data with error handling
+            try {
+                renderAvailableLeads();
+                renderMyLeads();
+                updateStats();
+                console.log('✅ Agent dashboard initialized successfully');
+            } catch (dataError) {
+                console.error('Error initializing dashboard data:', dataError);
+                // Show fallback message
+                const grids = ['available-leads-grid', 'my-leads-grid'];
+                grids.forEach(gridId => {
+                    const grid = document.getElementById(gridId);
+                    if (grid) {
+                        grid.innerHTML = '<div class="loading-state"><p>Dashboard loading...</p></div>';
+                    }
                 });
             }
+            
+        } catch (error) {
+            console.error('Critical error initializing agent dashboard:', error);
+            // Show error message to user
+            const main = document.querySelector('.admin-main');
+            if (main) {
+                main.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        <h2>⚠️ Dashboard Loading Issue</h2>
+                        <p>Please refresh the page to try again.</p>
+                        <button class="btn btn-primary" onclick="window.location.reload()">🔄 Refresh Page</button>
+                    </div>
+                `;
+            }
         }
-        
-        updateDateTime();
-        setInterval(updateDateTime, 60000);
+    });
 
-        // Initialize data
-        renderAvailableLeads();
-        renderMyLeads();
-        updateStats();
-        
-        console.log('🎯 Agent dashboard initialized with unified dark theme');
+    // Add global error handler
+    window.addEventListener('error', function(e) {
+        console.error('Global error caught:', e.error);
+        // Don't break the interface, just log errors
+    });
+
+    // Add unhandled promise rejection handler
+    window.addEventListener('unhandledrejection', function(e) {
+        console.error('Unhandled promise rejection:', e.reason);
+        e.preventDefault(); // Prevent default browser behavior
     });
     </script>
 </body>
