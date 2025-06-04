@@ -653,6 +653,9 @@
                     🏢 Add Publisher
                 </button>
                 <button class="btn btn-secondary btn-sm" id="refresh-all">🔄 Refresh</button>
+                <button class="btn btn-warning btn-sm" onclick="handleLogout()">
+                    🚪 Logout
+                </button>
             </div>
         </div>
     </header>
@@ -1273,6 +1276,48 @@
         closeModal('add-publisher-modal');
     }
 
+    function handleLogout() {
+        // Confirm logout action
+        if (confirm('Are you sure you want to logout?')) {
+            console.log('🚪 Logging out admin user...');
+            
+            // Clear authentication data
+            localStorage.clear();
+            sessionStorage.clear();
+            
+            // Clear any cookies related to authentication
+            document.cookie.split(";").forEach(function(c) { 
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+            });
+            
+            // Show logout message
+            addActivityFeedItem('🚪 Admin logged out successfully', 'info');
+            
+            // Redirect to login page after a short delay
+            setTimeout(() => {
+                // Try multiple possible login/home pages
+                const possiblePages = ['login.html', 'index.html', '/', '../index.html'];
+                let redirected = false;
+                
+                // Try to redirect to the most likely login page
+                for (const page of possiblePages) {
+                    try {
+                        window.location.href = page;
+                        redirected = true;
+                        break;
+                    } catch (error) {
+                        console.log(`Could not redirect to ${page}:`, error);
+                    }
+                }
+                
+                // Fallback: just reload the current page (which should redirect to login if auth is required)
+                if (!redirected) {
+                    window.location.reload();
+                }
+            }, 1000);
+        }
+    }
+
     // Expose functions to global scope immediately
     window.generateVendorCode = generateVendorCode;
     window.generateAPIKey = generateAPIKey;
@@ -1282,6 +1327,7 @@
     window.handleSendAgentInvite = handleSendAgentInvite;
     window.handleCreatePublisher = handleCreatePublisher;
     window.addActivityFeedItem = addActivityFeedItem;
+    window.handleLogout = handleLogout;
 
     console.log('✅ All modal functions are now globally accessible');
     
