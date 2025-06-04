@@ -133,8 +133,6 @@ if (window.APP_CONFIG.environment === 'production') {
     Object.freeze(window.APP_CONFIG);
 }
 
-export default window.APP_CONFIG;
-
 class AppConfig {
     constructor() {
         this._config = null;

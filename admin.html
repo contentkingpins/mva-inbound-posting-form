@@ -960,11 +960,36 @@
 
     // Publisher creation function with tracking ID
     window.handleCreatePublisher = function() {
-        const name = document.getElementById('new-publisher-name').value;
-        const email = document.getElementById('new-publisher-email').value;
-        const vendorCode = document.getElementById('new-publisher-code').value;
-        const apiKey = document.getElementById('new-publisher-api-key').value;
-        const status = document.getElementById('new-publisher-status').value;
+        console.log('🏢 handleCreatePublisher called');
+        
+        // Debug: Check if all form elements exist
+        const nameEl = document.getElementById('new-publisher-name');
+        const emailEl = document.getElementById('new-publisher-email');
+        const vendorCodeEl = document.getElementById('new-publisher-code');
+        const apiKeyEl = document.getElementById('new-publisher-api-key');
+        const statusEl = document.getElementById('new-publisher-status');
+        
+        console.log('📋 Form elements found:', {
+            name: !!nameEl,
+            email: !!emailEl,
+            vendorCode: !!vendorCodeEl,
+            apiKey: !!apiKeyEl,
+            status: !!statusEl
+        });
+        
+        if (!nameEl || !emailEl || !vendorCodeEl || !apiKeyEl || !statusEl) {
+            console.error('❌ Missing form elements');
+            alert('Error: Form elements not found. Please refresh the page.');
+            return;
+        }
+        
+        const name = nameEl.value;
+        const email = emailEl.value;
+        const vendorCode = vendorCodeEl.value;
+        const apiKey = apiKeyEl.value;
+        const status = statusEl.value;
+        
+        console.log('📝 Form values:', { name, email, vendorCode, apiKey, status });
         
         if (!name || !email) {
             alert('Please fill in all required fields');
@@ -1008,7 +1033,7 @@
         // Generate PDF with proper error handling and timing
         setTimeout(() => {
             try {
-                if (typeof window.jspdf !== 'undefined') {
+                if (window.jspdf && window.jspdf.jsPDF) {
                     downloadPublisherInstructionsAsPdf(name, email, vendorCode, apiKey);
                     addActivityFeedItem(`📄 PDF instructions generated for ${name}`, 'success');
                 } else {
@@ -1026,6 +1051,9 @@
         addActivityFeedItem(`📄 Publisher package downloaded for ${name}`, 'info');
         closeModal('add-publisher-modal');
     };
+
+    // Confirm function is registered
+    console.log('✅ handleCreatePublisher function registered:', typeof window.handleCreatePublisher);
 
     function generatePublisherPackage(publisherName, email, vendorCode, apiKey) {
         // Generate comprehensive posting instructions and API documentation
@@ -1250,6 +1278,13 @@ Phone: (555) CLAIM-01`;
 
     // Download publisher instructions as PDF
     function downloadPublisherInstructionsAsPdf(publisherName, email, vendorCode, apiKey) {
+        // Fix jsPDF reference - should be window.jspdf.jsPDF
+        if (!window.jspdf || !window.jspdf.jsPDF) {
+            console.error('jsPDF library not available');
+            alert('PDF generation is not available. Please refresh the page and try again.');
+            return;
+        }
+        
         const { jsPDF } = window.jspdf;
         const baseUrl = window.APP_CONFIG?.apiEndpoint || 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod';
         
@@ -1775,6 +1810,14 @@ Phone: (555) CLAIM-01`;
 
     // Initialize dashboard
     document.addEventListener('DOMContentLoaded', function() {
+        // Check library availability
+        console.log('📚 Library availability check:', {
+            jsPDF: !!(window.jspdf && window.jspdf.jsPDF),
+            JSZip: typeof JSZip !== 'undefined',
+            Chart: typeof Chart !== 'undefined',
+            CountUp: typeof CountUp !== 'undefined'
+        });
+        
         // Update date and time
         function updateDateTime() {
             const now = new Date();
