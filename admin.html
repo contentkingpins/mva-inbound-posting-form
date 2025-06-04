@@ -1454,6 +1454,115 @@
         </section>
     </main>
 
+    <!-- Publisher Management Section -->
+    <section class="admin-section publisher-management">
+        <div class="section-header">
+            <div class="section-title">
+                <span class="section-icon">🏢</span>
+                <h2>Publisher Management</h2>
+                <span class="publisher-count" id="publisher-count">0 publishers</span>
+            </div>
+            <div class="section-actions">
+                <button class="btn btn-secondary" onclick="refreshPublishers()">🔄 Refresh</button>
+                <button class="btn btn-info" onclick="openAddPublisherModal()">➕ Add Publisher</button>
+                <button class="btn btn-warning" onclick="exportPublishers()">📊 Export</button>
+            </div>
+        </div>
+
+        <!-- Publisher Stats Overview -->
+        <div class="publisher-stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">🏢</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="total-publishers">0</div>
+                    <div class="stat-label">Total Publishers</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🟢</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="active-publishers">0</div>
+                    <div class="stat-label">Active</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📋</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="total-publisher-leads">0</div>
+                    <div class="stat-label">Total Leads</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">💰</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="total-publisher-revenue">$0</div>
+                    <div class="stat-label">Total Revenue</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Publisher Filters -->
+        <div class="publisher-filters">
+            <div class="filter-group">
+                <input type="text" id="publisher-search" placeholder="Search publishers..." class="form-input">
+            </div>
+            <div class="filter-group">
+                <select id="publisher-status-filter" class="form-input">
+                    <option value="">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="pending">Pending</option>
+                    <option value="suspended">Suspended</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <select id="publisher-sort" class="form-input">
+                    <option value="name">Sort by Name</option>
+                    <option value="revenue">Sort by Revenue</option>
+                    <option value="leads">Sort by Leads</option>
+                    <option value="created">Sort by Date</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Publishers Table -->
+        <div class="table-container">
+            <table class="admin-table" id="publishers-table">
+                <thead>
+                    <tr>
+                        <th>
+                            <input type="checkbox" id="select-all-publishers" onchange="toggleSelectAllPublishers()">
+                        </th>
+                        <th>Publisher</th>
+                        <th>Status</th>
+                        <th>Vendor Code</th>
+                        <th>API Key</th>
+                        <th>Leads</th>
+                        <th>Revenue</th>
+                        <th>Last Activity</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="publishers-table-body">
+                    <!-- Publishers will be populated here -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Bulk Actions Bar -->
+        <div class="bulk-actions-bar" id="bulk-publishers-actions" style="display: none;">
+            <div class="bulk-info">
+                <span id="selected-publishers-count">0</span> publishers selected
+            </div>
+            <div class="bulk-buttons">
+                <button class="btn btn-secondary" onclick="bulkActivatePublishers()">🟢 Activate</button>
+                <button class="btn btn-warning" onclick="bulkDeactivatePublishers()">🔴 Deactivate</button>
+                <button class="btn btn-info" onclick="bulkDownloadPdfs()">📄 Download PDFs</button>
+                <button class="btn btn-danger" onclick="bulkDeletePublishers()">🗑️ Delete</button>
+            </div>
+        </div>
+    </section>
+
     <!-- Floating Action Button -->
     <div class="fab-container">
         <button class="fab" id="mainFab">
@@ -1666,16 +1775,49 @@
         
         console.log('🏢 Creating publisher:', { name, email, vendorCode, apiKey, status });
         
+        // Create new publisher object
+        const newPublisher = {
+            id: 'pub_' + Date.now(),
+            name: name,
+            email: email,
+            vendorCode: vendorCode,
+            apiKey: apiKey,
+            status: status || 'pending',
+            leads: 0,
+            revenue: 0,
+            lastActivity: new Date().toISOString()
+        };
+        
+        // Add to publishers array
+        allPublishers.push(newPublisher);
+        
+        // Update the publisher table and stats
+        renderPublishersTable();
+        updatePublisherStats();
+        updatePublisherCount();
+        
         // Generate and download posting instructions and API documentation
         generatePublisherPackage(name, email, vendorCode, apiKey);
         
-        // Also generate and download PDF instructions
-        downloadPublisherInstructionsAsPdf(name, email, vendorCode, apiKey);
+        // Generate PDF with proper error handling and timing
+        setTimeout(() => {
+            try {
+                if (typeof window.jspdf !== 'undefined') {
+                    downloadPublisherInstructionsAsPdf(name, email, vendorCode, apiKey);
+                    addActivityFeedItem(`📄 PDF instructions generated for ${name}`, 'success');
+                } else {
+                    console.warn('jsPDF not loaded, skipping PDF generation');
+                    addActivityFeedItem(`⚠️ PDF generation skipped - library not loaded`, 'warning');
+                }
+            } catch (error) {
+                console.error('PDF generation failed:', error);
+                addActivityFeedItem(`❌ PDF generation failed for ${name}`, 'error');
+            }
+        }, 1500); // Increased delay to ensure library is loaded
         
         // Here you would call your API to create the publisher
         addActivityFeedItem(`🏢 Publisher "${name}" created successfully`, 'success');
         addActivityFeedItem(`📄 Publisher package downloaded for ${name}`, 'info');
-        addActivityFeedItem(`📄 PDF instructions downloaded for ${name}`, 'info');
         closeModal('add-publisher-modal');
     }
 
@@ -2084,6 +2226,46 @@ Phone: (555) CLAIM-01`;
 
     console.log('✅ All modal functions are now globally accessible');
     
+    // Add publisher management CSS styles
+    const publisherCSS = `
+        .publisher-management { margin-top: 2rem; }
+        .publisher-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .publisher-filters { display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; }
+        .filter-group { flex: 1; min-width: 200px; }
+        .table-container { background: var(--bg-secondary); border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--border-subtle); }
+        .admin-table { width: 100%; border-collapse: collapse; }
+        .admin-table th { background: var(--bg-accent); color: var(--text-primary); padding: 1rem; text-align: left; font-weight: 600; border-bottom: 1px solid var(--border-subtle); }
+        .admin-table td { padding: 1rem; border-bottom: 1px solid var(--border-subtle); color: var(--text-primary); }
+        .admin-table tr:hover { background: var(--bg-accent); }
+        .publisher-info { display: flex; flex-direction: column; gap: 0.25rem; }
+        .publisher-name { font-weight: 600; color: var(--text-primary); }
+        .publisher-email { font-size: 0.875rem; color: var(--text-secondary); }
+        .status-badge { padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.75rem; font-weight: 600; }
+        .status-badge.active { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+        .status-badge.inactive { background: rgba(239, 68, 68, 0.2); color: var(--error); }
+        .status-badge.pending { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
+        .status-badge.suspended { background: rgba(139, 92, 246, 0.2); color: var(--accent-purple); }
+        .vendor-code { font-family: 'Courier New', monospace; background: var(--bg-accent); padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.875rem; }
+        .api-key-display { font-family: 'Courier New', monospace; background: var(--bg-accent); padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.875rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
+        .api-key-display.no-key { color: var(--text-muted); background: transparent; }
+        .action-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .action-btn-sm { padding: 0.25rem 0.5rem; border: none; border-radius: 0.25rem; font-size: 0.75rem; cursor: pointer; transition: all 0.2s ease; white-space: nowrap; }
+        .action-btn-sm.view { background: var(--accent-blue); color: white; }
+        .action-btn-sm.edit { background: var(--warning); color: white; }
+        .action-btn-sm.pdf { background: var(--success); color: white; }
+        .action-btn-sm.api { background: var(--accent-purple); color: white; }
+        .action-btn-sm.toggle { background: var(--bg-accent); color: var(--text-primary); border: 1px solid var(--border-subtle); }
+        .action-btn-sm.delete { background: var(--error); color: white; }
+        .bulk-actions-bar { background: var(--bg-glass); backdrop-filter: blur(20px); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 1rem; margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; }
+        .bulk-info { color: var(--text-primary); font-weight: 600; }
+        .bulk-buttons { display: flex; gap: 0.5rem; }
+        .publisher-count { background: var(--accent-purple); color: white; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.75rem; font-weight: 600; }
+    `;
+    
+    const style = document.createElement('style');
+    style.textContent = publisherCSS;
+    document.head.appendChild(style);
+    
     document.addEventListener('DOMContentLoaded', function() {
         // Handle modal close buttons
         document.querySelectorAll('.modal-close').forEach(closeBtn => {
@@ -2227,6 +2409,380 @@ Phone: (555) CLAIM-01`;
     // Expose all functions globally
     window.expandChart = expandChart;
     window.closeChartModal = closeChartModal;
+
+    // Publisher Management Functions
+    let selectedPublishers = new Set();
+    let allPublishers = [
+        {
+            id: 'pub_001',
+            name: 'Legal Lead Pro',
+            email: 'contact@legalleadpro.com',
+            vendorCode: 'LLP1234',
+            apiKey: 'api_123abc456def789',
+            status: 'active',
+            leads: 247,
+            revenue: 12450.50,
+            lastActivity: '2024-06-04T10:30:00Z'
+        },
+        {
+            id: 'pub_002', 
+            name: 'AccidentClaims.net',
+            email: 'admin@accidentclaims.net',
+            vendorCode: 'ACC5678',
+            apiKey: 'api_789def123ghi456',
+            status: 'active',
+            leads: 189,
+            revenue: 8950.75,
+            lastActivity: '2024-06-04T09:15:00Z'
+        },
+        {
+            id: 'pub_003',
+            name: 'InjuryLeads Direct',
+            email: 'support@injuryleadsdirect.com',
+            vendorCode: 'ILD9012',
+            apiKey: null,
+            status: 'pending',
+            leads: 0,
+            revenue: 0,
+            lastActivity: null
+        }
+    ];
+
+    function loadPublishers() {
+        renderPublishersTable();
+        updatePublisherStats();
+        updatePublisherCount();
+    }
+
+    function renderPublishersTable(publishers = allPublishers) {
+        const tbody = document.getElementById('publishers-table-body');
+        if (!tbody) return;
+
+        tbody.innerHTML = publishers.map(publisher => `
+            <tr>
+                <td>
+                    <input type="checkbox" onchange="togglePublisherSelection('${publisher.id}', this.checked)">
+                </td>
+                <td>
+                    <div class="publisher-info">
+                        <div class="publisher-name">${publisher.name}</div>
+                        <div class="publisher-email">${publisher.email}</div>
+                    </div>
+                </td>
+                <td>
+                    <span class="status-badge ${publisher.status}">${publisher.status.toUpperCase()}</span>
+                </td>
+                <td>
+                    <span class="vendor-code">${publisher.vendorCode}</span>
+                </td>
+                <td>
+                    <div class="api-key-display ${!publisher.apiKey ? 'no-key' : ''}">
+                        ${publisher.apiKey ? publisher.apiKey.substring(0, 8) + '...' : 'No API Key'}
+                    </div>
+                </td>
+                <td>${publisher.leads.toLocaleString()}</td>
+                <td>$${publisher.revenue.toLocaleString()}</td>
+                <td>${publisher.lastActivity ? formatTimeAgo(publisher.lastActivity) : 'Never'}</td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="action-btn-sm view" onclick="viewPublisher('${publisher.id}')" title="View Details">👁️</button>
+                        <button class="action-btn-sm edit" onclick="editPublisher('${publisher.id}')" title="Edit">✏️</button>
+                        <button class="action-btn-sm pdf" onclick="downloadPublisherPdf('${publisher.id}')" title="Download PDF">📄</button>
+                        ${publisher.apiKey ? 
+                            `<button class="action-btn-sm api" onclick="regenerateApiKey('${publisher.id}')" title="Regenerate API">🔄</button>` :
+                            `<button class="action-btn-sm api" onclick="generateApiKey('${publisher.id}')" title="Generate API">🔑</button>`
+                        }
+                        <button class="action-btn-sm toggle" onclick="togglePublisherStatus('${publisher.id}')" title="Toggle Status">
+                            ${publisher.status === 'active' ? '🔴' : '🟢'}
+                        </button>
+                        <button class="action-btn-sm delete" onclick="deletePublisher('${publisher.id}')" title="Delete">🗑️</button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function updatePublisherStats() {
+        const activePublishers = allPublishers.filter(p => p.status === 'active').length;
+        const totalLeads = allPublishers.reduce((sum, p) => sum + p.leads, 0);
+        const totalRevenue = allPublishers.reduce((sum, p) => sum + p.revenue, 0);
+
+        document.getElementById('total-publishers').textContent = allPublishers.length;
+        document.getElementById('active-publishers').textContent = activePublishers;
+        document.getElementById('total-publisher-leads').textContent = totalLeads.toLocaleString();
+        document.getElementById('total-publisher-revenue').textContent = '$' + totalRevenue.toLocaleString();
+    }
+
+    function updatePublisherCount() {
+        const count = document.getElementById('publisher-count');
+        if (count) {
+            count.textContent = `${allPublishers.length} publishers`;
+        }
+    }
+
+    function formatTimeAgo(dateString) {
+        const now = new Date();
+        const date = new Date(dateString);
+        const diffInMinutes = Math.floor((now - date) / (1000 * 60));
+        
+        if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+        if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
+        return `${Math.floor(diffInMinutes / 1440)}d ago`;
+    }
+
+    // Publisher Action Functions
+    function viewPublisher(id) {
+        const publisher = allPublishers.find(p => p.id === id);
+        if (publisher) {
+            alert(`Publisher Details:\n\nName: ${publisher.name}\nEmail: ${publisher.email}\nStatus: ${publisher.status}\nLeads: ${publisher.leads}\nRevenue: $${publisher.revenue}`);
+        }
+    }
+
+    function editPublisher(id) {
+        const publisher = allPublishers.find(p => p.id === id);
+        if (publisher) {
+            const newName = prompt('Edit Publisher Name:', publisher.name);
+            if (newName && newName !== publisher.name) {
+                publisher.name = newName;
+                renderPublishersTable();
+                addActivityFeedItem(`📝 Publisher "${newName}" updated`, 'info');
+            }
+        }
+    }
+
+    function downloadPublisherPdf(id) {
+        const publisher = allPublishers.find(p => p.id === id);
+        if (publisher && publisher.apiKey) {
+            downloadPublisherInstructionsAsPdf(publisher.name, publisher.email, publisher.vendorCode, publisher.apiKey);
+            addActivityFeedItem(`📄 PDF downloaded for ${publisher.name}`, 'success');
+        } else {
+            alert('No API key available for this publisher');
+        }
+    }
+
+    function regenerateApiKey(id) {
+        const publisher = allPublishers.find(p => p.id === id);
+        if (publisher && confirm(`Regenerate API key for ${publisher.name}?`)) {
+            publisher.apiKey = 'api_' + Math.random().toString(36).substr(2, 15);
+            renderPublishersTable();
+            addActivityFeedItem(`🔄 API key regenerated for ${publisher.name}`, 'success');
+        }
+    }
+
+    function generateApiKey(id) {
+        const publisher = allPublishers.find(p => p.id === id);
+        if (publisher) {
+            publisher.apiKey = 'api_' + Math.random().toString(36).substr(2, 15);
+            renderPublishersTable();
+            addActivityFeedItem(`🔑 API key generated for ${publisher.name}`, 'success');
+        }
+    }
+
+    function togglePublisherStatus(id) {
+        const publisher = allPublishers.find(p => p.id === id);
+        if (publisher) {
+            publisher.status = publisher.status === 'active' ? 'inactive' : 'active';
+            renderPublishersTable();
+            updatePublisherStats();
+            addActivityFeedItem(`🔄 ${publisher.name} status changed to ${publisher.status}`, 'info');
+        }
+    }
+
+    function deletePublisher(id) {
+        const publisher = allPublishers.find(p => p.id === id);
+        if (publisher && confirm(`Delete publisher "${publisher.name}"?`)) {
+            allPublishers = allPublishers.filter(p => p.id !== id);
+            renderPublishersTable();
+            updatePublisherStats();
+            updatePublisherCount();
+            addActivityFeedItem(`🗑️ Publisher "${publisher.name}" deleted`, 'warning');
+        }
+    }
+
+    function togglePublisherSelection(id, checked) {
+        if (checked) {
+            selectedPublishers.add(id);
+        } else {
+            selectedPublishers.delete(id);
+        }
+        updateBulkActionsVisibility();
+    }
+
+    function toggleSelectAllPublishers() {
+        const checkbox = document.getElementById('select-all-publishers');
+        const allCheckboxes = document.querySelectorAll('#publishers-table-body input[type="checkbox"]');
+        
+        allCheckboxes.forEach(cb => {
+            cb.checked = checkbox.checked;
+            const id = cb.onchange.toString().match(/'([^']+)'/)[1];
+            if (checkbox.checked) {
+                selectedPublishers.add(id);
+            } else {
+                selectedPublishers.delete(id);
+            }
+        });
+        updateBulkActionsVisibility();
+    }
+
+    function updateBulkActionsVisibility() {
+        const bulkBar = document.getElementById('bulk-publishers-actions');
+        const count = document.getElementById('selected-publishers-count');
+        
+        if (bulkBar && count) {
+            bulkBar.style.display = selectedPublishers.size > 0 ? 'flex' : 'none';
+            count.textContent = selectedPublishers.size;
+        }
+    }
+
+    // Filter Functions
+    function filterPublishers() {
+        const search = document.getElementById('publisher-search').value.toLowerCase();
+        const statusFilter = document.getElementById('publisher-status-filter').value;
+        
+        let filtered = allPublishers.filter(publisher => {
+            const matchesSearch = publisher.name.toLowerCase().includes(search) || 
+                                publisher.email.toLowerCase().includes(search);
+            const matchesStatus = !statusFilter || publisher.status === statusFilter;
+            return matchesSearch && matchesStatus;
+        });
+
+        renderPublishersTable(filtered);
+    }
+
+    function sortPublishers() {
+        const sortBy = document.getElementById('publisher-sort').value;
+        
+        allPublishers.sort((a, b) => {
+            switch(sortBy) {
+                case 'name':
+                    return a.name.localeCompare(b.name);
+                case 'revenue':
+                    return b.revenue - a.revenue;
+                case 'leads':
+                    return b.leads - a.leads;
+                case 'created':
+                    return new Date(b.lastActivity || 0) - new Date(a.lastActivity || 0);
+                default:
+                    return 0;
+            }
+        });
+        
+        renderPublishersTable();
+    }
+
+    // Bulk Actions
+    function bulkActivatePublishers() {
+        const selectedIds = Array.from(selectedPublishers);
+        selectedIds.forEach(id => {
+            const publisher = allPublishers.find(p => p.id === id);
+            if (publisher) publisher.status = 'active';
+        });
+        renderPublishersTable();
+        updatePublisherStats();
+        selectedPublishers.clear();
+        updateBulkActionsVisibility();
+        addActivityFeedItem(`🟢 ${selectedIds.length} publishers activated`, 'success');
+    }
+
+    function bulkDeactivatePublishers() {
+        const selectedIds = Array.from(selectedPublishers);
+        selectedIds.forEach(id => {
+            const publisher = allPublishers.find(p => p.id === id);
+            if (publisher) publisher.status = 'inactive';
+        });
+        renderPublishersTable();
+        updatePublisherStats();
+        selectedPublishers.clear();
+        updateBulkActionsVisibility();
+        addActivityFeedItem(`🔴 ${selectedIds.length} publishers deactivated`, 'warning');
+    }
+
+    function bulkDownloadPdfs() {
+        const selectedIds = Array.from(selectedPublishers);
+        let downloadCount = 0;
+        
+        selectedIds.forEach(id => {
+            const publisher = allPublishers.find(p => p.id === id);
+            if (publisher && publisher.apiKey) {
+                setTimeout(() => {
+                    downloadPublisherInstructionsAsPdf(publisher.name, publisher.email, publisher.vendorCode, publisher.apiKey);
+                }, downloadCount * 500);
+                downloadCount++;
+            }
+        });
+        
+        if (downloadCount > 0) {
+            addActivityFeedItem(`📄 ${downloadCount} PDFs downloaded`, 'success');
+        } else {
+            alert('No publishers with API keys selected');
+        }
+    }
+
+    function bulkDeletePublishers() {
+        const selectedIds = Array.from(selectedPublishers);
+        if (confirm(`Delete ${selectedIds.length} selected publishers?`)) {
+            allPublishers = allPublishers.filter(p => !selectedIds.includes(p.id));
+            renderPublishersTable();
+            updatePublisherStats();
+            updatePublisherCount();
+            selectedPublishers.clear();
+            updateBulkActionsVisibility();
+            addActivityFeedItem(`🗑️ ${selectedIds.length} publishers deleted`, 'warning');
+        }
+    }
+
+    // Global Functions
+    function refreshPublishers() {
+        loadPublishers();
+        addActivityFeedItem('🔄 Publishers refreshed', 'info');
+    }
+
+    function exportPublishers() {
+        const csvContent = "data:text/csv;charset=utf-8," + 
+            "Name,Email,Vendor Code,Status,Leads,Revenue\n" +
+            allPublishers.map(p => `"${p.name}","${p.email}","${p.vendorCode}","${p.status}",${p.leads},${p.revenue}`).join("\n");
+        
+        const link = document.createElement("a");
+        link.setAttribute("href", encodeURI(csvContent));
+        link.setAttribute("download", "publishers_export.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        addActivityFeedItem('📊 Publishers exported to CSV', 'success');
+    }
+
+    // Add event listeners for publisher filters
+    setTimeout(() => {
+        const searchInput = document.getElementById('publisher-search');
+        const statusFilter = document.getElementById('publisher-status-filter');
+        const sortSelect = document.getElementById('publisher-sort');
+        
+        if (searchInput) searchInput.addEventListener('input', filterPublishers);
+        if (statusFilter) statusFilter.addEventListener('change', filterPublishers);
+        if (sortSelect) sortSelect.addEventListener('change', sortPublishers);
+        
+        // Load initial data
+        loadPublishers();
+    }, 1000);
+
+    // Expose publisher functions globally
+    window.viewPublisher = viewPublisher;
+    window.editPublisher = editPublisher;
+    window.downloadPublisherPdf = downloadPublisherPdf;
+    window.regenerateApiKey = regenerateApiKey;
+    window.generateApiKey = generateApiKey;
+    window.togglePublisherStatus = togglePublisherStatus;
+    window.deletePublisher = deletePublisher;
+    window.togglePublisherSelection = togglePublisherSelection;
+    window.toggleSelectAllPublishers = toggleSelectAllPublishers;
+    window.bulkActivatePublishers = bulkActivatePublishers;
+    window.bulkDeactivatePublishers = bulkDeactivatePublishers;
+    window.bulkDownloadPdfs = bulkDownloadPdfs;
+    window.bulkDeletePublishers = bulkDeletePublishers;
+    window.refreshPublishers = refreshPublishers;
+    window.exportPublishers = exportPublishers;
+
     </script>
 </body>
 </html>

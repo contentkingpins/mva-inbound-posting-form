@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Button Test - Claim Connectors</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: #0F0F23; 
+            color: white; 
+        }
+        .btn { 
+            padding: 10px 20px; 
+            margin: 10px; 
+            background: #3B82F6; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+        }
+        .modal { 
+            display: none; 
+            position: fixed; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            background: #1A1A2E; 
+            padding: 20px; 
+            border-radius: 10px; 
+            border: 1px solid #333; 
+        }
+        .modal.active { display: block; }
+        .close { 
+            float: right; 
+            cursor: pointer; 
+            font-size: 20px; 
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Modal Button Test</h1>
+    
+    <button class="btn" onclick="openAddAgentModal()">👤 Add Agent</button>
+    <button class="btn" onclick="openAddPublisherModal()">🏢 Add Publisher</button>
+    
+    <div id="test-results">
+        <h3>Test Results:</h3>
+        <ul id="results-list"></ul>
+    </div>
+
+    <!-- Test Modals -->
+    <div class="modal" id="add-agent-modal">
+        <span class="close" onclick="closeModal('add-agent-modal')">&times;</span>
+        <h3>Add Agent Modal</h3>
+        <p>✅ This modal opened successfully!</p>
+        <input type="email" id="new-agent-email" placeholder="Email">
+        <select id="new-agent-role">
+            <option value="agent">Agent</option>
+        </select>
+    </div>
+
+    <div class="modal" id="add-publisher-modal">
+        <span class="close" onclick="closeModal('add-publisher-modal')">&times;</span>
+        <h3>Add Publisher Modal</h3>
+        <p>✅ This modal opened successfully!</p>
+        <input type="text" id="new-publisher-name" placeholder="Publisher Name">
+        <input type="email" id="new-publisher-email" placeholder="Email">
+        <input type="text" id="new-publisher-code" placeholder="Code" readonly>
+        <input type="text" id="new-publisher-api-key" placeholder="API Key" readonly>
+        <select id="new-publisher-status">
+            <option value="active">Active</option>
+        </select>
+    </div>
+
+    <script>
+    // Test results tracker
+    const results = [];
+
+    function logResult(message, success = true) {
+        results.push({message, success, time: new Date().toLocaleTimeString()});
+        updateResults();
+    }
+
+    function updateResults() {
+        const list = document.getElementById('results-list');
+        list.innerHTML = results.map(r => 
+            `<li style="color: ${r.success ? 'green' : 'red'}">${r.time}: ${r.message}</li>`
+        ).join('');
+    }
+
+    // Core functions from admin.html
+    function generateVendorCode() {
+        const prefix = 'PUB';
+        const timestamp = Date.now().toString().slice(-6);
+        const random = Math.random().toString(36).substr(2, 4).toUpperCase();
+        return `${prefix}${timestamp}${random}`;
+    }
+    
+    function generateAPIKey() {
+        return 'api_' + Math.random().toString(36).substr(2, 32);
+    }
+
+    function openAddAgentModal() {
+        try {
+            console.log('👤 Testing Add Agent modal...');
+            logResult('👤 openAddAgentModal() called');
+            
+            const modal = document.getElementById('add-agent-modal');
+            if (!modal) {
+                logResult('❌ Add Agent modal not found', false);
+                return;
+            }
+            
+            const emailInput = document.getElementById('new-agent-email');
+            const roleInput = document.getElementById('new-agent-role');
+            
+            if (emailInput) emailInput.value = '';
+            if (roleInput) roleInput.value = 'agent';
+            
+            modal.classList.add('active');
+            logResult('✅ Add Agent modal opened successfully');
+            
+        } catch (error) {
+            logResult(`❌ Error in openAddAgentModal: ${error.message}`, false);
+            console.error(error);
+        }
+    }
+
+    function openAddPublisherModal() {
+        try {
+            console.log('🏢 Testing Add Publisher modal...');
+            logResult('🏢 openAddPublisherModal() called');
+            
+            const modal = document.getElementById('add-publisher-modal');
+            if (!modal) {
+                logResult('❌ Add Publisher modal not found', false);
+                return;
+            }
+            
+            const nameInput = document.getElementById('new-publisher-name');
+            const emailInput = document.getElementById('new-publisher-email');
+            const codeInput = document.getElementById('new-publisher-code');
+            const keyInput = document.getElementById('new-publisher-api-key');
+            const statusInput = document.getElementById('new-publisher-status');
+            
+            if (nameInput) nameInput.value = '';
+            if (emailInput) emailInput.value = '';
+            if (codeInput) codeInput.value = generateVendorCode();
+            if (keyInput) keyInput.value = generateAPIKey();
+            if (statusInput) statusInput.value = 'active';
+            
+            modal.classList.add('active');
+            logResult('✅ Add Publisher modal opened successfully');
+            
+        } catch (error) {
+            logResult(`❌ Error in openAddPublisherModal: ${error.message}`, false);
+            console.error(error);
+        }
+    }
+
+    function closeModal(modalId) {
+        try {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('active');
+                logResult(`✅ Modal ${modalId} closed`);
+            }
+        } catch (error) {
+            logResult(`❌ Error closing modal: ${error.message}`, false);
+        }
+    }
+
+    // Expose to global scope
+    window.openAddAgentModal = openAddAgentModal;
+    window.openAddPublisherModal = openAddPublisherModal;
+    window.closeModal = closeModal;
+
+    // Auto-test on load
+    document.addEventListener('DOMContentLoaded', function() {
+        logResult('🔧 Test page loaded');
+        logResult('🧪 Ready to test modal buttons');
+        
+        // Test function accessibility
+        if (typeof window.openAddAgentModal === 'function') {
+            logResult('✅ openAddAgentModal is globally accessible');
+        } else {
+            logResult('❌ openAddAgentModal not accessible', false);
+        }
+        
+        if (typeof window.openAddPublisherModal === 'function') {
+            logResult('✅ openAddPublisherModal is globally accessible');
+        } else {
+            logResult('❌ openAddPublisherModal not accessible', false);
+        }
+    });
+    </script>
+</body>
+</html> 
