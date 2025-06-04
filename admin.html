@@ -1147,18 +1147,146 @@
     let aiAssignmentCounter = 0;
     let aiModeEnabled = true;
     
-    document.addEventListener('DOMContentLoaded', function() {
-        // Auto-generate vendor codes and API keys
-        function generateVendorCode() {
-            const prefix = 'PUB';
-            const timestamp = Date.now().toString().slice(-6);
-            const random = Math.random().toString(36).substr(2, 4).toUpperCase();
-            return `${prefix}${timestamp}${random}`;
+    // GLOBAL HELPER FUNCTIONS - Available immediately
+    function generateVendorCode() {
+        const prefix = 'PUB';
+        const timestamp = Date.now().toString().slice(-6);
+        const random = Math.random().toString(36).substr(2, 4).toUpperCase();
+        return `${prefix}${timestamp}${random}`;
+    }
+    
+    function generateAPIKey() {
+        return 'api_' + Math.random().toString(36).substr(2, 32);
+    }
+
+    function addActivityFeedItem(message, type = 'info') {
+        const feed = document.getElementById('activity-feed');
+        if (!feed) return; // Safety check
+        
+        const activity = document.createElement('div');
+        activity.className = 'activity-item';
+        activity.innerHTML = `
+            <div class="activity-icon ${type}">
+                ${type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️'}
+            </div>
+            <div class="activity-content">
+                <div class="activity-message">${message}</div>
+                <div class="activity-time">${new Date().toLocaleTimeString()}</div>
+            </div>
+        `;
+        
+        feed.insertBefore(activity, feed.firstChild);
+        
+        // Keep only last 20 items
+        const items = feed.querySelectorAll('.activity-item');
+        if (items.length > 20) {
+            items[items.length - 1].remove();
+        }
+    }
+
+    // MODAL CONTROL FUNCTIONS - Globally accessible
+    function openAddAgentModal() {
+        console.log('👤 Opening Add Agent modal...');
+        const modal = document.getElementById('add-agent-modal');
+        if (modal) {
+            // Clear previous data
+            const emailInput = document.getElementById('new-agent-email');
+            const roleInput = document.getElementById('new-agent-role');
+            
+            if (emailInput) emailInput.value = '';
+            if (roleInput) roleInput.value = 'agent';
+            
+            modal.classList.add('active');
+            addActivityFeedItem('👤 Add Agent dialog opened', 'info');
+        } else {
+            console.error('❌ Add Agent modal not found');
+        }
+    }
+
+    function openAddPublisherModal() {
+        console.log('🏢 Opening Add Publisher modal...');
+        const modal = document.getElementById('add-publisher-modal');
+        if (modal) {
+            // Clear and generate new data
+            const nameInput = document.getElementById('new-publisher-name');
+            const emailInput = document.getElementById('new-publisher-email');
+            const codeInput = document.getElementById('new-publisher-code');
+            const keyInput = document.getElementById('new-publisher-api-key');
+            const statusInput = document.getElementById('new-publisher-status');
+            
+            if (nameInput) nameInput.value = '';
+            if (emailInput) emailInput.value = '';
+            if (codeInput) codeInput.value = generateVendorCode();
+            if (keyInput) keyInput.value = generateAPIKey();
+            if (statusInput) statusInput.value = 'active';
+            
+            modal.classList.add('active');
+            addActivityFeedItem('🏢 Add Publisher dialog opened', 'info');
+        } else {
+            console.error('❌ Add Publisher modal not found');
+        }
+    }
+
+    function closeModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.remove('active');
+        }
+    }
+
+    function handleSendAgentInvite() {
+        const email = document.getElementById('new-agent-email').value;
+        const role = document.getElementById('new-agent-role').value;
+        
+        if (!email) {
+            alert('Please enter an email address');
+            return;
         }
         
-        function generateAPIKey() {
-            return 'api_' + Math.random().toString(36).substr(2, 32);
+        console.log('📧 Sending agent invite:', { email, role });
+        
+        // Here you would call your API to create the agent
+        addActivityFeedItem(`📧 Agent invite sent to ${email}`, 'success');
+        closeModal('add-agent-modal');
+    }
+
+    function handleCreatePublisher() {
+        const name = document.getElementById('new-publisher-name').value;
+        const email = document.getElementById('new-publisher-email').value;
+        const vendorCode = document.getElementById('new-publisher-code').value;
+        const apiKey = document.getElementById('new-publisher-api-key').value;
+        const status = document.getElementById('new-publisher-status').value;
+        
+        if (!name || !email) {
+            alert('Please fill in all required fields');
+            return;
         }
+        
+        console.log('🏢 Creating publisher:', { name, email, vendorCode, apiKey, status });
+        
+        // Generate and download posting instructions and API documentation
+        generatePublisherPackage(name, email, vendorCode, apiKey);
+        
+        // Here you would call your API to create the publisher
+        addActivityFeedItem(`🏢 Publisher "${name}" created successfully`, 'success');
+        addActivityFeedItem(`📄 Publisher package downloaded for ${name}`, 'info');
+        closeModal('add-publisher-modal');
+    }
+
+    // Expose functions to global scope immediately
+    window.generateVendorCode = generateVendorCode;
+    window.generateAPIKey = generateAPIKey;
+    window.openAddAgentModal = openAddAgentModal;
+    window.openAddPublisherModal = openAddPublisherModal;
+    window.closeModal = closeModal;
+    window.handleSendAgentInvite = handleSendAgentInvite;
+    window.handleCreatePublisher = handleCreatePublisher;
+    window.addActivityFeedItem = addActivityFeedItem;
+
+    console.log('✅ All modal functions are now globally accessible');
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // Auto-generate vendor codes and API keys function definitions moved above
         
         // Handle collapsible sections
         document.querySelectorAll('.section-toggle').forEach(toggle => {
@@ -1207,9 +1335,12 @@
         });
         
         // Handle FAB menu (simplified)
-        document.getElementById('mainFab').addEventListener('click', function() {
-            document.querySelector('.fab-container').classList.toggle('active');
-        });
+        const mainFab = document.getElementById('mainFab');
+        if (mainFab) {
+            mainFab.addEventListener('click', function() {
+                document.querySelector('.fab-container').classList.toggle('active');
+            });
+        }
         
         // Close modals when clicking outside
         document.addEventListener('click', function(e) {
@@ -1227,13 +1358,18 @@
             if (hour >= 12 && hour < 17) greeting = 'afternoon';
             else if (hour >= 17) greeting = 'evening';
             
-            document.getElementById('time-greeting').textContent = greeting;
-            document.getElementById('current-date').textContent = now.toLocaleDateString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
+            const greetingEl = document.getElementById('time-greeting');
+            const dateEl = document.getElementById('current-date');
+            
+            if (greetingEl) greetingEl.textContent = greeting;
+            if (dateEl) {
+                dateEl.textContent = now.toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+            }
         }
         
         updateDateTime();
@@ -1244,6 +1380,11 @@
         
         // Initialize predictive analytics
         initializePredictiveAnalytics();
+        
+        // Initialize with some mock data
+        setTimeout(() => {
+            addActivityFeedItem('System ready', 'success');
+        }, 2000);
         
         console.log('🎯 Enhanced admin dashboard initialized with AI features');
     });
@@ -1521,35 +1662,6 @@
         }
     }
 
-    function addActivityFeedItem(message, type = 'info') {
-        const feed = document.getElementById('activity-feed');
-        
-        const activity = document.createElement('div');
-        activity.className = 'activity-item';
-        activity.innerHTML = `
-            <div class="activity-icon ${type}">
-                ${type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️'}
-            </div>
-            <div class="activity-content">
-                <div class="activity-message">${message}</div>
-                <div class="activity-time">${new Date().toLocaleTimeString()}</div>
-            </div>
-        `;
-        
-        feed.insertBefore(activity, feed.firstChild);
-        
-        // Keep only last 20 items
-        const items = feed.querySelectorAll('.activity-item');
-        if (items.length > 20) {
-            items[items.length - 1].remove();
-        }
-    }
-
-    // Initialize with some mock data
-    setTimeout(() => {
-        addActivityFeedItem('System ready', 'success');
-    }, 2000);
-
     // EXPANDABLE ACTIVITY FUNCTIONALITY
     function expandActivity(activityElement) {
         // Close all other expanded items
@@ -1645,83 +1757,6 @@
         // Navigate to agent dashboard
         window.open('agent-dashboard.html', '_blank');
         addActivityFeedItem('👤 Agent dashboard opened', 'info');
-    }
-
-    // MODAL CONTROL FUNCTIONS
-    function openAddAgentModal() {
-        console.log('👤 Opening Add Agent modal...');
-        const modal = document.getElementById('add-agent-modal');
-        if (modal) {
-            // Clear previous data
-            document.getElementById('new-agent-email').value = '';
-            document.getElementById('new-agent-role').value = 'agent';
-            
-            modal.classList.add('active');
-            addActivityFeedItem('👤 Add Agent dialog opened', 'info');
-        }
-    }
-
-    function openAddPublisherModal() {
-        console.log('🏢 Opening Add Publisher modal...');
-        const modal = document.getElementById('add-publisher-modal');
-        if (modal) {
-            // Clear and generate new data
-            document.getElementById('new-publisher-name').value = '';
-            document.getElementById('new-publisher-email').value = '';
-            document.getElementById('new-publisher-code').value = generateVendorCode();
-            document.getElementById('new-publisher-api-key').value = generateAPIKey();
-            document.getElementById('new-publisher-status').value = 'active';
-            
-            modal.classList.add('active');
-            addActivityFeedItem('🏢 Add Publisher dialog opened', 'info');
-        }
-    }
-
-    function closeModal(modalId) {
-        const modal = document.getElementById(modalId);
-        if (modal) {
-            modal.classList.remove('active');
-        }
-    }
-
-    // ENHANCED MODAL FUNCTIONS
-    function handleSendAgentInvite() {
-        const email = document.getElementById('new-agent-email').value;
-        const role = document.getElementById('new-agent-role').value;
-        
-        if (!email) {
-            alert('Please enter an email address');
-            return;
-        }
-        
-        console.log('📧 Sending agent invite:', { email, role });
-        
-        // Here you would call your API to create the agent
-        addActivityFeedItem(`📧 Agent invite sent to ${email}`, 'success');
-        closeModal('add-agent-modal');
-    }
-
-    function handleCreatePublisher() {
-        const name = document.getElementById('new-publisher-name').value;
-        const email = document.getElementById('new-publisher-email').value;
-        const vendorCode = document.getElementById('new-publisher-code').value;
-        const apiKey = document.getElementById('new-publisher-api-key').value;
-        const status = document.getElementById('new-publisher-status').value;
-        
-        if (!name || !email) {
-            alert('Please fill in all required fields');
-            return;
-        }
-        
-        console.log('🏢 Creating publisher:', { name, email, vendorCode, apiKey, status });
-        
-        // Generate and download posting instructions and API documentation
-        generatePublisherPackage(name, email, vendorCode, apiKey);
-        
-        // Here you would call your API to create the publisher
-        addActivityFeedItem(`🏢 Publisher "${name}" created successfully`, 'success');
-        addActivityFeedItem(`📄 Publisher package downloaded for ${name}`, 'info');
-        closeModal('add-publisher-modal');
     }
 
     function generatePublisherPackage(publisherName, email, vendorCode, apiKey) {
@@ -2061,6 +2096,480 @@ Phone: (555) CLAIM-01
             sampleCode,
             credentials
         };
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // Auto-generate vendor codes and API keys function definitions moved above
+        
+        // Handle collapsible sections
+        document.querySelectorAll('.section-toggle').forEach(toggle => {
+            toggle.addEventListener('click', function() {
+                const sectionName = this.dataset.section;
+                const content = document.getElementById(sectionName + '-content');
+                const icon = this.querySelector('.toggle-icon');
+                
+                // Toggle active state
+                this.classList.toggle('active');
+                content.classList.toggle('expanded');
+                
+                // Rotate icon
+                if (this.classList.contains('active')) {
+                    icon.textContent = '▲';
+                } else {
+                    icon.textContent = '▼';
+                }
+                
+                // Load predictive analytics when section is opened
+                if (sectionName === 'predictive-analytics' && this.classList.contains('active')) {
+                    loadPredictiveAnalytics();
+                }
+            });
+        });
+        
+        // Handle modals
+        document.querySelectorAll('[data-modal]').forEach(trigger => {
+            trigger.addEventListener('click', function() {
+                const modalId = this.dataset.modal;
+                const modal = document.getElementById(modalId);
+                if (modal) {
+                    modal.classList.toggle('active');
+                }
+            });
+        });
+        
+        // Handle modal close buttons
+        document.querySelectorAll('.modal-close').forEach(closeBtn => {
+            closeBtn.addEventListener('click', function() {
+                const modal = this.closest('.modal-overlay');
+                if (modal) {
+                    modal.classList.remove('active');
+                }
+            });
+        });
+        
+        // Handle FAB menu (simplified)
+        const mainFab = document.getElementById('mainFab');
+        if (mainFab) {
+            mainFab.addEventListener('click', function() {
+                document.querySelector('.fab-container').classList.toggle('active');
+            });
+        }
+        
+        // Close modals when clicking outside
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('modal-overlay')) {
+                e.target.classList.remove('active');
+            }
+        });
+        
+        // Update date and time
+        function updateDateTime() {
+            const now = new Date();
+            const hour = now.getHours();
+            let greeting = 'morning';
+            
+            if (hour >= 12 && hour < 17) greeting = 'afternoon';
+            else if (hour >= 17) greeting = 'evening';
+            
+            const greetingEl = document.getElementById('time-greeting');
+            const dateEl = document.getElementById('current-date');
+            
+            if (greetingEl) greetingEl.textContent = greeting;
+            if (dateEl) {
+                dateEl.textContent = now.toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+            }
+        }
+        
+        updateDateTime();
+        setInterval(updateDateTime, 60000); // Update every minute
+        
+        // Initialize AI features
+        initializeAIFeatures();
+        
+        // Initialize predictive analytics
+        initializePredictiveAnalytics();
+        
+        // Initialize with some mock data
+        setTimeout(() => {
+            addActivityFeedItem('System ready', 'success');
+        }, 2000);
+        
+        console.log('🎯 Enhanced admin dashboard initialized with AI features');
+    });
+
+    // AI Feature Functions
+    function initializeAIFeatures() {
+        updateAIMetrics();
+        setInterval(updateAIMetrics, 10000); // Update every 10 seconds
+        
+        // Simulate some AI activity
+        setTimeout(() => {
+            addAIAssignment({
+                leadName: 'Jane Smith',
+                agentName: 'Sarah Johnson',
+                score: 95,
+                time: '2 min ago'
+            });
+        }, 5000);
+    }
+
+    async function updateAIMetrics() {
+        try {
+            if (window.smartLeadRouter) {
+                const queueStatus = await window.smartLeadRouter.getQueueStatus();
+                const performanceMetrics = await window.smartLeadRouter.getPerformanceMetrics();
+                
+                document.getElementById('ai-queue-status').textContent = 
+                    queueStatus.size > 0 ? `${queueStatus.size} waiting` : 'All assigned';
+                document.getElementById('ai-assignment-time').textContent = 
+                    `${performanceMetrics.averageAssignmentTime}s`;
+                document.getElementById('ai-assignments').textContent = aiAssignmentCounter;
+            }
+        } catch (error) {
+            console.error('Failed to update AI metrics:', error);
+        }
+    }
+
+    function testAIAssignment() {
+        // Generate a test lead
+        const testLead = {
+            first_name: 'Test',
+            last_name: 'Lead',
+            email: 'test@example.com',
+            phone_home: '(555) 123-4567',
+            state: 'CA',
+            zip_code: '90210',
+            source: 'website',
+            lead_value: 5000,
+            notes: 'AI test assignment'
+        };
+
+        addActivityFeedItem('🤖 Testing AI assignment system...', 'info');
+
+        // Process through AI
+        window.smartLeadRouter.assignLeadIntelligently(testLead)
+            .then(assignment => {
+                addAIAssignment({
+                    leadName: `${testLead.first_name} ${testLead.last_name}`,
+                    agentName: assignment.agentName || 'Queued',
+                    score: assignment.agentScore?.total || 'N/A',
+                    time: 'Just now'
+                });
+                
+                aiAssignmentCounter++;
+                updateAIMetrics();
+                
+                addActivityFeedItem(
+                    `✅ AI assigned ${testLead.first_name} ${testLead.last_name} to ${assignment.agentName || 'queue'}`,
+                    'success'
+                );
+            })
+            .catch(error => {
+                addActivityFeedItem('❌ AI assignment test failed', 'error');
+            });
+    }
+
+    function addAIAssignment(assignment) {
+        const listContainer = document.getElementById('ai-assignment-list');
+        
+        // Remove empty message
+        const emptyMessage = listContainer.querySelector('.ai-assignment-empty');
+        if (emptyMessage) {
+            emptyMessage.remove();
+        }
+        
+        const assignmentElement = document.createElement('div');
+        assignmentElement.className = 'ai-assignment-item';
+        assignmentElement.innerHTML = `
+            <div class="ai-assignment-info">
+                <div class="ai-assignment-lead">${assignment.leadName}</div>
+                <div class="ai-assignment-agent">→ ${assignment.agentName}</div>
+            </div>
+            <div class="ai-assignment-metrics">
+                <div class="ai-assignment-score">${assignment.score}/100</div>
+                <div class="ai-assignment-time">${assignment.time}</div>
+            </div>
+        `;
+        
+        listContainer.insertBefore(assignmentElement, listContainer.firstChild);
+        
+        // Keep only last 10 assignments
+        const assignments = listContainer.querySelectorAll('.ai-assignment-item');
+        if (assignments.length > 10) {
+            assignments[assignments.length - 1].remove();
+        }
+    }
+
+    function viewAIInsights() {
+        // AI demo removed per user request
+        addActivityFeedItem('📊 AI insights feature temporarily disabled', 'info');
+    }
+
+    function toggleAIMode() {
+        aiModeEnabled = !aiModeEnabled;
+        const toggleBtn = document.getElementById('ai-mode-toggle');
+        
+        if (aiModeEnabled) {
+            toggleBtn.innerHTML = '🟢 AI Mode: ON';
+            addActivityFeedItem('🤖 AI lead routing enabled', 'success');
+        } else {
+            toggleBtn.innerHTML = '🔴 AI Mode: OFF';
+            addActivityFeedItem('⚠️ AI lead routing disabled - manual mode active', 'warning');
+        }
+    }
+
+    // Predictive Analytics Functions
+    function initializePredictiveAnalytics() {
+        // Initialize with placeholder data
+        updatePredictiveMetrics();
+        
+        // Update every 30 seconds
+        setInterval(updatePredictiveMetrics, 30000);
+    }
+
+    async function loadPredictiveAnalytics() {
+        try {
+            addActivityFeedItem('📊 Loading predictive analytics...', 'info');
+            
+            // Remove loading state
+            const loadingInsight = document.querySelector('.insight-item.loading');
+            if (loadingInsight) {
+                loadingInsight.remove();
+            }
+            
+            // Get analytics insights
+            const insights = await window.predictiveAnalytics.getDashboardInsights();
+            
+            // Update metrics
+            updatePredictiveMetrics(insights);
+            
+            // Update insights
+            updateAIInsights(insights);
+            
+            addActivityFeedItem('✅ Predictive analytics loaded', 'success');
+            
+        } catch (error) {
+            console.error('Failed to load predictive analytics:', error);
+            addActivityFeedItem('❌ Failed to load predictive analytics', 'error');
+        }
+    }
+
+    function updatePredictiveMetrics(insights = null) {
+        if (insights) {
+            // Update with real data
+            const revenue = insights.revenue || {};
+            const quality = insights.leadQuality || {};
+            const risk = insights.churnRisk || {};
+            const performance = insights.performance || {};
+            
+            document.getElementById('revenue-forecast').textContent = 
+                '$' + (revenue.forecast || 85000).toLocaleString();
+            document.getElementById('forecast-confidence').textContent = 
+                `${Math.round((revenue.confidence || 0.95) * 100)}% confidence`;
+                
+            document.getElementById('hot-tier-count').textContent = quality.hot?.count || 0;
+            document.getElementById('hot-tier-percent').textContent = quality.hot?.percent || '0%';
+            
+            document.getElementById('warm-tier-count').textContent = quality.warm?.count || 0;
+            document.getElementById('warm-tier-percent').textContent = quality.warm?.percent || '0%';
+            
+            document.getElementById('cold-tier-count').textContent = quality.cold?.count || 0;
+            document.getElementById('cold-tier-percent').textContent = quality.cold?.percent || '0%';
+            
+            document.getElementById('churn-risk').textContent = 
+                risk.totalAtRisk || 0;
+            document.getElementById('risk-urgency').textContent = 
+                `${risk.totalAtRisk || 0} leads at risk`;
+                
+            const coachingNeeded = performance.individual?.filter(
+                agent => agent.priority === 'high' || agent.priority === 'urgent'
+            ).length || 0;
+            document.getElementById('coaching-agents').textContent = coachingNeeded;
+            document.getElementById('coaching-action').textContent = 
+                `${coachingNeeded} agents need coaching`;
+                
+        } else {
+            // Update with mock data
+            document.getElementById('revenue-forecast').textContent = '$85,000';
+            document.getElementById('forecast-confidence').textContent = '95% confidence';
+            document.getElementById('hot-tier-count').textContent = '0';
+            document.getElementById('hot-tier-percent').textContent = '0%';
+            document.getElementById('warm-tier-count').textContent = '0';
+            document.getElementById('warm-tier-percent').textContent = '0%';
+            document.getElementById('cold-tier-count').textContent = '0';
+            document.getElementById('cold-tier-percent').textContent = '0%';
+            document.getElementById('churn-risk').textContent = '3';
+            document.getElementById('risk-urgency').textContent = '3 leads at risk';
+            document.getElementById('coaching-agents').textContent = '2';
+            document.getElementById('coaching-action').textContent = '2 agents need coaching';
+        }
+    }
+
+    function updateAIInsights(insights) {
+        const insightsList = document.getElementById('performance-insights-list');
+        insightsList.innerHTML = '';
+        
+        const allInsights = [
+            ...insights.revenue?.insights || ['Revenue forecasting active'],
+            ...insights.leadQuality?.recommendations?.map(r => r.action) || ['Lead quality analysis complete'],
+            ...insights.churnRisk?.insights || ['Churn risk monitoring active']
+        ];
+        
+        allInsights.slice(0, 5).forEach(insight => {
+            const insightItem = document.createElement('div');
+            insightItem.className = 'insight-item';
+            insightItem.innerHTML = `
+                <div class="insight-icon">💡</div>
+                <div class="insight-text">${insight}</div>
+            `;
+            insightsList.appendChild(insightItem);
+        });
+    }
+
+    function openPredictiveDemo() {
+        // AI demo removed per user request
+        addActivityFeedItem('📊 Predictive demo temporarily disabled', 'info');
+    }
+
+    async function generateForecast() {
+        addActivityFeedItem('📊 Generating revenue forecast...', 'info');
+        
+        try {
+            const forecast = await window.predictiveAnalytics.forecastRevenue('monthly');
+            
+            document.getElementById('revenue-forecast').textContent = 
+                '$' + forecast.forecast.toLocaleString();
+            document.getElementById('forecast-confidence').textContent = 
+                `${Math.round(forecast.confidence * 100)}% confidence`;
+            
+            addActivityFeedItem(
+                `✅ Forecast generated: $${forecast.forecast.toLocaleString()} projected`,
+                'success'
+            );
+        } catch (error) {
+            addActivityFeedItem('❌ Forecast generation failed', 'error');
+        }
+    }
+
+    async function analyzeRisk() {
+        addActivityFeedItem('⚠️ Analyzing churn risk...', 'info');
+        
+        try {
+            const riskAnalysis = await window.predictiveAnalytics.analyzeChurnRisk();
+            
+            document.getElementById('churn-risk').textContent = riskAnalysis.totalAtRisk;
+            document.getElementById('risk-urgency').textContent = 
+                `${riskAnalysis.totalAtRisk} leads at risk`;
+            
+            addActivityFeedItem(
+                `✅ Risk analysis complete: ${riskAnalysis.totalAtRisk} leads need attention`,
+                riskAnalysis.totalAtRisk > 5 ? 'warning' : 'success'
+            );
+        } catch (error) {
+            addActivityFeedItem('❌ Risk analysis failed', 'error');
+        }
+    }
+
+    // EXPANDABLE ACTIVITY FUNCTIONALITY
+    function expandActivity(activityElement) {
+        // Close all other expanded items
+        document.querySelectorAll('.activity-item.expanded').forEach(item => {
+            if (item !== activityElement) {
+                item.classList.remove('expanded');
+            }
+        });
+        
+        // Toggle current item
+        activityElement.classList.toggle('expanded');
+    }
+
+    // Expose expandActivity globally
+    window.expandActivity = expandActivity;
+
+    // Navigation functions for admin dashboard
+    function exportLeadData() {
+        console.log('📊 Exporting lead data...');
+        if (window.apiService) {
+            window.apiService.exportLeads().then(data => {
+                console.log('Export initiated:', data);
+                addActivityFeedItem('📊 Lead export started', 'info');
+            }).catch(error => {
+                addActivityFeedItem('❌ Export failed', 'error');
+            });
+        }
+    }
+
+    function refreshOverview() {
+        console.log('🔄 Refreshing overview...');
+        if (window.apiService) {
+            window.apiService.getDashboardAnalytics().then(data => {
+                console.log('Overview refreshed:', data);
+                addActivityFeedItem('🔄 Overview data refreshed', 'success');
+            });
+        }
+    }
+
+    function viewAvailableLeads() {
+        console.log('🔍 Viewing available leads...');
+        // Could open a modal or navigate to leads view
+        addActivityFeedItem('👁️ Viewing available leads', 'info');
+    }
+
+    function viewClaimedLeads() {
+        console.log('🎯 Viewing claimed leads...');
+        addActivityFeedItem('👁️ Viewing claimed leads', 'info');
+    }
+
+    function viewAgentPerformance() {
+        console.log('🏆 Viewing agent performance...');
+        if (window.apiService) {
+            window.apiService.getPerformanceMetrics().then(data => {
+                console.log('Performance data:', data);
+                addActivityFeedItem('📊 Agent performance loaded', 'info');
+            });
+        }
+    }
+
+    function viewAnalyticsDetails() {
+        console.log('📈 Opening analytics details...');
+        // AI demo removed per user request
+        addActivityFeedItem('📈 Analytics feature temporarily disabled', 'info');
+    }
+
+    function showAnalyticsDetails() {
+        console.log('📈 Opening analytics details...');
+        // AI demo removed per user request
+        addActivityFeedItem('📈 Analytics feature temporarily disabled', 'info');
+    }
+
+    function reassignLead() {
+        console.log('🔄 Reassigning lead...');
+        // Would show lead reassignment modal
+        addActivityFeedItem('🔄 Lead reassignment initiated', 'info');
+    }
+
+    function bulkActions() {
+        console.log('📦 Bulk actions...');
+        // Would show bulk actions modal
+        addActivityFeedItem('📦 Bulk actions opened', 'info');
+    }
+
+    function leadImport() {
+        console.log('📥 Lead import...');
+        // Would show import modal
+        addActivityFeedItem('📥 Lead import started', 'info');
+    }
+
+    function agentDashboard() {
+        console.log('👤 Opening agent dashboard...');
+        // Navigate to agent dashboard
+        window.open('agent-dashboard.html', '_blank');
+        addActivityFeedItem('👤 Agent dashboard opened', 'info');
     }
     </script>
 
