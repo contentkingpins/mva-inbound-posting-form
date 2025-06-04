@@ -1761,7 +1761,10 @@
         closeModal('add-agent-modal');
     }
 
-    function handleCreatePublisher() {
+    // Remove the duplicate function fix
+    // Fix handleCreatePublisher to immediately update display
+    const originalHandleCreatePublisher = window.handleCreatePublisher;
+    window.handleCreatePublisher = function() {
         const name = document.getElementById('new-publisher-name').value;
         const email = document.getElementById('new-publisher-email').value;
         const vendorCode = document.getElementById('new-publisher-code').value;
@@ -1791,10 +1794,13 @@
         // Add to publishers array
         allPublishers.push(newPublisher);
         
-        // Update the publisher table and stats
-        renderPublishersTable();
-        updatePublisherStats();
-        updatePublisherCount();
+        // IMMEDIATELY update all displays
+        setTimeout(() => {
+            renderPublishersTable();
+            updatePublisherStats();
+            updatePublisherCount();
+            console.log('✅ Publisher table updated with new publisher');
+        }, 100);
         
         // Generate and download posting instructions and API documentation
         generatePublisherPackage(name, email, vendorCode, apiKey);
@@ -1813,13 +1819,13 @@
                 console.error('PDF generation failed:', error);
                 addActivityFeedItem(`❌ PDF generation failed for ${name}`, 'error');
             }
-        }, 1500); // Increased delay to ensure library is loaded
+        }, 1500);
         
-        // Here you would call your API to create the publisher
+        // Add activity feed items
         addActivityFeedItem(`🏢 Publisher "${name}" created successfully`, 'success');
         addActivityFeedItem(`📄 Publisher package downloaded for ${name}`, 'info');
         closeModal('add-publisher-modal');
-    }
+    };
 
     function handleLogout() {
         // Confirm logout action
@@ -2355,12 +2361,12 @@ Phone: (555) CLAIM-01`;
 
     function viewAvailableLeads() {
         console.log('🔍 Viewing available leads...');
-        addActivityFeedItem('👁️ Viewing available leads', 'info');
+        addActivityFeedItem('👁️ Available leads view opened', 'info');
     }
 
     function viewClaimedLeads() {
-        console.log('🎯 Viewing claimed leads...');
-        addActivityFeedItem('👁️ Viewing claimed leads', 'info');
+        alert('Claimed Leads View - Coming Soon!');
+        addActivityFeedItem('👁️ Claimed leads view opened', 'info');
     }
 
     function showAnalyticsDetails() {
@@ -2369,23 +2375,135 @@ Phone: (555) CLAIM-01`;
     }
 
     function reassignLead() {
-        console.log('🔄 Reassigning lead...');
-        addActivityFeedItem('🔄 Lead reassignment initiated', 'info');
+        alert('Reassign Lead - Coming Soon!');
+        addActivityFeedItem('🔄 Lead reassignment opened', 'info');
     }
 
     function bulkActions() {
-        console.log('📦 Bulk actions...');
-        addActivityFeedItem('📦 Bulk actions opened', 'info');
-    }
-
-    function leadImport() {
-        console.log('📥 Lead import...');
-        addActivityFeedItem('📥 Lead import started', 'info');
+        console.log('📦 Opening bulk actions modal...');
+        
+        const bulkActionsModal = `
+            <div class="modal-overlay active" id="bulk-actions-modal">
+                <div class="modal glass-modal">
+                    <div class="modal-header">
+                        <h3 class="modal-title">📦 Bulk Lead Actions</h3>
+                        <button class="modal-close" onclick="closeModal('bulk-actions-modal')">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="bulk-actions-grid">
+                            <button class="bulk-action-btn" onclick="bulkReassignLeads()">
+                                <span style="font-size: 2rem;">🔄</span>
+                                <span>Reassign Leads</span>
+                                <small>Reassign leads to different agents</small>
+                            </button>
+                            <button class="bulk-action-btn" onclick="bulkUpdateStatus()">
+                                <span style="font-size: 2rem;">📝</span>
+                                <span>Update Status</span>
+                                <small>Change lead status in bulk</small>
+                            </button>
+                            <button class="bulk-action-btn" onclick="bulkExportLeads()">
+                                <span style="font-size: 2rem;">📊</span>
+                                <span>Export Leads</span>
+                                <small>Download selected leads as CSV</small>
+                            </button>
+                            <button class="bulk-action-btn" onclick="bulkDeleteLeads()">
+                                <span style="font-size: 2rem;">🗑️</span>
+                                <span>Delete Leads</span>
+                                <small>Permanently remove leads</small>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', bulkActionsModal);
+        addActivityFeedItem('📦 Bulk actions modal opened', 'info');
     }
 
     function agentDashboard() {
         console.log('👤 Opening agent dashboard...');
+        
+        const agentDashboardModal = `
+            <div class="modal-overlay active" id="agent-dashboard-modal">
+                <div class="modal glass-modal" style="max-width: 800px;">
+                    <div class="modal-header">
+                        <h3 class="modal-title">👤 Agent Dashboard</h3>
+                        <button class="modal-close" onclick="closeModal('agent-dashboard-modal')">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                            <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 2rem; color: var(--success);">24</div>
+                                <div style="color: var(--text-secondary);">Total Agents</div>
+                            </div>
+                            <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 2rem; color: var(--accent-blue);">18</div>
+                                <div style="color: var(--text-secondary);">Online Now</div>
+                            </div>
+                            <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 2rem; color: var(--warning);">156</div>
+                                <div style="color: var(--text-secondary);">Active Leads</div>
+                            </div>
+                        </div>
+                        <div class="management-actions">
+                            <button class="action-btn" onclick="viewAgentPerformance()">
+                                <span class="btn-icon">📊</span>
+                                <span class="btn-text">View Performance</span>
+                            </button>
+                            <button class="action-btn" onclick="manageAgentAccess()">
+                                <span class="btn-icon">🔐</span>
+                                <span class="btn-text">Manage Access</span>
+                            </button>
+                            <button class="action-btn" onclick="openAddAgentModal(); closeModal('agent-dashboard-modal')">
+                                <span class="btn-icon">➕</span>
+                                <span class="btn-text">Add New Agent</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', agentDashboardModal);
         addActivityFeedItem('👤 Agent dashboard opened', 'info');
+    }
+
+    function leadImport() {
+        console.log('📥 Opening lead import modal...');
+        
+        const leadImportModal = `
+            <div class="modal-overlay active" id="lead-import-modal">
+                <div class="modal glass-modal">
+                    <div class="modal-header">
+                        <h3 class="modal-title">📥 Import Leads</h3>
+                        <button class="modal-close" onclick="closeModal('lead-import-modal')">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div style="text-align: center; margin-bottom: 2rem;">
+                            <div style="font-size: 4rem; color: var(--accent-blue); margin-bottom: 1rem;">📄</div>
+                            <h4>Upload CSV File</h4>
+                            <p style="color: var(--text-secondary);">Import leads from a CSV file. Maximum 1000 leads per upload.</p>
+                        </div>
+                        <div class="form-group">
+                            <label>Select CSV File</label>
+                            <input type="file" accept=".csv" class="form-input" id="lead-import-file">
+                        </div>
+                        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+                            <strong>Required CSV Format:</strong><br>
+                            <code style="font-size: 0.8rem;">first_name,last_name,email,phone,state,incident_type</code>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary" onclick="closeModal('lead-import-modal')">Cancel</button>
+                            <button class="btn btn-primary" onclick="processLeadImport()">Upload & Import</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', leadImportModal);
+        addActivityFeedItem('📥 Lead import modal opened', 'info');
     }
 
     // CHART MODAL FUNCTIONALITY
@@ -2762,9 +2880,11 @@ Phone: (555) CLAIM-01`;
         if (statusFilter) statusFilter.addEventListener('change', filterPublishers);
         if (sortSelect) sortSelect.addEventListener('change', sortPublishers);
         
-        // Load initial data
+        // Load initial data ONLY after DOM is ready
+        console.log('🏢 Loading initial publisher data...');
         loadPublishers();
-    }, 1000);
+        console.log('✅ Publisher management initialized');
+    }, 2000); // Increased delay to ensure DOM is fully ready
 
     // Expose publisher functions globally
     window.viewPublisher = viewPublisher;
@@ -2782,6 +2902,70 @@ Phone: (555) CLAIM-01`;
     window.bulkDeletePublishers = bulkDeletePublishers;
     window.refreshPublishers = refreshPublishers;
     window.exportPublishers = exportPublishers;
+
+    // Add missing bulk action functions
+    function bulkReassignLeads() {
+        alert('Bulk Reassign Leads - Coming Soon!');
+        closeModal('bulk-actions-modal');
+        addActivityFeedItem('🔄 Bulk reassign initiated', 'info');
+    }
+
+    function bulkUpdateStatus() {
+        alert('Bulk Update Status - Coming Soon!');
+        closeModal('bulk-actions-modal');
+        addActivityFeedItem('📝 Bulk status update initiated', 'info');
+    }
+
+    function bulkExportLeads() {
+        alert('Bulk Export Leads - Coming Soon!');
+        closeModal('bulk-actions-modal');
+        addActivityFeedItem('📊 Bulk export initiated', 'success');
+    }
+
+    function bulkDeleteLeads() {
+        if (confirm('Delete selected leads? This cannot be undone.')) {
+            alert('Bulk Delete Leads - Coming Soon!');
+            closeModal('bulk-actions-modal');
+            addActivityFeedItem('🗑️ Bulk delete initiated', 'warning');
+        }
+    }
+
+    function viewAgentPerformance() {
+        alert('Agent Performance View - Coming Soon!');
+        addActivityFeedItem('📊 Agent performance view opened', 'info');
+    }
+
+    function manageAgentAccess() {
+        alert('Manage Agent Access - Coming Soon!');
+        addActivityFeedItem('🔐 Agent access management opened', 'info');
+    }
+
+    function processLeadImport() {
+        const fileInput = document.getElementById('lead-import-file');
+        if (!fileInput || !fileInput.files[0]) {
+            alert('Please select a CSV file first');
+            return;
+        }
+        
+        alert(`Importing leads from: ${fileInput.files[0].name} - Coming Soon!`);
+        closeModal('lead-import-modal');
+        addActivityFeedItem('📥 Lead import processing...', 'info');
+    }
+
+    // Expose the new functions globally
+    window.bulkActions = bulkActions;
+    window.agentDashboard = agentDashboard;
+    window.leadImport = leadImport;
+    window.viewAvailableLeads = viewAvailableLeads;
+    window.viewClaimedLeads = viewClaimedLeads;
+    window.reassignLead = reassignLead;
+    window.bulkReassignLeads = bulkReassignLeads;
+    window.bulkUpdateStatus = bulkUpdateStatus;
+    window.bulkExportLeads = bulkExportLeads;
+    window.bulkDeleteLeads = bulkDeleteLeads;
+    window.viewAgentPerformance = viewAgentPerformance;
+    window.manageAgentAccess = manageAgentAccess;
+    window.processLeadImport = processLeadImport;
 
     </script>
 </body>
