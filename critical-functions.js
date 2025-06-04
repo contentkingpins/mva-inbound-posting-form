@@ -66,6 +66,40 @@ function openAddPublisherModal() {
     }
 }
 
+// BACKUP handleCreatePublisher function - always available
+function handleCreatePublisher() {
+    console.log('🏢 BACKUP handleCreatePublisher called from critical-functions.js');
+    
+    // Check if the advanced version from admin.html is available
+    if (window.handleCreatePublisher && window.handleCreatePublisher !== handleCreatePublisher) {
+        console.log('🔄 Calling advanced handleCreatePublisher from admin.html');
+        return window.handleCreatePublisher();
+    }
+    
+    // Basic fallback implementation
+    try {
+        const name = document.getElementById('new-publisher-name');
+        const email = document.getElementById('new-publisher-email');
+        
+        if (!name || !email) {
+            alert('Error: Form elements not found. Please refresh the page.');
+            return;
+        }
+        
+        if (!name.value || !email.value) {
+            alert('Please fill in all required fields');
+            return;
+        }
+        
+        alert(`✅ Publisher "${name.value}" would be created! (Using backup function)\n\nThis is a basic fallback. Please refresh the page to use the full functionality.`);
+        closeModal('add-publisher-modal');
+        
+    } catch (error) {
+        console.error('Error in backup handleCreatePublisher:', error);
+        alert('Error creating publisher: ' + error.message);
+    }
+}
+
 function closeModal(modalId) {
     try {
         const modal = document.getElementById(modalId);
@@ -144,6 +178,7 @@ window.openAddAgentModal = openAddAgentModal;
 window.openAddPublisherModal = openAddPublisherModal;
 window.closeModal = closeModal;
 window.handleSendAgentInvite = handleSendAgentInvite;
+window.handleCreatePublisher = handleCreatePublisher;
 window.handleLogout = handleLogout;
 window.expandChart = expandChart;
 window.expandActivity = expandActivity;
@@ -158,4 +193,5 @@ window.leadImport = leadImport;
 window.agentDashboard = agentDashboard;
 
 console.log('✅ ALL BUTTON FUNCTIONS LOADED AND EXPOSED TO GLOBAL SCOPE');
-console.log('🔧 Functions available:', Object.keys(window).filter(k => typeof window[k] === 'function' && k.includes('Modal'))); 
+console.log('🔧 Functions available:', Object.keys(window).filter(k => typeof window[k] === 'function' && k.includes('Modal')));
+console.log('🏢 handleCreatePublisher available:', typeof window.handleCreatePublisher); 

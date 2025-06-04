@@ -958,9 +958,9 @@
         }
     }
 
-    // Publisher creation function with tracking ID
+    // Publisher creation function with tracking ID - OVERRIDE backup function
     window.handleCreatePublisher = function() {
-        console.log('🏢 handleCreatePublisher called');
+        console.log('🏢 FULL handleCreatePublisher called from admin.html (overriding backup)');
         
         // Debug: Check if all form elements exist
         const nameEl = document.getElementById('new-publisher-name');
@@ -1052,8 +1052,9 @@
         closeModal('add-publisher-modal');
     };
 
-    // Confirm function is registered
-    console.log('✅ handleCreatePublisher function registered:', typeof window.handleCreatePublisher);
+    // Confirm function is registered and overridden
+    console.log('✅ FULL handleCreatePublisher function registered and overridden backup:', typeof window.handleCreatePublisher);
+    console.log('🔄 Function override successful - full publisher management available');
 
     function generatePublisherPackage(publisherName, email, vendorCode, apiKey) {
         // Generate comprehensive posting instructions and API documentation
