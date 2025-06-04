@@ -9,7 +9,36 @@ try {
     let selectedPublishers = new Set();
     let allPublishers = [];
     
+    // Load publishers from localStorage on startup
+    function loadPublishers() {
+        try {
+            const stored = localStorage.getItem('claim_connectors_publishers');
+            if (stored) {
+                allPublishers = JSON.parse(stored);
+                console.log('📂 Loaded', allPublishers.length, 'publishers from localStorage');
+            } else {
+                console.log('📂 No stored publishers found, starting fresh');
+            }
+        } catch (error) {
+            console.error('❌ Error loading publishers from localStorage:', error);
+            allPublishers = [];
+        }
+    }
+    
+    // Save publishers to localStorage
+    function savePublishers() {
+        try {
+            localStorage.setItem('claim_connectors_publishers', JSON.stringify(allPublishers));
+            console.log('💾 Saved', allPublishers.length, 'publishers to localStorage');
+        } catch (error) {
+            console.error('❌ Error saving publishers to localStorage:', error);
+        }
+    }
+    
     console.log('🔧 Publisher Manager: Variables initialized');
+    
+    // Load existing publishers immediately
+    loadPublishers();
 
     // Generate unique tracking ID for publisher traffic
     function generateTrackingId() {
@@ -120,6 +149,9 @@ try {
             // Add to array
             allPublishers.push(newPublisher);
             console.log('📊 Publisher added to array. Total publishers:', allPublishers.length);
+            
+            // Save to localStorage
+            savePublishers();
             
             // Update displays
             updatePublisherCount();
@@ -278,6 +310,7 @@ Phone: (555) CLAIM-01
             const newName = prompt('Edit Publisher Name:', publisher.name);
             if (newName && newName !== publisher.name) {
                 publisher.name = newName;
+                savePublishers();
                 renderPublishersTable();
                 addActivityFeedItem(`📝 Publisher updated to "${newName}"`, 'info');
             }
@@ -320,6 +353,7 @@ Phone: (555) CLAIM-01
                 }
             });
             
+            savePublishers();
             renderPublishersTable();
             updatePublisherStats();
             selectedPublishers.clear();
@@ -343,6 +377,7 @@ Phone: (555) CLAIM-01
                 }
             });
             
+            savePublishers();
             renderPublishersTable();
             updatePublisherStats();
             selectedPublishers.clear();
@@ -362,6 +397,7 @@ Phone: (555) CLAIM-01
             // Remove selected publishers from array
             allPublishers = allPublishers.filter(p => !selectedIds.includes(p.id));
             
+            savePublishers();
             renderPublishersTable();
             updatePublisherStats();
             updatePublisherCount();
@@ -418,6 +454,7 @@ Phone: (555) CLAIM-01
         const publisher = allPublishers.find(p => p.id === id);
         if (publisher && confirm(`Delete publisher "${publisher.name}"?\n\nThis action cannot be undone!`)) {
             allPublishers = allPublishers.filter(p => p.id !== id);
+            savePublishers();
             renderPublishersTable();
             updatePublisherStats();
             updatePublisherCount();
@@ -428,10 +465,17 @@ Phone: (555) CLAIM-01
     // Initialize when DOM is loaded
     document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => {
-            console.log('🏢 Publisher Manager initialized');
+            console.log('🏢 Publisher Manager initializing...');
+            
+            // First load existing publishers from localStorage
+            loadPublishers();
+            
+            // Then update the displays
             renderPublishersTable();
             updatePublisherStats();
             updatePublisherCount();
+            
+            console.log('🏢 Publisher Manager initialized with', allPublishers.length, 'publishers');
             
             // Confirm function is available
             console.log('✅ handleCreatePublisher available:', typeof window.handleCreatePublisher);
