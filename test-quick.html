@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Quick Button Test</title>
+    <script src="critical-functions.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #0F0F23; color: white; }
+        .btn { padding: 10px 20px; margin: 10px; background: #3B82F6; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        #results { margin-top: 20px; padding: 10px; background: #1A1A2E; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Quick Button Function Test</h1>
+    
+    <button class="btn" onclick="testFunction('openAddAgentModal')">Test Add Agent</button>
+    <button class="btn" onclick="testFunction('openAddPublisherModal')">Test Add Publisher</button>
+    <button class="btn" onclick="testFunction('handleLogout')">Test Logout</button>
+    
+    <div id="results">
+        <h3>Test Results:</h3>
+        <div id="status"></div>
+    </div>
+
+    <script>
+    function testFunction(funcName) {
+        const status = document.getElementById('status');
+        
+        if (typeof window[funcName] === 'function') {
+            status.innerHTML += `<div style="color: green;">✅ ${funcName} is available</div>`;
+            console.log(`✅ ${funcName} found and accessible`);
+        } else {
+            status.innerHTML += `<div style="color: red;">❌ ${funcName} is NOT available</div>`;
+            console.error(`❌ ${funcName} not found`);
+        }
+    }
+
+    // Auto-test on load
+    document.addEventListener('DOMContentLoaded', function() {
+        const functions = ['openAddAgentModal', 'openAddPublisherModal', 'closeModal', 'handleLogout', 'handleSendAgentInvite', 'handleCreatePublisher'];
+        
+        setTimeout(() => {
+            functions.forEach(func => testFunction(func));
+        }, 500);
+    });
+    </script>
+</body>
+</html> 
