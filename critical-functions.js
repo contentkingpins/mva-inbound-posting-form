@@ -70,19 +70,29 @@ function openAddPublisherModal() {
 function handleCreatePublisher() {
     console.log('🏢 BACKUP handleCreatePublisher called from critical-functions.js');
     
-    // Check if the advanced version from admin.html is available
-    if (window.handleCreatePublisher && window.handleCreatePublisher !== handleCreatePublisher) {
-        console.log('🔄 Calling advanced handleCreatePublisher from admin.html');
-        return window.handleCreatePublisher();
-    }
-    
+    // Wait a moment for publisher-manager.js to load and override this function
+    setTimeout(() => {
+        // Check if the dedicated script has loaded and overridden this function
+        const functionSource = window.handleCreatePublisher.toString();
+        if (functionSource.includes('DEDICATED') || functionSource.includes('publisher-manager.js')) {
+            console.log('🔄 Dedicated publisher manager detected, calling it...');
+            return window.handleCreatePublisher();
+        }
+        
+        // If still using backup after delay, execute basic fallback
+        console.log('⚠️ Using backup function - dedicated script not loaded');
+        executeBackupPublisherCreation();
+    }, 100);
+}
+
+function executeBackupPublisherCreation() {
     // Basic fallback implementation
     try {
         const name = document.getElementById('new-publisher-name');
         const email = document.getElementById('new-publisher-email');
         
         if (!name || !email) {
-            alert('Error: Form elements not found. Please refresh the page.');
+            alert('Error: Form elements not found. Please refresh the page and try again.');
             return;
         }
         
@@ -91,12 +101,18 @@ function handleCreatePublisher() {
             return;
         }
         
-        alert(`✅ Publisher "${name.value}" would be created! (Using backup function)\n\nThis is a basic fallback. Please refresh the page to use the full functionality.`);
-        closeModal('add-publisher-modal');
+        // Show a more helpful message
+        const publisherName = name.value;
+        const response = confirm(`✅ Ready to create publisher "${publisherName}"!\n\nNote: You're using the backup system. For full functionality (PDF generation, ZIP packages, tracking IDs), please:\n\n1. Refresh the page (Cmd+Shift+R)\n2. Try again\n\nContinue with basic creation?`);
+        
+        if (response) {
+            alert(`✅ Publisher "${publisherName}" would be created!\n\n(This is the backup system - refresh page for full features)`);
+            closeModal('add-publisher-modal');
+        }
         
     } catch (error) {
         console.error('Error in backup handleCreatePublisher:', error);
-        alert('Error creating publisher: ' + error.message);
+        alert('Error creating publisher: ' + error.message + '\n\nPlease refresh the page and try again.');
     }
 }
 
