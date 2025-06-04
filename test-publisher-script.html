@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Publisher Script Test</title>
+</head>
+<body>
+    <h1>Publisher Script Loading Test</h1>
+    <p>Check the console for script loading messages...</p>
+    
+    <button onclick="testFunction()">Test handleCreatePublisher</button>
+    
+    <!-- Test the same script include as admin.html -->
+    <script src="publisher-manager.js"></script>
+    
+    <script>
+        console.log('🧪 Test page loaded');
+        
+        function testFunction() {
+            console.log('🧪 Testing function availability...');
+            console.log('🔧 handleCreatePublisher type:', typeof window.handleCreatePublisher);
+            
+            if (window.handleCreatePublisher) {
+                const source = window.handleCreatePublisher.toString();
+                console.log('🔧 Function source contains DEDICATED:', source.includes('DEDICATED'));
+                console.log('🔧 Function source preview:', source.substring(0, 200));
+            } else {
+                console.log('❌ handleCreatePublisher not found!');
+            }
+        }
+        
+        // Test immediately when page loads
+        setTimeout(() => {
+            console.log('🧪 Auto-testing after 1 second...');
+            testFunction();
+        }, 1000);
+    </script>
+</body>
+</html> 
