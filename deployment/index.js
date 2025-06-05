@@ -4,6 +4,7 @@ const forgotPassword = require('./forgot-password');
 const confirmForgotPassword = require('./confirm-forgot-password');
 const leadController = require('./leadController');
 const adminController = require('./adminController');
+const vendorController = require('./vendorController');
 
 // CORS headers for consistency
 const CORS_HEADERS = {
@@ -107,6 +108,62 @@ exports.handler = async (event) => {
       }
     }
     
+    // Vendor/Publisher Management Routes
+    else if (path.includes('/vendors/{id}/api-key') || path.includes('/vendors/') && event.pathParameters?.id && path.includes('api-key')) {
+      console.log('Routing to vendor API key regeneration handler');
+      if (httpMethod === 'PUT') {
+        return await vendorController.regenerateApiKey(event);
+      } else {
+        return {
+          statusCode: 405,
+          headers: CORS_HEADERS,
+          body: JSON.stringify({ error: "Method not allowed for vendor API key endpoint" })
+        };
+      }
+    }
+    else if (path.includes('/vendors/{id}') || path.includes('/vendors/') && event.pathParameters?.id) {
+      console.log('Routing to vendor by ID handler');
+      if (httpMethod === 'GET') {
+        return await vendorController.getVendor(event);
+      } else if (httpMethod === 'PUT') {
+        return await vendorController.updateVendor(event);
+      } else if (httpMethod === 'DELETE') {
+        return await vendorController.deleteVendor(event);
+      } else {
+        return {
+          statusCode: 405,
+          headers: CORS_HEADERS,
+          body: JSON.stringify({ error: "Method not allowed for vendor endpoint" })
+        };
+      }
+    }
+    else if (path.includes('/vendors/bulk-update') || path.includes('vendors/bulk-update')) {
+      console.log('Routing to bulk vendor update handler');
+      if (httpMethod === 'POST') {
+        return await vendorController.bulkUpdateVendors(event);
+      } else {
+        return {
+          statusCode: 405,
+          headers: CORS_HEADERS,
+          body: JSON.stringify({ error: "Method not allowed for bulk vendor update endpoint" })
+        };
+      }
+    }
+    else if (path.includes('/vendors') || path.startsWith('/vendors')) {
+      console.log('Routing to vendors handler');
+      if (httpMethod === 'GET') {
+        return await vendorController.getVendors(event);
+      } else if (httpMethod === 'POST') {
+        return await vendorController.createVendor(event);
+      } else {
+        return {
+          statusCode: 405,
+          headers: CORS_HEADERS,
+          body: JSON.stringify({ error: "Method not allowed for vendors endpoint" })
+        };
+      }
+    }
+    
     // Default 404 handler
     else {
       console.log('No matching route found for path:', path);
@@ -124,6 +181,13 @@ exports.handler = async (event) => {
             'DELETE /leads/{id}',
             'GET /admin/stats',
             'GET /admin/analytics',
+            'GET /vendors',
+            'POST /vendors',
+            'GET /vendors/{id}',
+            'PUT /vendors/{id}',
+            'DELETE /vendors/{id}',
+            'PUT /vendors/{id}/api-key',
+            'POST /vendors/bulk-update',
             'POST /auth/get-username',
             'POST /auth/forgot-password',
             'POST /auth/confirm'

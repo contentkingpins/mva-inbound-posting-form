@@ -50,8 +50,8 @@ class MVACRMAPIService {
    * Add authentication headers based on user type
    */
   addAuthHeaders(headers) {
-    // Try JWT token first (for admin/agent users)
-    const accessToken = localStorage.getItem('accessToken') || localStorage.getItem('auth_token');
+    // Try JWT token first (for admin/agent users) - Updated to new localStorage keys
+    const accessToken = localStorage.getItem('mva_token') || localStorage.getItem('accessToken') || localStorage.getItem('auth_token');
     if (accessToken) {
       headers['Authorization'] = `Bearer ${accessToken}`;
       return;
@@ -66,14 +66,42 @@ class MVACRMAPIService {
   }
 
   /**
-   * Get current user info from localStorage
+   * Get current user info from localStorage or JWT token
    */
   getCurrentUser() {
     try {
-      const userStr = localStorage.getItem('user');
+      // First try new JWT token approach
+      const token = localStorage.getItem('mva_token');
+      if (token) {
+        return this.getUserFromToken(token);
+      }
+
+      // Fallback to old localStorage approach
+      const userStr = localStorage.getItem('mva_user') || localStorage.getItem('user');
       return userStr ? JSON.parse(userStr) : null;
     } catch (error) {
       console.error('Error parsing user data:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Extract user info from JWT token
+   */
+  getUserFromToken(token) {
+    try {
+      if (!token) return null;
+      
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      return {
+        user_id: payload.user_id,
+        email: payload.email,
+        role: payload.role,
+        vendor_code: payload.vendor_code,
+        username: payload.username || payload.email
+      };
+    } catch (error) {
+      console.error('Invalid JWT token:', error);
       return null;
     }
   }
@@ -249,6 +277,22 @@ class MVACRMAPIService {
   }
 
   /**
+   * Get all vendors (Admin only)
+   */
+  async getVendors(queryParams = {}) {
+    const searchParams = new URLSearchParams(queryParams);
+    const endpoint = searchParams.toString() ? `/vendors?${searchParams}` : '/vendors';
+    return this.request(endpoint, { method: 'GET' });
+  }
+
+  /**
+   * Get specific vendor by ID (Admin only)
+   */
+  async getVendor(vendorId) {
+    return this.request(`/vendors/${vendorId}`, { method: 'GET' });
+  }
+
+  /**
    * Create new vendor (Admin only)
    */
   async createVendor(vendorData) {
@@ -256,6 +300,43 @@ class MVACRMAPIService {
       method: 'POST',
       body: JSON.stringify(vendorData)
     });
+  }
+
+  /**
+   * Update vendor (Admin only)
+   */
+  async updateVendor(vendorId, vendorData) {
+    return this.request(`/vendors/${vendorId}`, {
+      method: 'PUT',
+      body: JSON.stringify(vendorData)
+    });
+  }
+
+  /**
+   * Delete vendor (Admin only)
+   */
+  async deleteVendor(vendorId) {
+    return this.request(`/vendors/${vendorId}`, { method: 'DELETE' });
+  }
+
+  /**
+   * Bulk update vendors (Admin only)
+   */
+  async bulkUpdateVendors(vendorIds, updates) {
+    return this.request('/vendors/bulk-update', {
+      method: 'POST',
+      body: JSON.stringify({
+        vendor_ids: vendorIds,
+        updates: updates
+      })
+    });
+  }
+
+  /**
+   * Regenerate vendor API key (Admin only)
+   */
+  async regenerateVendorApiKey(vendorId) {
+    return this.request(`/vendors/${vendorId}/api-key`, { method: 'PUT' });
   }
 
   /**

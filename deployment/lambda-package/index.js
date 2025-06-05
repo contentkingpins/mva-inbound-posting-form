@@ -6,6 +6,7 @@ const leadController = require('./leadController');
 const adminController = require('./adminController');
 const assignmentController = require('./assignmentController');
 const bulkController = require('./bulkController');
+const vendorController = require('./vendorController');
 // PHASE 2: Search & Export Controllers
 const searchController = require('./searchController');
 const exportController = require('./exportController');
@@ -297,6 +298,62 @@ exports.handler = async (event) => {
       }
     }
     
+    // Vendor/Publisher Management Routes
+    else if (path.includes('/vendors/{id}/api-key') || path.includes('/vendors/') && event.pathParameters?.id && path.includes('api-key')) {
+      console.log('Routing to vendor API key regeneration handler');
+      if (httpMethod === 'PUT') {
+        return await vendorController.regenerateApiKey(event);
+      } else {
+        return {
+          statusCode: 405,
+          headers: CORS_HEADERS,
+          body: JSON.stringify({ error: "Method not allowed for vendor API key endpoint" })
+        };
+      }
+    }
+    else if (path.includes('/vendors/{id}') || path.includes('/vendors/') && event.pathParameters?.id) {
+      console.log('Routing to vendor by ID handler');
+      if (httpMethod === 'GET') {
+        return await vendorController.getVendor(event);
+      } else if (httpMethod === 'PUT') {
+        return await vendorController.updateVendor(event);
+      } else if (httpMethod === 'DELETE') {
+        return await vendorController.deleteVendor(event);
+      } else {
+        return {
+          statusCode: 405,
+          headers: CORS_HEADERS,
+          body: JSON.stringify({ error: "Method not allowed for vendor endpoint" })
+        };
+      }
+    }
+    else if (path.includes('/vendors/bulk-update') || path.includes('vendors/bulk-update')) {
+      console.log('Routing to bulk vendor update handler');
+      if (httpMethod === 'POST') {
+        return await vendorController.bulkUpdateVendors(event);
+      } else {
+        return {
+          statusCode: 405,
+          headers: CORS_HEADERS,
+          body: JSON.stringify({ error: "Method not allowed for bulk vendor update endpoint" })
+        };
+      }
+    }
+    else if (path.includes('/vendors') || path.startsWith('/vendors')) {
+      console.log('Routing to vendors handler');
+      if (httpMethod === 'GET') {
+        return await vendorController.getVendors(event);
+      } else if (httpMethod === 'POST') {
+        return await vendorController.createVendor(event);
+      } else {
+        return {
+          statusCode: 405,
+          headers: CORS_HEADERS,
+          body: JSON.stringify({ error: "Method not allowed for vendors endpoint" })
+        };
+      }
+    }
+    
     // PHASE 3: Document Search & Analytics Routes
     else if (path.includes('/documents/search') || path.includes('documents/search')) {
       console.log('Routing to document search handler');
@@ -414,6 +471,13 @@ exports.handler = async (event) => {
             'PUT /agents/{agentId}/capacity',
             'GET /admin/stats',
             'GET /admin/analytics',
+            'GET /vendors',
+            'POST /vendors',
+            'GET /vendors/{id}',
+            'PUT /vendors/{id}',
+            'DELETE /vendors/{id}',
+            'PUT /vendors/{id}/api-key',
+            'POST /vendors/bulk-update',
             'POST /auth/get-username',
             'POST /auth/forgot-password',
             'POST /auth/confirm'

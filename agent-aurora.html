@@ -1324,7 +1324,7 @@
                 
                 <div class="form-row">
                     <div class="form-group">
-                        <label class="form-label">Publisher Attribution *</label>
+                        <label class="form-label">Publisher Name *</label>
                         <select id="newLeadPublisher" class="form-input" required>
                             <option value="">Select Publisher</option>
                             <option value="PUB123456789">PUB123456789 - Premium Legal Leads LLC</option>
@@ -1332,9 +1332,6 @@
                             <option value="PUB555444333">PUB555444333 - Accident Report Network</option>
                             <option value="UNKNOWN">UNKNOWN - Unknown/Missing Tracking</option>
                         </select>
-                        <small style="color: var(--text-secondary); font-size: 0.75rem; margin-top: 0.25rem; display: block;">
-                            📞 When callers mention seeing specific ads, select the publisher whose ad they saw. This ensures proper revenue attribution for phone conversions.
-                        </small>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Urgency</label>
@@ -2025,7 +2022,7 @@
     }
 
     // Create new lead functions
-    function populatePublisherDropdown() {
+    async function populatePublisherDropdown() {
         try {
             const publisherSelect = document.getElementById('newLeadPublisher');
             if (!publisherSelect) return;
@@ -2034,7 +2031,17 @@
             publisherSelect.innerHTML = '<option value="">Select Publisher</option>';
             
             // Get publishers from localStorage
-            const publishers = JSON.parse(localStorage.getItem('publishers') || '[]');
+            // Load publishers from API instead of localStorage
+        let publishers = [];
+        try {
+            const apiService = new MVACRMAPIService();
+            const response = await apiService.getVendors();
+            publishers = response.vendors || [];
+        } catch (error) {
+            console.error('Error loading publishers from API:', error);
+            // Fallback to localStorage for backward compatibility
+            publishers = JSON.parse(localStorage.getItem('publishers') || '[]');
+        }
             
             // Add publisher options
             publishers.forEach(publisher => {

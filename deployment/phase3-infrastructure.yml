@@ -14,6 +14,64 @@ Parameters:
 
 Resources:
   # ========================================
+  # VENDOR/PUBLISHER MANAGEMENT TABLE
+  # ========================================
+  VendorsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${ProjectName}-Vendors-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: vendor_code
+          AttributeType: S
+        - AttributeName: email
+          AttributeType: S
+        - AttributeName: status
+          AttributeType: S
+        - AttributeName: created_date
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        # Index for querying vendors by vendor code (for API integration)
+        - IndexName: VendorCodeIndex
+          KeySchema:
+            - AttributeName: vendor_code
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+        # Index for querying vendors by email
+        - IndexName: EmailIndex
+          KeySchema:
+            - AttributeName: email
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+        # Index for querying vendors by status and creation date
+        - IndexName: StatusDateIndex
+          KeySchema:
+            - AttributeName: status
+              KeyType: HASH
+            - AttributeName: created_date
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Component
+          Value: 'VendorManagement'
+
+  # ========================================
   # PHASE 3: DOCUMENTS TABLE
   # ========================================
   DocumentsTable:
@@ -396,7 +454,7 @@ Resources:
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
-          # DynamoDB access for document tables
+          # DynamoDB access for document tables and vendor management
           - Effect: Allow
             Action:
               - dynamodb:GetItem
@@ -410,6 +468,8 @@ Resources:
               - !Sub '${DocumentsTable.Arn}/index/*'
               - !GetAtt DocumentActivityTable.Arn
               - !Sub '${DocumentActivityTable.Arn}/index/*'
+              - !GetAtt VendorsTable.Arn
+              - !Sub '${VendorsTable.Arn}/index/*'
           # S3 access for document operations
           - Effect: Allow
             Action:
