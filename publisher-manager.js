@@ -17,12 +17,62 @@ try {
                 allPublishers = JSON.parse(stored);
                 console.log('📂 Loaded', allPublishers.length, 'publishers from localStorage');
             } else {
-                console.log('📂 No stored publishers found, starting fresh');
+                console.log('📂 No stored publishers found, creating sample publishers');
+                createSamplePublishers();
             }
         } catch (error) {
             console.error('❌ Error loading publishers from localStorage:', error);
-            allPublishers = [];
+            createSamplePublishers();
         }
+    }
+
+    // Create sample publishers that match the vendor codes in leads
+    function createSamplePublishers() {
+        const samplePublishers = [
+            {
+                id: 'pub_premium_legal',
+                name: 'Premium Legal Leads LLC',
+                email: 'contact@premiumlegalleads.com',
+                vendorCode: 'PUB123456789',
+                apiKey: 'api_premium_' + Math.random().toString(36).substr(2, 24),
+                trackingId: 'TRK_PREMIUM01',
+                status: 'active',
+                leads: 0,
+                highValueLeads: 0,
+                revenue: 0,
+                lastActivity: new Date().toISOString()
+            },
+            {
+                id: 'pub_traffic_pros',
+                name: 'Traffic Accident Pros',
+                email: 'support@trafficaccidentpros.com',
+                vendorCode: 'PUB987654321',
+                apiKey: 'api_traffic_' + Math.random().toString(36).substr(2, 24),
+                trackingId: 'TRK_TRAFFIC02',
+                status: 'active',
+                leads: 0,
+                highValueLeads: 0,
+                revenue: 0,
+                lastActivity: new Date().toISOString()
+            },
+            {
+                id: 'pub_accident_network',
+                name: 'Accident Report Network',
+                email: 'publishers@accidentreport.net',
+                vendorCode: 'PUB555444333',
+                apiKey: 'api_accident_' + Math.random().toString(36).substr(2, 24),
+                trackingId: 'TRK_NETWORK03',
+                status: 'active',
+                leads: 0,
+                highValueLeads: 0,
+                revenue: 0,
+                lastActivity: new Date().toISOString()
+            }
+        ];
+
+        allPublishers = samplePublishers;
+        savePublishers();
+        console.log('📂 Created', allPublishers.length, 'sample publishers with matching vendor codes');
     }
     
     // Save publishers to localStorage
@@ -245,6 +295,9 @@ Phone: (555) CLAIM-01
             return;
         }
 
+        // Update publisher lead counts with real data
+        updatePublisherLeadCounts();
+
         tbody.innerHTML = allPublishers.map(publisher => `
             <tr>
                 <td><input type="checkbox" value="${publisher.id}" onchange="togglePublisherSelection('${publisher.id}', this.checked)"></td>
@@ -258,12 +311,20 @@ Phone: (555) CLAIM-01
                 <td><span class="vendor-code">${publisher.vendorCode}</span></td>
                 <td><span class="vendor-code">${publisher.trackingId}</span></td>
                 <td><div class="api-key-display">${publisher.apiKey.substring(0, 8)}...</div></td>
-                <td>${publisher.leads}</td>
-                <td>$${publisher.revenue}</td>
+                <td>
+                    <strong>${publisher.leads}</strong>
+                    ${publisher.leads > 0 ? `<br><small class="text-muted">${publisher.highValueLeads || 0} high-value</small>` : ''}
+                </td>
+                <td>$${publisher.revenue.toLocaleString()}</td>
                 <td>Just now</td>
                 <td>
                     <button class="action-btn-sm view" onclick="viewPublisher('${publisher.id}')">👁️</button>
                     <button class="action-btn-sm edit" onclick="editPublisher('${publisher.id}')">✏️</button>
+                    ${publisher.leads > 0 ? 
+                        `<button class="action-btn-sm leads" onclick="viewPublisherLeads('${publisher.vendorCode}', '${publisher.name}')" title="View leads from this publisher">📋 Leads</button>` : 
+                        `<button class="action-btn-sm leads disabled" title="No leads from this publisher yet">📋 No Leads</button>`
+                    }
+                    <button class="action-btn-sm pdf" onclick="downloadPublisherCredentials(${JSON.stringify(publisher).replace(/"/g, '&quot;')})" title="Download credentials">📄</button>
                     <button class="action-btn-sm delete" onclick="deletePublisher('${publisher.id}')">🗑️</button>
                 </td>
             </tr>
@@ -272,6 +333,135 @@ Phone: (555) CLAIM-01
         console.log('📊 Publishers table updated with', allPublishers.length, 'publishers');
         updateBulkActionsVisibility();
     }
+
+    // Update publisher lead counts based on actual lead data
+    function updatePublisherLeadCounts() {
+        try {
+            // Get leads from agent dashboard if available
+            let allLeads = [];
+            
+            // Try to get leads from agent dashboard
+            if (window.mockAvailableLeads) {
+                allLeads = [...window.mockAvailableLeads];
+            }
+            if (window.mockMyLeads) {
+                allLeads = allLeads.concat(window.mockMyLeads);
+            }
+            
+            // Reset lead counts
+            allPublishers.forEach(publisher => {
+                publisher.leads = 0;
+                publisher.highValueLeads = 0;
+                publisher.revenue = 0;
+            });
+            
+            // Count leads for each publisher
+            allLeads.forEach(lead => {
+                if (lead.vendor_code) {
+                    const publisher = allPublishers.find(p => p.vendorCode === lead.vendor_code);
+                    if (publisher) {
+                        publisher.leads++;
+                        
+                        // Check if high-value lead
+                        const isHighValue = lead.estimated_medical_bills && 
+                                           (lead.estimated_medical_bills.includes('100,000') || 
+                                            lead.estimated_medical_bills.includes('100000') ||
+                                            lead.estimated_medical_bills.includes('More than'));
+                        
+                        if (isHighValue) {
+                            publisher.highValueLeads++;
+                            publisher.revenue += 2500; // High-value lead revenue
+                        } else {
+                            publisher.revenue += 500; // Standard lead revenue
+                        }
+                    }
+                }
+            });
+            
+            console.log('📊 Updated publisher lead counts from', allLeads.length, 'total leads');
+            
+        } catch (error) {
+            console.error('Error updating publisher lead counts:', error);
+        }
+    }
+
+    // View leads from a specific publisher
+    window.viewPublisherLeads = function(vendorCode, publisherName) {
+        try {
+            console.log('📋 Viewing leads for publisher:', publisherName, 'with vendor code:', vendorCode);
+            
+            // Get all leads for this publisher
+            let publisherLeads = [];
+            
+            if (window.mockAvailableLeads) {
+                publisherLeads = publisherLeads.concat(
+                    window.mockAvailableLeads.filter(lead => lead.vendor_code === vendorCode)
+                );
+            }
+            if (window.mockMyLeads) {
+                publisherLeads = publisherLeads.concat(
+                    window.mockMyLeads.filter(lead => lead.vendor_code === vendorCode)
+                );
+            }
+            
+            if (publisherLeads.length === 0) {
+                alert(`📋 No leads found for ${publisherName}\n\nVendor Code: ${vendorCode}\n\nThis publisher hasn't submitted any leads yet.`);
+                return;
+            }
+            
+            // Create detailed lead report
+            const highValueCount = publisherLeads.filter(lead => 
+                lead.estimated_medical_bills && 
+                (lead.estimated_medical_bills.includes('100,000') || 
+                 lead.estimated_medical_bills.includes('100000') ||
+                 lead.estimated_medical_bills.includes('More than'))
+            ).length;
+            
+            const totalRevenue = publisherLeads.reduce((sum, lead) => {
+                const isHighValue = lead.estimated_medical_bills && 
+                                   (lead.estimated_medical_bills.includes('100,000') || 
+                                    lead.estimated_medical_bills.includes('100000') ||
+                                    lead.estimated_medical_bills.includes('More than'));
+                return sum + (isHighValue ? 2500 : 500);
+            }, 0);
+            
+            const leadsList = publisherLeads.map(lead => 
+                `• ${lead.name} - ${lead.type} (${lead.state}) - ${lead.estimated_medical_bills || 'Standard value'}`
+            ).join('\n');
+            
+            const report = `📋 PUBLISHER LEADS REPORT
+================================
+
+Publisher: ${publisherName}
+Vendor Code: ${vendorCode}
+
+📊 STATISTICS:
+• Total Leads: ${publisherLeads.length}
+• High-Value Leads: ${highValueCount}
+• Standard Leads: ${publisherLeads.length - highValueCount}
+• Total Revenue: $${totalRevenue.toLocaleString()}
+
+🏥 LEAD DETAILS:
+${leadsList}
+
+💡 ANALYSIS:
+• High-Value Rate: ${Math.round((highValueCount / publisherLeads.length) * 100)}%
+• Average Revenue per Lead: $${Math.round(totalRevenue / publisherLeads.length).toLocaleString()}
+• Primary States: ${[...new Set(publisherLeads.map(l => l.state))].join(', ')}
+
+Would you like to open the Agent Dashboard to view these leads in detail?`;
+            
+            if (confirm(report)) {
+                // Open agent dashboard with publisher filter
+                const agentUrl = `agent-aurora.html?publisher=${encodeURIComponent(vendorCode)}&name=${encodeURIComponent(publisherName)}`;
+                window.open(agentUrl, '_blank');
+            }
+            
+        } catch (error) {
+            console.error('Error viewing publisher leads:', error);
+            alert('Error loading publisher leads. Please try again.');
+        }
+    };
 
     function updatePublisherCount() {
         const countEl = document.getElementById('publisher-count');

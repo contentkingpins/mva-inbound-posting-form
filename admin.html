@@ -438,6 +438,13 @@
     .bulk-buttons { display: flex; gap: 0.5rem; }
     .publisher-count { background: var(--accent-purple); color: white; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.75rem; font-weight: 600; }
     
+    /* Publisher Leads Integration Styling */
+    .action-btn-sm.leads { background: linear-gradient(135deg, var(--success), #059669); color: white; border: 1px solid var(--success); }
+    .action-btn-sm.leads:hover { background: linear-gradient(135deg, #059669, #047857); transform: translateY(-1px); }
+    .action-btn-sm.leads.disabled { background: #6B7280; color: #9CA3AF; cursor: not-allowed; border: 1px solid #4B5563; }
+    .action-btn-sm.leads.disabled:hover { transform: none; background: #6B7280; }
+    .text-muted { color: #9CA3AF; font-size: 0.75rem; font-style: italic; }
+    
     /* Form Styles */
     .form-group {
         margin-bottom: 1.5rem;
