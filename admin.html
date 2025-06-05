@@ -711,6 +711,11 @@
                 </div>
                 
                 <div class="management-actions">
+                    <button class="action-btn" onclick="viewAllLeads()">
+                        <span class="btn-icon">📋</span>
+                        <span class="btn-text">View All Leads</span>
+                    </button>
+                    
                     <button class="action-btn" onclick="reassignLead()">
                         <span class="btn-icon">🔄</span>
                         <span class="btn-text">Reassign Lead</span>
@@ -719,11 +724,6 @@
                     <button class="action-btn" onclick="bulkActions()">
                         <span class="btn-icon">📦</span>
                         <span class="btn-text">Bulk Actions</span>
-                    </button>
-                    
-                    <button class="action-btn" onclick="leadImport()">
-                        <span class="btn-icon">📥</span>
-                        <span class="btn-text">Import Leads</span>
                     </button>
                     
                     <button class="action-btn" onclick="agentDashboard()">
@@ -840,6 +840,133 @@
                     <button class="btn btn-warning" onclick="bulkDeactivatePublishers()">🔴 Deactivate</button>
                     <button class="btn btn-info" onclick="bulkDownloadPdfs()">📄 Download PDFs</button>
                     <button class="btn btn-danger" onclick="bulkDeletePublishers()">🗑️ Delete</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- All Leads Management Section -->
+        <section class="admin-section all-leads-management" id="all-leads-section" style="display: none;">
+            <div class="section-header">
+                <div class="section-title">
+                    <span class="section-icon">📋</span>
+                    <h2>All Incoming Leads</h2>
+                    <span class="publisher-count" id="all-leads-count">0 leads</span>
+                </div>
+                <div class="section-actions">
+                    <button class="btn btn-secondary" onclick="refreshAllLeads()">🔄 Refresh</button>
+                    <button class="btn btn-info" onclick="exportAllLeads()">📊 Export CSV</button>
+                    <button class="btn btn-warning" onclick="hideAllLeads()">✖️ Close</button>
+                </div>
+            </div>
+
+            <!-- Lead Stats Overview -->
+            <div class="publisher-stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">📋</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="total-all-leads">0</div>
+                        <div class="stat-label">Total Leads</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="high-value-leads">0</div>
+                        <div class="stat-label">High-Value Leads</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🎯</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="available-leads-count">0</div>
+                        <div class="stat-label">Available</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">👤</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="claimed-leads-count">0</div>
+                        <div class="stat-label">Claimed</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lead Filters -->
+            <div class="publisher-filters">
+                <div class="filter-group">
+                    <input type="text" id="lead-search" placeholder="Search leads by name, email, phone..." class="form-input">
+                </div>
+                <div class="filter-group">
+                    <select id="lead-publisher-filter" class="form-input">
+                        <option value="">All Publishers</option>
+                        <option value="PUB123456789">Premium Legal Leads LLC</option>
+                        <option value="PUB987654321">Traffic Accident Pros</option>
+                        <option value="PUB555444333">Accident Report Network</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <select id="lead-status-filter" class="form-input">
+                        <option value="">All Status</option>
+                        <option value="available">Available</option>
+                        <option value="claimed">Claimed</option>
+                        <option value="contacted">Contacted</option>
+                        <option value="retained">Retained</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <select id="lead-value-filter" class="form-input">
+                        <option value="">All Values</option>
+                        <option value="high">High-Value ($100k+)</option>
+                        <option value="medium">Medium-Value ($10k-$99k)</option>
+                        <option value="low">Low-Value (<$10k)</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <select id="lead-sort" class="form-input">
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                        <option value="value">By Medical Bills</option>
+                        <option value="publisher">By Publisher</option>
+                        <option value="state">By State</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Leads Table -->
+            <div class="table-container">
+                <table class="admin-table" id="all-leads-table">
+                    <thead>
+                        <tr>
+                            <th>
+                                <input type="checkbox" id="select-all-leads" onchange="toggleSelectAllLeads()">
+                            </th>
+                            <th>Lead Info</th>
+                            <th>Publisher</th>
+                            <th>Medical Bills</th>
+                            <th>Primary Injury</th>
+                            <th>Status</th>
+                            <th>State</th>
+                            <th>Incident Date</th>
+                            <th>Received</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="all-leads-table-body">
+                        <!-- Leads will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Bulk Actions Bar for Leads -->
+            <div class="bulk-actions-bar" id="bulk-leads-actions" style="display: none;">
+                <div class="bulk-info">
+                    <span id="selected-leads-count">0</span> leads selected
+                </div>
+                <div class="bulk-buttons">
+                    <button class="btn btn-secondary" onclick="bulkAssignLeads()">👤 Assign Agent</button>
+                    <button class="btn btn-info" onclick="bulkExportLeads()">📊 Export Selected</button>
+                    <button class="btn btn-warning" onclick="bulkMarkContacted()">📞 Mark Contacted</button>
+                    <button class="btn btn-danger" onclick="bulkDeleteLeads()">🗑️ Delete</button>
                 </div>
             </div>
         </section>

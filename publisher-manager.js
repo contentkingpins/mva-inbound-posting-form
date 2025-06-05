@@ -673,7 +673,660 @@ Would you like to open the Agent Dashboard to view these leads in detail?`;
         }, 500);
     });
 
+    // === ALL LEADS MANAGEMENT FUNCTIONALITY ===
+    
+    let selectedLeads = new Set();
+    let allLeadsData = [];
+    let filteredLeadsData = [];
+
+    // Get all leads from agent dashboard data
+    function getAllLeadsData() {
+        try {
+            let allLeads = [];
+            
+            // Get leads from agent dashboard if available
+            if (window.mockAvailableLeads) {
+                allLeads = allLeads.concat(window.mockAvailableLeads.map(lead => ({
+                    ...lead,
+                    leadStatus: 'available',
+                    receivedDate: new Date().toISOString().split('T')[0]
+                })));
+            }
+            if (window.mockMyLeads) {
+                allLeads = allLeads.concat(window.mockMyLeads.map(lead => ({
+                    ...lead,
+                    leadStatus: lead.status || 'claimed',
+                    receivedDate: lead.claimedDate || new Date().toISOString().split('T')[0]
+                })));
+            }
+            
+            return allLeads;
+            
+        } catch (error) {
+            console.error('Error getting all leads data:', error);
+            return [];
+        }
+    }
+
+    // Show all leads management section
+    window.viewAllLeads = function() {
+        try {
+            console.log('📋 Opening All Leads Management...');
+            
+            // Hide other sections
+            const publisherSection = document.querySelector('.publisher-management');
+            if (publisherSection) publisherSection.style.display = 'none';
+            
+            // Show all leads section
+            const allLeadsSection = document.getElementById('all-leads-section');
+            if (allLeadsSection) {
+                allLeadsSection.style.display = 'block';
+                
+                // Scroll to section
+                allLeadsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                
+                // Load and render leads
+                loadAllLeadsData();
+                renderAllLeadsTable();
+                updateAllLeadsStats();
+                setupLeadFilters();
+                
+                console.log('✅ All Leads Management opened');
+            }
+            
+        } catch (error) {
+            console.error('Error opening all leads management:', error);
+            alert('Error opening leads management. Please try again.');
+        }
+    };
+
+    // Hide all leads management section
+    window.hideAllLeads = function() {
+        try {
+            // Hide all leads section
+            const allLeadsSection = document.getElementById('all-leads-section');
+            if (allLeadsSection) allLeadsSection.style.display = 'none';
+            
+            // Show publisher section
+            const publisherSection = document.querySelector('.publisher-management');
+            if (publisherSection) publisherSection.style.display = 'block';
+            
+            console.log('📋 All Leads Management closed');
+            
+        } catch (error) {
+            console.error('Error hiding all leads management:', error);
+        }
+    };
+
+    // Load all leads data
+    function loadAllLeadsData() {
+        try {
+            allLeadsData = getAllLeadsData();
+            filteredLeadsData = [...allLeadsData];
+            
+            console.log('📊 Loaded', allLeadsData.length, 'total leads for admin view');
+            
+        } catch (error) {
+            console.error('Error loading all leads data:', error);
+        }
+    }
+
+    // Render all leads table
+    function renderAllLeadsTable() {
+        try {
+            const tbody = document.getElementById('all-leads-table-body');
+            if (!tbody) return;
+
+            if (filteredLeadsData.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="10" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                            <div>
+                                <div style="font-size: 3rem; margin-bottom: 1rem;">📋</div>
+                                <div>No leads found</div>
+                                <div style="font-size: 0.875rem; margin-top: 0.5rem;">Try adjusting your filters or refresh the data</div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = filteredLeadsData.map(lead => {
+                const isHighValue = lead.estimated_medical_bills && 
+                                   (lead.estimated_medical_bills.includes('100,000') || 
+                                    lead.estimated_medical_bills.includes('100000') ||
+                                    lead.estimated_medical_bills.includes('More than'));
+                
+                const statusBadgeClass = {
+                    'available': 'success',
+                    'claimed': 'warning', 
+                    'contacted': 'info',
+                    'retained': 'success'
+                }[lead.leadStatus] || 'secondary';
+
+                return `
+                    <tr>
+                        <td><input type="checkbox" value="${lead.id}" onchange="toggleLeadSelection('${lead.id}', this.checked)"></td>
+                        <td>
+                            <div class="publisher-info">
+                                <div class="publisher-name">${lead.name}</div>
+                                <div class="publisher-email">${lead.email}</div>
+                                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+                                    📞 ${lead.phone} • 📧 ${lead.email}
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div style="font-size: 0.875rem;">
+                                <div style="font-weight: 600;">${lead.publisher_name || 'Unknown Publisher'}</div>
+                                <div class="vendor-code" style="margin-top: 0.25rem;">${lead.vendor_code || 'N/A'}</div>
+                            </div>
+                        </td>
+                        <td>
+                            <div style="font-weight: ${isHighValue ? 'bold' : 'normal'}; color: ${isHighValue ? '#22c55e' : 'inherit'};">
+                                ${lead.estimated_medical_bills || 'Not specified'}
+                            </div>
+                            ${isHighValue ? '<div style="font-size: 0.75rem; color: #22c55e;">💰 High-Value</div>' : ''}
+                        </td>
+                        <td>${lead.what_is_the_primary_injury || 'Not specified'}</td>
+                        <td><span class="status-badge ${statusBadgeClass}">${lead.leadStatus.toUpperCase()}</span></td>
+                        <td><strong>${lead.state}</strong></td>
+                        <td>${lead.incidentDate || 'Not provided'}</td>
+                        <td>${lead.receivedDate || 'Unknown'}</td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="action-btn-sm view" onclick="viewLeadDetailsAdmin('${lead.id}')" title="View lead details">👁️</button>
+                                <button class="action-btn-sm edit" onclick="assignLeadToAgent('${lead.id}')" title="Assign to agent">👤</button>
+                                <button class="action-btn-sm api" onclick="viewLeadSource('${lead.id}')" title="View source info">🌐</button>
+                                <button class="action-btn-sm delete" onclick="deleteLeadAdmin('${lead.id}')" title="Delete lead">🗑️</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            console.log('📊 Rendered', filteredLeadsData.length, 'leads in admin table');
+            
+        } catch (error) {
+            console.error('Error rendering all leads table:', error);
+        }
+    }
+
+    // Update all leads statistics
+    function updateAllLeadsStats() {
+        try {
+            const totalLeads = allLeadsData.length;
+            const highValueLeads = allLeadsData.filter(lead => 
+                lead.estimated_medical_bills && 
+                (lead.estimated_medical_bills.includes('100,000') || 
+                 lead.estimated_medical_bills.includes('100000') ||
+                 lead.estimated_medical_bills.includes('More than'))
+            ).length;
+            const availableLeads = allLeadsData.filter(lead => lead.leadStatus === 'available').length;
+            const claimedLeads = allLeadsData.filter(lead => lead.leadStatus !== 'available').length;
+
+            // Update UI elements
+            const elements = {
+                'all-leads-count': `${totalLeads} leads`,
+                'total-all-leads': totalLeads,
+                'high-value-leads': highValueLeads,
+                'available-leads-count': availableLeads,
+                'claimed-leads-count': claimedLeads
+            };
+
+            Object.entries(elements).forEach(([id, value]) => {
+                const element = document.getElementById(id);
+                if (element) element.textContent = value;
+            });
+
+            console.log('📊 Updated all leads stats:', elements);
+            
+        } catch (error) {
+            console.error('Error updating all leads stats:', error);
+        }
+    }
+
+    // Setup lead filtering
+    function setupLeadFilters() {
+        try {
+            const filterElements = ['lead-search', 'lead-publisher-filter', 'lead-status-filter', 'lead-value-filter', 'lead-sort'];
+            
+            filterElements.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('change', applyLeadFilters);
+                    element.addEventListener('input', applyLeadFilters);
+                }
+            });
+            
+            console.log('🔧 Lead filters setup complete');
+            
+        } catch (error) {
+            console.error('Error setting up lead filters:', error);
+        }
+    }
+
+    // Apply lead filters
+    function applyLeadFilters() {
+        try {
+            let filtered = [...allLeadsData];
+            
+            // Search filter
+            const searchTerm = document.getElementById('lead-search')?.value.toLowerCase() || '';
+            if (searchTerm) {
+                filtered = filtered.filter(lead => {
+                    const searchText = [
+                        lead.name, lead.email, lead.phone, lead.description,
+                        lead.publisher_name, lead.vendor_code, lead.state
+                    ].join(' ').toLowerCase();
+                    return searchText.includes(searchTerm);
+                });
+            }
+
+            // Publisher filter
+            const publisherFilter = document.getElementById('lead-publisher-filter')?.value || '';
+            if (publisherFilter) {
+                filtered = filtered.filter(lead => lead.vendor_code === publisherFilter);
+            }
+
+            // Status filter
+            const statusFilter = document.getElementById('lead-status-filter')?.value || '';
+            if (statusFilter) {
+                filtered = filtered.filter(lead => lead.leadStatus === statusFilter);
+            }
+
+            // Value filter
+            const valueFilter = document.getElementById('lead-value-filter')?.value || '';
+            if (valueFilter) {
+                filtered = filtered.filter(lead => {
+                    const bills = lead.estimated_medical_bills || '';
+                    switch (valueFilter) {
+                        case 'high':
+                            return bills.includes('100,000') || bills.includes('100000') || bills.includes('More than');
+                        case 'medium':
+                            return (bills.includes('10,000') || bills.includes('50,000')) && 
+                                   !bills.includes('100,000') && !bills.includes('More than');
+                        case 'low':
+                            return bills.includes('5,000') || bills.includes('under') || bills.includes('less');
+                        default:
+                            return true;
+                    }
+                });
+            }
+
+            // Sort
+            const sortBy = document.getElementById('lead-sort')?.value || 'newest';
+            filtered.sort((a, b) => {
+                switch (sortBy) {
+                    case 'oldest':
+                        return new Date(a.receivedDate) - new Date(b.receivedDate);
+                    case 'value':
+                        const aValue = a.estimated_medical_bills || '';
+                        const bValue = b.estimated_medical_bills || '';
+                        const aHigh = aValue.includes('100,000') || aValue.includes('More than');
+                        const bHigh = bValue.includes('100,000') || bValue.includes('More than');
+                        return bHigh - aHigh;
+                    case 'publisher':
+                        return (a.publisher_name || '').localeCompare(b.publisher_name || '');
+                    case 'state':
+                        return (a.state || '').localeCompare(b.state || '');
+                    default: // newest
+                        return new Date(b.receivedDate) - new Date(a.receivedDate);
+                }
+            });
+
+            filteredLeadsData = filtered;
+            renderAllLeadsTable();
+            
+            console.log(`🔍 Applied filters: ${filtered.length}/${allLeadsData.length} leads shown`);
+            
+        } catch (error) {
+            console.error('Error applying lead filters:', error);
+        }
+    }
+
+    // Lead selection management
+    function toggleLeadSelection(leadId, checked) {
+        if (checked) {
+            selectedLeads.add(leadId);
+        } else {
+            selectedLeads.delete(leadId);
+        }
+        updateLeadBulkActionsVisibility();
+    }
+
+    window.toggleSelectAllLeads = function() {
+        const selectAllCheckbox = document.getElementById('select-all-leads');
+        const allCheckboxes = document.querySelectorAll('#all-leads-table-body input[type="checkbox"]');
+        
+        if (selectAllCheckbox && selectAllCheckbox.checked) {
+            allCheckboxes.forEach(checkbox => {
+                checkbox.checked = true;
+                selectedLeads.add(checkbox.value);
+            });
+        } else {
+            allCheckboxes.forEach(checkbox => {
+                checkbox.checked = false;
+                selectedLeads.delete(checkbox.value);
+            });
+        }
+        
+        updateLeadBulkActionsVisibility();
+    };
+
+    function updateLeadBulkActionsVisibility() {
+        const bulkBar = document.getElementById('bulk-leads-actions');
+        const count = document.getElementById('selected-leads-count');
+        
+        if (bulkBar && count) {
+            bulkBar.style.display = selectedLeads.size > 0 ? 'flex' : 'none';
+            count.textContent = selectedLeads.size;
+        }
+    }
+
+    // Lead action functions
+    window.viewLeadDetailsAdmin = function(leadId) {
+        const lead = allLeadsData.find(l => l.id === leadId);
+        if (lead) {
+            const details = `
+📋 LEAD DETAILS - ADMIN VIEW
+===============================
+
+👤 CONTACT INFORMATION:
+• Name: ${lead.name}
+• Email: ${lead.email}
+• Phone: ${lead.phone}
+• State: ${lead.state}
+
+🏢 PUBLISHER INFORMATION:
+• Publisher: ${lead.publisher_name || 'Unknown'}
+• Vendor Code: ${lead.vendor_code || 'N/A'}
+• Source: ${lead.xselect4 || 'Not specified'}
+
+🏥 CASE INFORMATION:
+• Type: ${lead.type}
+• Incident Date: ${lead.incidentDate || 'Not provided'}
+• Medical Bills: ${lead.estimated_medical_bills || 'Not specified'}
+• Primary Injury: ${lead.what_is_the_primary_injury || 'Not specified'}
+• Treatment: ${lead.did_the_injured_person_receive_treatment || 'Not specified'}
+
+⚖️ LEGAL STATUS:
+• Has Lawyer: ${lead.are_you_currently_represented_by_a_lawyer_for_this_case || 'Not specified'}
+• Police Report: ${lead.was_a_police_report_filed || 'Not specified'}
+
+📊 SYSTEM INFORMATION:
+• Status: ${lead.leadStatus}
+• Received: ${lead.receivedDate}
+• Lead ID: ${lead.id}
+
+🔗 COMPLIANCE:
+• TrustedForm: ${lead.trustedform_url ? '✅ Verified' : '❌ Not verified'}
+• Consent: ${lead.consent === '1' ? '✅ Provided' : '❌ Not provided'}
+
+📝 DESCRIPTION:
+${lead.description || lead.additional_details || 'No additional details provided'}
+
+Would you like to assign this lead to an agent or take other actions?
+            `;
+            
+            if (confirm(details)) {
+                assignLeadToAgent(leadId);
+            }
+        }
+    };
+
+    window.assignLeadToAgent = function(leadId) {
+        const agentName = prompt('Enter agent name or email to assign this lead:');
+        if (agentName && agentName.trim()) {
+            alert(`✅ Lead assigned to ${agentName}\n\nThe agent will be notified and can access the lead in their dashboard.`);
+            
+            // Update lead status
+            const lead = allLeadsData.find(l => l.id === leadId);
+            if (lead) {
+                lead.leadStatus = 'assigned';
+                lead.assignedAgent = agentName.trim();
+                renderAllLeadsTable();
+                updateAllLeadsStats();
+            }
+        }
+    };
+
+    window.viewLeadSource = function(leadId) {
+        const lead = allLeadsData.find(l => l.id === leadId);
+        if (lead) {
+            const sourceInfo = `
+🌐 LEAD SOURCE INFORMATION
+===========================
+
+📊 Source Details:
+• Campaign: ${lead.xselect4 || 'Not specified'}
+• Source URL: ${lead.source_url || 'Not provided'}
+• Referrer: ${lead.truncated_url || 'Not captured'}
+• Lead IP: ${lead.leadip || 'Not captured'}
+
+🏢 Publisher Details:
+• Publisher: ${lead.publisher_name || 'Unknown'}
+• Vendor Code: ${lead.vendor_code || 'N/A'}
+• Tracking ID: ${lead.trackingId || 'Not assigned'}
+
+✅ Compliance Verification:
+• TrustedForm URL: ${lead.trustedform_url || 'Not provided'}
+• Consent Status: ${lead.consent === '1' ? 'Verified' : 'Not verified'}
+• Form ID: ${lead.form_id || 'Not captured'}
+
+📅 Timing Information:
+• Received: ${lead.receivedDate}
+• Insert Time: ${lead.inserttime || 'Not recorded'}
+• Processing: ${lead.processed === 't' ? 'Processed' : 'Pending'}
+            `;
+            
+            alert(sourceInfo);
+        }
+    };
+
+    window.deleteLeadAdmin = function(leadId) {
+        const lead = allLeadsData.find(l => l.id === leadId);
+        if (lead && confirm(`⚠️ DELETE LEAD?\n\nThis will permanently delete:\n• ${lead.name}\n• ${lead.email}\n• ${lead.phone}\n\nThis action cannot be undone!`)) {
+            // Remove from data arrays
+            allLeadsData = allLeadsData.filter(l => l.id !== leadId);
+            filteredLeadsData = filteredLeadsData.filter(l => l.id !== leadId);
+            
+            // Remove from agent data if available
+            if (window.mockAvailableLeads) {
+                window.mockAvailableLeads = window.mockAvailableLeads.filter(l => l.id !== leadId);
+            }
+            if (window.mockMyLeads) {
+                window.mockMyLeads = window.mockMyLeads.filter(l => l.id !== leadId);
+            }
+            
+            renderAllLeadsTable();
+            updateAllLeadsStats();
+            
+            // Update publisher counts
+            updatePublisherLeadCounts();
+            renderPublishersTable();
+            updatePublisherStats();
+            
+            alert(`🗑️ Lead deleted: ${lead.name}`);
+        }
+    };
+
+    // Bulk actions for leads
+    window.bulkAssignLeads = function() {
+        const selectedIds = Array.from(selectedLeads);
+        if (selectedIds.length === 0) {
+            alert('Please select leads to assign');
+            return;
+        }
+        
+        const agentName = prompt(`Enter agent name to assign ${selectedIds.length} selected leads:`);
+        if (agentName && agentName.trim()) {
+            selectedIds.forEach(id => {
+                const lead = allLeadsData.find(l => l.id === id);
+                if (lead) {
+                    lead.leadStatus = 'assigned';
+                    lead.assignedAgent = agentName.trim();
+                }
+            });
+            
+            selectedLeads.clear();
+            updateLeadBulkActionsVisibility();
+            renderAllLeadsTable();
+            updateAllLeadsStats();
+            
+            alert(`✅ ${selectedIds.length} leads assigned to ${agentName}`);
+        }
+    };
+
+    window.bulkExportLeads = function() {
+        const selectedIds = Array.from(selectedLeads);
+        if (selectedIds.length === 0) {
+            alert('Please select leads to export');
+            return;
+        }
+        
+        const selectedLeadsData = allLeadsData.filter(l => selectedIds.includes(l.id));
+        exportLeadsToCSV(selectedLeadsData, 'selected_leads');
+        
+        alert(`📊 Exported ${selectedIds.length} selected leads to CSV`);
+    };
+
+    window.bulkMarkContacted = function() {
+        const selectedIds = Array.from(selectedLeads);
+        if (selectedIds.length === 0) {
+            alert('Please select leads to mark as contacted');
+            return;
+        }
+        
+        selectedIds.forEach(id => {
+            const lead = allLeadsData.find(l => l.id === id);
+            if (lead) {
+                lead.leadStatus = 'contacted';
+                lead.lastContact = new Date().toISOString().split('T')[0];
+            }
+        });
+        
+        selectedLeads.clear();
+        updateLeadBulkActionsVisibility();
+        renderAllLeadsTable();
+        updateAllLeadsStats();
+        
+        alert(`📞 ${selectedIds.length} leads marked as contacted`);
+    };
+
+    window.bulkDeleteLeads = function() {
+        const selectedIds = Array.from(selectedLeads);
+        if (selectedIds.length === 0) {
+            alert('Please select leads to delete');
+            return;
+        }
+        
+        if (confirm(`⚠️ DELETE ${selectedIds.length} LEADS?\n\nThis action cannot be undone!`)) {
+            // Remove from all data arrays
+            allLeadsData = allLeadsData.filter(l => !selectedIds.includes(l.id));
+            filteredLeadsData = filteredLeadsData.filter(l => !selectedIds.includes(l.id));
+            
+            // Remove from agent data if available
+            if (window.mockAvailableLeads) {
+                window.mockAvailableLeads = window.mockAvailableLeads.filter(l => !selectedIds.includes(l.id));
+            }
+            if (window.mockMyLeads) {
+                window.mockMyLeads = window.mockMyLeads.filter(l => !selectedIds.includes(l.id));
+            }
+            
+            selectedLeads.clear();
+            updateLeadBulkActionsVisibility();
+            renderAllLeadsTable();
+            updateAllLeadsStats();
+            
+            // Update publisher counts
+            updatePublisherLeadCounts();
+            renderPublishersTable();
+            updatePublisherStats();
+            
+            alert(`🗑️ ${selectedIds.length} leads deleted`);
+        }
+    };
+
+    // Export functions
+    window.refreshAllLeads = function() {
+        try {
+            loadAllLeadsData();
+            renderAllLeadsTable();
+            updateAllLeadsStats();
+            alert('🔄 All leads data refreshed');
+        } catch (error) {
+            console.error('Error refreshing all leads:', error);
+            alert('Error refreshing leads data');
+        }
+    };
+
+    window.exportAllLeads = function() {
+        try {
+            exportLeadsToCSV(filteredLeadsData, 'all_leads_export');
+            alert(`📊 Exported ${filteredLeadsData.length} leads to CSV`);
+        } catch (error) {
+            console.error('Error exporting all leads:', error);
+            alert('Error exporting leads data');
+        }
+    };
+
+    // CSV export utility
+    function exportLeadsToCSV(leadsData, filename) {
+        try {
+            const headers = [
+                'Lead ID', 'Name', 'Email', 'Phone', 'State', 'Type', 'Status',
+                'Publisher', 'Vendor Code', 'Medical Bills', 'Primary Injury',
+                'Treatment Received', 'Has Lawyer', 'Police Report', 'Incident Date',
+                'Received Date', 'Source Campaign', 'Source URL', 'TrustedForm',
+                'Consent', 'Description'
+            ];
+            
+            const csvContent = [
+                headers.join(','),
+                ...leadsData.map(lead => [
+                    lead.id,
+                    `"${lead.name || ''}"`,
+                    `"${lead.email || ''}"`,
+                    `"${lead.phone || ''}"`,
+                    `"${lead.state || ''}"`,
+                    `"${lead.type || ''}"`,
+                    `"${lead.leadStatus || ''}"`,
+                    `"${lead.publisher_name || ''}"`,
+                    `"${lead.vendor_code || ''}"`,
+                    `"${lead.estimated_medical_bills || ''}"`,
+                    `"${lead.what_is_the_primary_injury || ''}"`,
+                    `"${lead.did_the_injured_person_receive_treatment || ''}"`,
+                    `"${lead.are_you_currently_represented_by_a_lawyer_for_this_case || ''}"`,
+                    `"${lead.was_a_police_report_filed || ''}"`,
+                    `"${lead.incidentDate || ''}"`,
+                    `"${lead.receivedDate || ''}"`,
+                    `"${lead.xselect4 || ''}"`,
+                    `"${lead.source_url || ''}"`,
+                    `"${lead.trustedform_url ? 'Verified' : 'Not verified'}"`,
+                    `"${lead.consent === '1' ? 'Yes' : 'No'}"`,
+                    `"${(lead.description || lead.additional_details || '').replace(/"/g, '""')}"`
+                ].join(','))
+            ].join('\n');
+            
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `${filename}_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            console.log('📊 CSV exported:', filename);
+            
+        } catch (error) {
+            console.error('Error exporting CSV:', error);
+        }
+    }
+
     console.log('🏢 Publisher Manager loaded successfully');
+    console.log('📋 All Leads Management functionality added');
     console.log('🔧 Final check - handleCreatePublisher type:', typeof window.handleCreatePublisher);
     
 } catch (error) {
