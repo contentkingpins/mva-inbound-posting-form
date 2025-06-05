@@ -30,19 +30,48 @@ document.addEventListener('DOMContentLoaded', function() {
  */
 async function checkAuth() {
     try {
-        // Get auth token from localStorage
+        // Get auth token from localStorage (this is standard practice)
         authToken = localStorage.getItem('auth_token');
-        const userStr = localStorage.getItem('user');
+        const idToken = localStorage.getItem('idToken');
         
-        if (!authToken || !userStr) {
-            throw new Error('No authentication data found');
+        // Use the Cognito ID token if available (preferred)
+        if (idToken) {
+            authToken = idToken;
         }
         
-        // Parse user data
-        currentUser = JSON.parse(userStr);
+        if (!authToken) {
+            throw new Error('No authentication token found');
+        }
+        
+        // Verify token by making a test API call
+        const response = await fetch(`${window.APP_CONFIG.apiEndpoint}/agent/analytics/kpis`, {
+            headers: {
+                'Authorization': `Bearer ${authToken}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (response.status === 401) {
+            throw new Error('Authentication token expired or invalid');
+        }
+        
+        // Decode JWT to get user info (without verification - server does that)
+        const tokenParts = authToken.split('.');
+        if (tokenParts.length !== 3) {
+            throw new Error('Invalid token format');
+        }
+        
+        const payload = JSON.parse(atob(tokenParts[1]));
+        currentUser = {
+            email: payload.email,
+            name: payload.name || payload.preferred_username,
+            role: payload['custom:role'] || 'agent',
+            username: payload.username || payload.preferred_username,
+            sub: payload.sub
+        };
         
         // Verify user has agent role
-        if (currentUser.role !== 'agent' && currentUser['custom:role'] !== 'agent') {
+        if (currentUser.role !== 'agent') {
             throw new Error('Access denied: Agent role required');
         }
         
@@ -61,8 +90,8 @@ async function checkAuth() {
 function logout() {
     // Clear all stored data
     localStorage.removeItem('auth_token');
-    localStorage.removeItem('user');
     localStorage.removeItem('idToken');
+    localStorage.removeItem('user');
     sessionStorage.clear();
     
     // Stop refresh interval
@@ -76,6 +105,7 @@ function logout() {
 
 function redirectToLogin() {
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('idToken');
     localStorage.removeItem('user');
     window.location.href = 'login.html';
 }
