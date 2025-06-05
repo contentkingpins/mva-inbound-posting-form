@@ -124,7 +124,27 @@ class SearchManager {
                 'incident_type',
                 'disposition',
                 'accident_location',
-                'notes'
+                'notes',
+                // MVA Enhanced Fields
+                'estimated_medical_bills',
+                'what_is_the_primary_injury',
+                'did_the_injured_person_receive_treatment',
+                '_what_best_describes_the_type_of_accident_you_were_in',
+                'when_did_the_accident_happen',
+                'are_you_currently_represented_by_a_lawyer_for_this_case',
+                'was_a_police_report_filed',
+                'city_where_the_injury_occurred',
+                'who_was_hurt_in_the_accident',
+                'additional_details',
+                'xselect4',
+                'lead_source',
+                'source_url',
+                'truncated_url',
+                'leadid',
+                'sourceid',
+                'leadip',
+                'provider_ip',
+                'consent'
             ];
             
             const searchableContent = searchableFields

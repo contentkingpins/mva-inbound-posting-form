@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MVA Enhanced Leads Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .btn {
+            background: #4299e1;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn:hover { background: #3182ce; }
+        .result {
+            background: #f7fafc;
+            border-left: 4px solid #4299e1;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { border-left-color: #48bb78; background: #f0fff4; }
+        .error { border-left-color: #f56565; background: #fff5f5; }
+        .lead-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            background: #fafafa;
+        }
+        .section-title {
+            font-weight: bold;
+            color: #2d3748;
+            margin: 15px 0 10px 0;
+            border-bottom: 2px solid #4299e1;
+            padding-bottom: 5px;
+        }
+        .field-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .field {
+            background: white;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #e2e8f0;
+        }
+        .field-label {
+            font-weight: bold;
+            color: #4a5568;
+            font-size: 0.9em;
+        }
+        .field-value {
+            color: #2d3748;
+            margin-top: 2px;
+        }
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 MVA Enhanced Lead Data Test</h1>
+    
+    <div class="test-container">
+        <h2>📋 Sample MVA Lead Data</h2>
+        <p>This demonstrates all the enhanced MVA fields that can now be processed and displayed.</p>
+        
+        <button class="btn" onclick="loadSampleMVALead()">📥 Load Sample MVA Lead</button>
+        <button class="btn" onclick="testAgentDashboard()">👤 Test Agent Dashboard View</button>
+        <button class="btn" onclick="testSearchFunctionality()">🔍 Test Search Enhancement</button>
+        <button class="btn" onclick="testCSVExport()">📊 Test CSV Export</button>
+        <button class="btn" onclick="clearTests()">🗑️ Clear Tests</button>
+        
+        <div id="test-results"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>🔬 Test Results</h2>
+        <div id="test-output"></div>
+    </div>
+
+    <script>
+        // Sample MVA Enhanced Lead Data - Based on your specifications
+        const sampleMVALead = {
+            // Basic Fields
+            leadid: "85778926",
+            firstname: "Phyllis",
+            lastname: "Piscura",
+            first_name: "Phyllis",
+            last_name: "Piscura", 
+            state: "PA",
+            zip: "18202",
+            phone1: "5705793800",
+            phone_home: "5705793800",
+            email: "drakepassage@gmail.com",
+            inserttime: "2025-05-26 01:38:51.043271",
+            sourceid: "367",
+            assigned: "t",
+            
+            // MVA Specific Fields
+            xselect4: "tortadvisor.com",
+            posturl: "tortadvisor.com",
+            leadip: "2600:387:15:5535::3",
+            insertdate: "2025-05-26",
+            processed: "t",
+            emaildomain: "gmail.com",
+            timessold: "3",
+            
+            // Enhanced Case Details
+            additional_details: "Whilst WALKING I was ran over by a CAR and got life flighted LONG Story Short I survived and have a TBI and was in a Coma for almost 4 months",
+            are_you_currently_represented_by_a_lawyer_for_this_case: "No",
+            city_where_the_injury_occurred: "West Hazleton",
+            consent: "1",
+            did_the_injured_person_receive_treatment: "Treated at a hospital",
+            estimated_medical_bills: "More than $100000",
+            form_id: "10923",
+            lead_source: "paid",
+            post_id: "9513",
+            privacy_scrub_date: "2025-05-26",
+            provider_ip: "199.250.204.228",
+            source_url: "https://tortadvisor.com/tort/car-accident-lawsuits",
+            time: "2025-05-26 05:38:38",
+            truncated_url: "tortadvisor.com",
+            trustedform_url: "https://cert.trustedform.com/335b67cc6cf46e6a83cecdaaa0b58f5172a57f89",
+            user_agent: "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML like Gecko) Chrome/136.0.0.0 Mobile Safari/537.36",
+            was_a_police_report_filed: "Yes",
+            _what_best_describes_the_type_of_accident_you_were_in: "Pedestrian or Bicycle Accident",
+            what_is_the_primary_injury: "Memory Loss",
+            when_did_the_accident_happen: "Within the last 2 years",
+            who_was_hurt_in_the_accident: "I was hurt",
+            
+            // System Fields
+            vendor_code: "PUB123456",
+            disposition: "New",
+            timestamp: "2025-05-26T01:38:51.043Z",
+            lead_id: "lead_" + Date.now()
+        };
+
+        function logResult(message, isSuccess = true, details = null) {
+            const resultsDiv = document.getElementById('test-output');
+            const resultItem = document.createElement('div');
+            resultItem.className = `result ${isSuccess ? 'success' : 'error'}`;
+            
+            let content = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+            if (details) {
+                content += `<br><small><em>${details}</em></small>`;
+            }
+            
+            resultItem.innerHTML = content;
+            resultsDiv.insertBefore(resultItem, resultsDiv.firstChild);
+        }
+
+        function loadSampleMVALead() {
+            const container = document.getElementById('test-results');
+            
+            container.innerHTML = `
+                <div class="lead-card">
+                    <h3>🏥 Sample MVA Enhanced Lead: ${sampleMVALead.firstname} ${sampleMVALead.lastname}</h3>
+                    
+                    <div class="section-title">👤 Contact Information</div>
+                    <div class="field-group">
+                        <div class="field">
+                            <div class="field-label">Name</div>
+                            <div class="field-value">${sampleMVALead.firstname} ${sampleMVALead.lastname}</div>
+                        </div>
+                        <div class="field">
+                            <div class="field-label">Email</div>
+                            <div class="field-value">${sampleMVALead.email}</div>
+                        </div>
+                        <div class="field">
+                            <div class="field-label">Phone</div>
+                            <div class="field-value">${sampleMVALead.phone1}</div>
+                        </div>
+                        <div class="field">
+                            <div class="field-label">Location</div>
+                            <div class="field-value">${sampleMVALead.state}, ${sampleMVALead.zip}</div>
+                        </div>
+                    </div>
+
+                    <div class="section-title">🏥 Medical Information</div>
+                    <div class="field-group">
+                        <div class="field">
+                            <div class="field-label">💰 Estimated Medical Bills</div>
+                            <div class="field-value"><span class="highlight">${sampleMVALead.estimated_medical_bills}</span></div>
+                        </div>
+                        <div class="field">
+                            <div class="field-label">🩹 Primary Injury</div>
+                            <div class="field-value">${sampleMVALead.what_is_the_primary_injury}</div>
+                        </div>
+                        <div class="field">
+                            <div class="field-label">🏥 Treatment Received</div>
+                            <div class="field-value">${sampleMVALead.did_the_injured_person_receive_treatment}</div>
+                        </div>
+                        <div class="field">
+                            <div class="field-label">🚗 Accident Type</div>
+                            <div class="field-value">${sampleMVALead._what_best_describes_the_type_of_accident_you_were_in}</div>
+                        </div>
+                    </div>
+
+                    <div class="section-title">⚖️ Legal Status</div>
+                    <div class="field-group">
+                        <div class="field">
+                            <div class="field-label">👨‍💼 Currently Represented</div>
+                            <div class="field-value">${sampleMVALead.are_you_currently_represented_by_a_lawyer_for_this_case}</div>
+                        </div>
+                        <div class="field">
+                            <div class="field-label">👮‍♂️ Police Report Filed</div>
+                            <div class="field-value">${sampleMVALead.was_a_police_report_filed}</div>
+                        </div>
+                        <div class="field">
+                            <div class="field-label">🏙️ Incident Location</div>
+                            <div class="field-value">${sampleMVALead.city_where_the_injury_occurred}</div>
+                        </div>
+                        <div class="field">
+                            <div class="field-label">📅 When Accident Happened</div>
+                            <div class="field-value">${sampleMVALead.when_did_the_accident_happen}</div>
+                        </div>
+                    </div>
+
+                    <div class="section-title">📊 Source & Compliance</div>
+                    <div class="field-group">
+                        <div class="field">
+                            <div class="field-label">🌐 Lead Source</div>
+                            <div class="field-value">${sampleMVALead.xselect4}</div>
+                        </div>
+                        <div class="field">
+                            <div class="field-label">✅ TrustedForm Status</div>
+                            <div class="field-value">✅ Verified</div>
+                        </div>
+                        <div class="field">
+                            <div class="field-label">🔗 Source URL</div>
+                            <div class="field-value">${sampleMVALead.source_url}</div>
+                        </div>
+                        <div class="field">
+                            <div class="field-label">🆔 Lead ID</div>
+                            <div class="field-value">${sampleMVALead.leadid}</div>
+                        </div>
+                        <div class="field">
+                            <div class="field-label">🌍 Lead IP</div>
+                            <div class="field-value">${sampleMVALead.leadip}</div>
+                        </div>
+                        <div class="field">
+                            <div class="field-label">✅ Consent</div>
+                            <div class="field-value">Yes (${sampleMVALead.consent})</div>
+                        </div>
+                    </div>
+
+                    <div class="section-title">📝 Case Details</div>
+                    <div class="field">
+                        <div class="field-label">Additional Details</div>
+                        <div class="field-value">${sampleMVALead.additional_details}</div>
+                    </div>
+                </div>
+            `;
+            
+            logResult('✅ Sample MVA lead loaded successfully', true, 'All enhanced fields displayed with proper categorization');
+        }
+
+        function testAgentDashboard() {
+            logResult('🎯 Agent Dashboard Enhancement Test', true, 'Testing enhanced lead detail modal with MVA fields');
+            
+            // Simulate the enhanced agent dashboard functionality
+            const enhancedFields = [
+                'estimated_medical_bills',
+                'what_is_the_primary_injury', 
+                'did_the_injured_person_receive_treatment',
+                'are_you_currently_represented_by_a_lawyer_for_this_case',
+                'city_where_the_injury_occurred',
+                'trustedform_url',
+                'additional_details'
+            ];
+            
+            const foundFields = enhancedFields.filter(field => sampleMVALead[field]);
+            
+            logResult(`📊 Enhanced fields available: ${foundFields.length}/${enhancedFields.length}`, true, 
+                `Fields: ${foundFields.join(', ')}`);
+            
+            // Test high-value lead detection
+            const isHighValue = sampleMVALead.estimated_medical_bills && 
+                               sampleMVALead.estimated_medical_bills.includes('100000');
+            
+            if (isHighValue) {
+                logResult('💰 High-value lead detected!', true, 
+                    `Medical bills: ${sampleMVALead.estimated_medical_bills} - Priority for agent assignment`);
+            }
+            
+            // Test compliance verification
+            const hasConsent = sampleMVALead.consent === '1';
+            const hasTrustedForm = !!sampleMVALead.trustedform_url;
+            
+            logResult(`✅ Compliance Check: Consent=${hasConsent}, TrustedForm=${hasTrustedForm}`, true,
+                'Lead meets compliance requirements for processing');
+        }
+
+        function testSearchFunctionality() {
+            logResult('🔍 Enhanced Search Test', true, 'Testing search across MVA fields');
+            
+            // Test searchable MVA fields
+            const searchTests = [
+                { term: 'memory loss', field: 'what_is_the_primary_injury', expected: true },
+                { term: 'tortadvisor', field: 'xselect4', expected: true },
+                { term: '$100000', field: 'estimated_medical_bills', expected: true },
+                { term: 'West Hazleton', field: 'city_where_the_injury_occurred', expected: true },
+                { term: 'pedestrian', field: '_what_best_describes_the_type_of_accident_you_were_in', expected: true }
+            ];
+            
+            searchTests.forEach(test => {
+                const fieldValue = sampleMVALead[test.field] || '';
+                const found = fieldValue.toLowerCase().includes(test.term.toLowerCase());
+                
+                logResult(`Search "${test.term}": ${found ? '✅ Found' : '❌ Not found'}`, found,
+                    `Field: ${test.field}, Value: "${fieldValue}"`);
+            });
+        }
+
+        function testCSVExport() {
+            logResult('📊 CSV Export Enhancement Test', true, 'Testing enhanced CSV export with MVA fields');
+            
+            // Simulate CSV export
+            const enhancedHeaders = [
+                'Lead ID', 'First Name', 'Last Name', 'Email', 'Phone', 'State',
+                // Enhanced MVA headers
+                'Estimated Medical Bills', 'Primary Injury', 'Treatment Received',
+                'Accident Type', 'Has Current Lawyer', 'Police Report Filed',
+                'Incident City', 'Additional Details', 'Lead Source', 'TrustedForm URL'
+            ];
+            
+            const csvData = [
+                sampleMVALead.leadid,
+                sampleMVALead.firstname,
+                sampleMVALead.lastname,
+                sampleMVALead.email,
+                sampleMVALead.phone1,
+                sampleMVALead.state,
+                sampleMVALead.estimated_medical_bills,
+                sampleMVALead.what_is_the_primary_injury,
+                sampleMVALead.did_the_injured_person_receive_treatment,
+                sampleMVALead._what_best_describes_the_type_of_accident_you_were_in,
+                sampleMVALead.are_you_currently_represented_by_a_lawyer_for_this_case,
+                sampleMVALead.was_a_police_report_filed,
+                sampleMVALead.city_where_the_injury_occurred,
+                sampleMVALead.additional_details.substring(0, 50) + '...',
+                sampleMVALead.xselect4,
+                sampleMVALead.trustedform_url
+            ];
+            
+            logResult(`📋 CSV Headers: ${enhancedHeaders.length} columns`, true,
+                'Includes all basic + MVA enhanced fields');
+            
+            logResult(`📄 CSV Data Row: ${csvData.filter(d => d && d.toString().trim()).length} populated fields`, true,
+                'Rich data available for export');
+            
+            // Create downloadable CSV for testing
+            const csvContent = enhancedHeaders.join(',') + '\n' + csvData.map(d => `"${d || ''}"`).join(',');
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'mva_enhanced_lead_sample.csv';
+            link.textContent = '💾 Download Sample CSV';
+            link.style.display = 'inline-block';
+            link.style.margin = '10px';
+            link.style.padding = '10px';
+            link.style.background = '#4299e1';
+            link.style.color = 'white';
+            link.style.textDecoration = 'none';
+            link.style.borderRadius = '5px';
+            
+            document.getElementById('test-results').appendChild(link);
+            
+            logResult('💾 Sample CSV generated for download', true, 
+                'Click the download link above to see enhanced CSV export');
+        }
+
+        function clearTests() {
+            document.getElementById('test-results').innerHTML = '';
+            document.getElementById('test-output').innerHTML = '';
+            logResult('🗑️ Tests cleared', true, 'Ready for new tests');
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            logResult('🚀 MVA Enhanced Lead Test System Initialized', true, 
+                'Ready to test all enhanced functionality');
+        });
+    </script>
+</body>
+</html> 

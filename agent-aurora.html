@@ -760,6 +760,39 @@
         display: grid;
         gap: 1.5rem;
     }
+
+    /* MVA Enhanced Sections */
+    .case-info-section {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin: 1.5rem 0;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .section-title {
+        color: var(--accent);
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .case-info-section .form-input[readonly],
+    .case-info-section .form-textarea[readonly] {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: var(--text-secondary);
+        cursor: default;
+    }
+
+    .case-info-section .form-input[readonly]:focus,
+    .case-info-section .form-textarea[readonly]:focus {
+        border-color: rgba(255, 255, 255, 0.15);
+        box-shadow: none;
+    }
     </style>
 </head>
 <body>
@@ -995,8 +1028,99 @@
                     <textarea id="leadDescription" class="form-textarea" placeholder="Describe the incident or case details..."></textarea>
                 </div>
                 
+                <!-- MVA Enhanced Case Information -->
+                <div class="case-info-section">
+                    <h4 class="section-title">🏥 Medical Information</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">💰 Estimated Medical Bills</label>
+                            <input type="text" id="leadMedicalBills" class="form-input" readonly placeholder="Not specified">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">🩹 Primary Injury</label>
+                            <input type="text" id="leadPrimaryInjury" class="form-input" readonly placeholder="Not specified">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">🏥 Treatment Received</label>
+                            <input type="text" id="leadTreatmentReceived" class="form-input" readonly placeholder="Not specified">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">🚗 Accident Type</label>
+                            <input type="text" id="leadAccidentType" class="form-input" readonly placeholder="Not specified">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">📅 When Accident Happened</label>
+                        <input type="text" id="leadAccidentTiming" class="form-input" readonly placeholder="Not specified">
+                    </div>
+                </div>
+
+                <div class="case-info-section">
+                    <h4 class="section-title">⚖️ Legal Status</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">👨‍💼 Currently Represented</label>
+                            <input type="text" id="leadHasLawyer" class="form-input" readonly placeholder="Not specified">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">👮‍♂️ Police Report Filed</label>
+                            <input type="text" id="leadPoliceReport" class="form-input" readonly placeholder="Not specified">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">🏙️ Incident Location</label>
+                            <input type="text" id="leadIncidentLocation" class="form-input" readonly placeholder="Not specified">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">👥 Who Was Hurt</label>
+                            <input type="text" id="leadWhoHurt" class="form-input" readonly placeholder="Not specified">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">📝 Additional Case Details</label>
+                        <textarea id="leadAdditionalDetails" class="form-textarea" readonly placeholder="No additional details provided"></textarea>
+                    </div>
+                </div>
+
+                <div class="case-info-section">
+                    <h4 class="section-title">📊 Source & Compliance</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">🌐 Lead Source</label>
+                            <input type="text" id="leadSource" class="form-input" readonly placeholder="Not specified">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">✅ TrustedForm Status</label>
+                            <input type="text" id="leadTrustedForm" class="form-input" readonly placeholder="Not verified">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">🔗 Source URL</label>
+                            <input type="url" id="leadSourceUrl" class="form-input" readonly placeholder="Not specified">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">🆔 Lead ID</label>
+                            <input type="text" id="leadSourceId" class="form-input" readonly placeholder="Not specified">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">🌍 Lead IP Address</label>
+                            <input type="text" id="leadIpAddress" class="form-input" readonly placeholder="Not captured">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">✅ Consent Status</label>
+                            <input type="text" id="leadConsent" class="form-input" readonly placeholder="Not specified">
+                        </div>
+                    </div>
+                </div>
+                
                 <div class="form-group">
-                    <label class="form-label">Notes</label>
+                    <label class="form-label">📝 Agent Notes</label>
                     <textarea id="leadNotes" class="form-textarea" placeholder="Add your notes about this lead..."></textarea>
                 </div>
                 
@@ -1223,8 +1347,20 @@
                     </div>
                     <div class="lead-detail">
                         <span>💬</span>
-                        <span>${lead.description}</span>
+                        <span>${lead.description || lead.additional_details || 'No details provided'}</span>
                     </div>
+                    ${lead.estimated_medical_bills ? `
+                    <div class="lead-detail">
+                        <span>💰</span>
+                        <span>Medical Bills: ${lead.estimated_medical_bills}</span>
+                    </div>
+                    ` : ''}
+                    ${lead.what_is_the_primary_injury ? `
+                    <div class="lead-detail">
+                        <span>🏥</span>
+                        <span>Primary Injury: ${lead.what_is_the_primary_injury}</span>
+                    </div>
+                    ` : ''}
                 </div>
                 <div class="lead-actions">
                     <button class="action-btn-sm view" onclick="event.stopPropagation(); viewLeadDetails('${lead.id}')">
@@ -1288,6 +1424,18 @@
                         <span>⏰</span>
                         <span>${lead.nextAction}</span>
                     </div>
+                    ${lead.are_you_currently_represented_by_a_lawyer_for_this_case ? `
+                    <div class="lead-detail">
+                        <span>⚖️</span>
+                        <span>Has Lawyer: ${lead.are_you_currently_represented_by_a_lawyer_for_this_case}</span>
+                    </div>
+                    ` : ''}
+                    ${lead.city_where_the_injury_occurred ? `
+                    <div class="lead-detail">
+                        <span>🏙️</span>
+                        <span>Incident Location: ${lead.city_where_the_injury_occurred}</span>
+                    </div>
+                    ` : ''}
                 </div>
                 <div class="lead-actions">
                     <button class="action-btn-sm view" onclick="event.stopPropagation(); viewLeadDetails('${lead.id}')">
@@ -1363,7 +1511,7 @@
                 return;
             }
 
-            // Populate form fields
+            // Populate basic form fields
             document.getElementById('leadName').value = lead.name || '';
             document.getElementById('leadType').value = lead.type || '';
             document.getElementById('leadPhone').value = lead.phone || '';
@@ -1372,8 +1520,30 @@
             document.getElementById('leadIncidentDate').value = lead.incidentDate || '';
             document.getElementById('leadUrgency').value = lead.urgency || 'Medium';
             document.getElementById('leadLastContact').value = lead.lastContact || 'Never contacted';
-            document.getElementById('leadDescription').value = lead.description || '';
+            document.getElementById('leadDescription').value = lead.description || lead.additional_details || '';
             document.getElementById('leadNotes').value = lead.notes || '';
+
+            // Populate MVA Enhanced Fields - Medical Information
+            document.getElementById('leadMedicalBills').value = lead.estimated_medical_bills || 'Not specified';
+            document.getElementById('leadPrimaryInjury').value = lead.what_is_the_primary_injury || 'Not specified';
+            document.getElementById('leadTreatmentReceived').value = lead.did_the_injured_person_receive_treatment || 'Not specified';
+            document.getElementById('leadAccidentType').value = lead._what_best_describes_the_type_of_accident_you_were_in || lead.accident_type || 'Not specified';
+            document.getElementById('leadAccidentTiming').value = lead.when_did_the_accident_happen || 'Not specified';
+
+            // Populate MVA Enhanced Fields - Legal Status
+            document.getElementById('leadHasLawyer').value = lead.are_you_currently_represented_by_a_lawyer_for_this_case || 'Not specified';
+            document.getElementById('leadPoliceReport').value = lead.was_a_police_report_filed || 'Not specified';
+            document.getElementById('leadIncidentLocation').value = lead.city_where_the_injury_occurred || 'Not specified';
+            document.getElementById('leadWhoHurt').value = lead.who_was_hurt_in_the_accident || 'Not specified';
+            document.getElementById('leadAdditionalDetails').value = lead.additional_details || 'No additional details provided';
+
+            // Populate MVA Enhanced Fields - Source & Compliance
+            document.getElementById('leadSource').value = lead.xselect4 || lead.lead_source || 'Not specified';
+            document.getElementById('leadTrustedForm').value = lead.trustedform_url ? '✅ Verified' : 'Not verified';
+            document.getElementById('leadSourceUrl').value = lead.source_url || lead.truncated_url || 'Not specified';
+            document.getElementById('leadSourceId').value = lead.leadid || lead.sourceid || 'Not specified';
+            document.getElementById('leadIpAddress').value = lead.leadip || lead.provider_ip || 'Not captured';
+            document.getElementById('leadConsent').value = lead.consent === '1' || lead.consent === 1 ? '✅ Consented' : 'Not specified';
 
             // Set up modal title and current lead
             const modalTitle = document.getElementById('modalTitle');

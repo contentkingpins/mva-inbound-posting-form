@@ -203,7 +203,7 @@ class Utils {
             return 'No data available';
         }
         
-        // Define CSV headers
+        // Define CSV headers - Enhanced with MVA fields
         const headers = [
             'Lead ID',
             'First Name',
@@ -219,10 +219,27 @@ class Utils {
             'Accident Date',
             'Accident Location',
             'Notes',
-            'Received Date'
+            'Received Date',
+            // MVA Enhanced Fields
+            'Estimated Medical Bills',
+            'Primary Injury',
+            'Treatment Received',
+            'Accident Type',
+            'When Accident Happened',
+            'Has Current Lawyer',
+            'Police Report Filed',
+            'Incident City',
+            'Who Was Hurt',
+            'Additional Details',
+            'Lead Source',
+            'Source URL',
+            'Source ID',
+            'Lead IP',
+            'Consent Status',
+            'TrustedForm URL'
         ];
         
-        // Create CSV rows
+        // Create CSV rows - Enhanced with MVA fields
         const rows = leadsData.map(lead => [
             Utils.escapeCsvValue(lead.lead_id),
             Utils.escapeCsvValue(lead.first_name),
@@ -238,7 +255,24 @@ class Utils {
             Utils.escapeCsvValue(lead.accident_date),
             Utils.escapeCsvValue(lead.accident_location),
             Utils.escapeCsvValue(lead.notes || ''),
-            Utils.escapeCsvValue(Utils.formatDate(lead.timestamp, true))
+            Utils.escapeCsvValue(Utils.formatDate(lead.timestamp, true)),
+            // MVA Enhanced Fields
+            Utils.escapeCsvValue(lead.estimated_medical_bills || ''),
+            Utils.escapeCsvValue(lead.what_is_the_primary_injury || ''),
+            Utils.escapeCsvValue(lead.did_the_injured_person_receive_treatment || ''),
+            Utils.escapeCsvValue(lead._what_best_describes_the_type_of_accident_you_were_in || ''),
+            Utils.escapeCsvValue(lead.when_did_the_accident_happen || ''),
+            Utils.escapeCsvValue(lead.are_you_currently_represented_by_a_lawyer_for_this_case || ''),
+            Utils.escapeCsvValue(lead.was_a_police_report_filed || ''),
+            Utils.escapeCsvValue(lead.city_where_the_injury_occurred || ''),
+            Utils.escapeCsvValue(lead.who_was_hurt_in_the_accident || ''),
+            Utils.escapeCsvValue(lead.additional_details || ''),
+            Utils.escapeCsvValue(lead.xselect4 || lead.lead_source || ''),
+            Utils.escapeCsvValue(lead.source_url || lead.truncated_url || ''),
+            Utils.escapeCsvValue(lead.leadid || lead.sourceid || ''),
+            Utils.escapeCsvValue(lead.leadip || lead.provider_ip || ''),
+            Utils.escapeCsvValue(lead.consent === '1' || lead.consent === 1 ? 'Yes' : 'No'),
+            Utils.escapeCsvValue(lead.trustedform_url || lead.trustedform || '')
         ].join(','));
         
         // Combine headers and rows
