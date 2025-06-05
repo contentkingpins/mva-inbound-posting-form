@@ -59,22 +59,38 @@ async function initializeAuth() {
 
 async function checkAuthentication() {
     try {
-        // Check for stored credentials
-        const token = localStorage.getItem('authToken');
-        const user = localStorage.getItem('currentUser');
+        // Check for stored credentials (use consistent key names)
+        const token = localStorage.getItem('auth_token') || localStorage.getItem('idToken');
         
-        if (!token || !user) {
+        if (!token) {
             return null;
         }
         
-        const userData = JSON.parse(user);
-        
-        // Validate token with backend (mock for now)
-        if (await validateToken(token)) {
-            return userData;
+        // Decode JWT to get user info
+        const tokenParts = token.split('.');
+        if (tokenParts.length !== 3) {
+            throw new Error('Invalid token format');
         }
         
-        return null;
+        const payload = JSON.parse(atob(tokenParts[1]));
+        const userData = {
+            id: payload.sub,
+            email: payload.email,
+            name: payload.name || payload.preferred_username || payload.email.split('@')[0],
+            role: payload['custom:role'] || 'agent',
+            username: payload.username || payload.preferred_username
+        };
+        
+        // Verify it's an agent
+        if (userData.role !== 'agent') {
+            console.error('User is not an agent');
+            return null;
+        }
+        
+        // Store the token for later use
+        window.authToken = token;
+        
+        return userData;
         
     } catch (error) {
         console.error('Authentication check failed:', error);
@@ -216,7 +232,7 @@ async function loadAgentData() {
 
 async function fetchAgentData(agentId, dateRange) {
     try {
-        const token = localStorage.getItem('auth_token');
+        const token = window.authToken || localStorage.getItem('auth_token') || localStorage.getItem('idToken');
         const apiBase = window.APP_CONFIG?.apiEndpoint || 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod';
         
         console.log('🔄 Fetching real agent data from backend...');
@@ -846,7 +862,7 @@ async function handleSaveGoals() {
     const responseGoal = document.getElementById('response-goal').value;
     
     try {
-        const token = localStorage.getItem('auth_token');
+        const token = window.authToken || localStorage.getItem('auth_token') || localStorage.getItem('idToken');
         const apiBase = window.APP_CONFIG?.apiEndpoint || 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod';
         
         console.log('💾 Saving goals to backend:', { conversionsGoal, revenueGoal, responseGoal });
@@ -933,9 +949,13 @@ function handleLogout(event) {
     
     console.log('🚪 Logging out...');
     
-    // Clear stored data
+    // Clear stored data (all possible keys)
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('idToken');
     localStorage.removeItem('authToken');
     localStorage.removeItem('currentUser');
+    localStorage.removeItem('user');
+    sessionStorage.clear();
     
     // Redirect to login
     window.location.href = 'login.html';

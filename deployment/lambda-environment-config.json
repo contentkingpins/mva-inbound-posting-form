@@ -1,0 +1,24 @@
+{
+  "Variables": {
+    "VENDORS_TABLE": "mva-crm-Vendors-production",
+    "LEADS_TABLE": "mva-crm-Leads-production",
+    "USERS_TABLE": "mva-crm-Users-production",
+    "USER_POOL_ID": "us-east-1_lhc964tLD",
+    "COGNITO_CLIENT_ID": "5t6mane4fnvineksoqb4ta0iu1",
+    "AGENT_GOALS_TABLE": "mva-crm-AgentGoals-production",
+    "AGENT_PERFORMANCE_TABLE": "mva-crm-AgentPerformance-production",
+    "AGENT_ACTIVITY_TABLE": "mva-crm-AgentActivity-production",
+    "DOCUMENTS_TABLE": "mva-crm-Documents-production",
+    "DOCUMENT_ACTIVITY_TABLE": "mva-crm-DocumentActivity-production",
+    "DOCUMENTS_BUCKET": "mva-crm-documents-production-ACCOUNT_ID",
+    "DOCUMENT_QUEUE_URL": "https://sqs.us-east-1.amazonaws.com/ACCOUNT_ID/mva-crm-document-processing-production",
+    "DS_INTEGRATION_KEY": "${ssm:/docusign/integration_key~true}",
+    "DS_SECRET_KEY": "${ssm:/docusign/secret_key~true}",
+    "DS_ACCOUNT_ID": "${ssm:/docusign/account_id~true}",
+    "DS_USER_ID": "${ssm:/docusign/user_id~true}",
+    "DS_RETAINER_TEMPLATE_ID": "${ssm:/docusign/retainer_template_id~true}",
+    "DS_PRIVATE_KEY": "${ssm:/docusign/private_key~true}",
+    "JWT_SECRET": "mva-jwt-2025-xK9pL3nM8qR5tY7w",
+    "FROM_EMAIL": "noreply@mva-leads.com"
+  }
+} 

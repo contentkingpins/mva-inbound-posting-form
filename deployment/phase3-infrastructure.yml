@@ -194,6 +194,8 @@ Resources:
         - Key: Component
           Value: 'DocumentActivity'
 
+
+
   # ========================================
   # PHASE 3: DOCUMENTS S3 BUCKET
   # ========================================
@@ -252,21 +254,7 @@ Resources:
             ExposedHeaders:
               - ETag
             MaxAge: 3000
-      NotificationConfiguration:
-        CloudWatchConfigurations:
-          - Event: s3:ObjectCreated:*
-            CloudWatchConfiguration:
-              LogGroupName: !Ref DocumentsLogGroup
-        LambdaConfigurations:
-          - Event: s3:ObjectCreated:*
-            Function: !GetAtt DocumentProcessorFunction.Arn
-            Filter:
-              S3Key:
-                Rules:
-                  - Name: prefix
-                    Value: leads/
-                  - Name: suffix
-                    Value: /documents/
+      # NotificationConfiguration will be set up after stack creation to avoid circular dependency
       Tags:
         - Key: Project
           Value: !Ref ProjectName
@@ -342,6 +330,7 @@ Resources:
           DOCUMENT_QUEUE_URL: !Ref DocumentProcessingQueue
           LEADS_TABLE: !Sub '${ProjectName}-Leads-${Environment}'
           USERS_TABLE: !Sub '${ProjectName}-Users-${Environment}'
+          VENDORS_TABLE: !Ref VendorsTable
       Role: !GetAtt DocumentProcessorRole.Arn
       Tags:
         - Key: Project
@@ -383,7 +372,7 @@ Resources:
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
-              # DynamoDB access for documents, activity, leads, and users
+              # DynamoDB access for documents, activity, leads, users, and vendors
               - Effect: Allow
                 Action:
                   - dynamodb:GetItem
@@ -399,6 +388,8 @@ Resources:
                   - !Sub '${DocumentActivityTable.Arn}/index/*'
                   - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ProjectName}-Leads-${Environment}'
                   - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ProjectName}-Users-${Environment}'
+                  - !GetAtt VendorsTable.Arn
+                  - !Sub '${VendorsTable.Arn}/index/*'
               # S3 access for document files
               - Effect: Allow
                 Action:
@@ -544,24 +535,7 @@ Resources:
           Value: !Ref DocumentProcessorFunction
       TreatMissingData: notBreaching
 
-  DocumentStorageAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: !Sub '${ProjectName}-document-storage-size-${Environment}'
-      AlarmDescription: 'Document storage size approaching limits'
-      MetricName: BucketSizeBytes
-      Namespace: AWS/S3
-      Statistic: Average
-      Period: 86400  # Daily check
-      EvaluationPeriods: 1
-      Threshold: 50000000000  # 50GB threshold
-      ComparisonOperator: GreaterThanThreshold
-      Dimensions:
-        - Name: BucketName
-          Value: !Ref DocumentsBucket
-        - Name: StorageType
-          Value: StandardStorage
-      TreatMissingData: notBreaching
+  # DocumentStorageAlarm removed to avoid circular dependency - set up monitoring after stack creation
 
 Outputs:
   # Table Names
@@ -576,6 +550,12 @@ Outputs:
     Value: !Ref DocumentActivityTable
     Export:
       Name: !Sub '${AWS::StackName}-DocumentActivityTable'
+
+  VendorsTableName:
+    Description: 'Name of the Vendors DynamoDB table'
+    Value: !Ref VendorsTable
+    Export:
+      Name: !Sub '${AWS::StackName}-VendorsTable'
 
   # S3 Bucket Information
   DocumentsBucketName:
@@ -624,6 +604,7 @@ Outputs:
       DOCUMENT_ACTIVITY_TABLE=${DocumentActivityTable}
       DOCUMENTS_BUCKET=${DocumentsBucket}
       DOCUMENT_QUEUE_URL=${DocumentProcessingQueue}
+      VENDORS_TABLE=${VendorsTable}
 
   # Deployment Summary
   Phase3DeploymentSummary:
@@ -653,4 +634,4 @@ Outputs:
       3. Test all 5 new document API endpoints
       4. Configure document processing workflows
       
-      Phase 3 Status: Infrastructure Ready! 📁🚀 
+      Phase 3 Status: Infrastructure Ready! 

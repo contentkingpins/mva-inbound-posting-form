@@ -1,0 +1,61 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'MVA CRM Vendors Table - Simple deployment for backend fixes'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: 'production'
+    Description: 'Environment name'
+    
+  ProjectName:
+    Type: String
+    Default: 'mva-crm'
+    Description: 'Project name for resource naming'
+
+Resources:
+  # Vendors Table
+  VendorsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${ProjectName}-Vendors-${Environment}'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: vendor_code
+          AttributeType: S
+        - AttributeName: api_key
+          AttributeType: S
+      KeySchema:
+        - AttributeName: vendor_code
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        # Index for API key lookups
+        - IndexName: ApiKeyIndex
+          KeySchema:
+            - AttributeName: api_key
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      Tags:
+        - Key: Project
+          Value: !Ref ProjectName
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Component
+          Value: 'Vendors'
+
+Outputs:
+  VendorsTableName:
+    Description: 'Name of the Vendors DynamoDB table'
+    Value: !Ref VendorsTable
+    Export:
+      Name: !Sub '${AWS::StackName}-VendorsTable'
+  
+  VendorsTableArn:
+    Description: 'ARN of the Vendors DynamoDB table'
+    Value: !GetAtt VendorsTable.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-VendorsTableArn' 
