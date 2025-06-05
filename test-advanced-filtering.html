@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Filtering Test - MVA Lead System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            font-size: 1.125rem;
+            color: #94a3b8;
+            margin-bottom: 2rem;
+        }
+        
+        .test-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: #f1f5f9;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .test-card {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .test-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            border-color: #3b82f6;
+        }
+        
+        .test-name {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #f1f5f9;
+            margin-bottom: 0.5rem;
+        }
+        
+        .test-description {
+            color: #94a3b8;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+        
+        .test-criteria {
+            background: rgba(59, 130, 246, 0.1);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-left: 3px solid #3b82f6;
+        }
+        
+        .test-criteria h4 {
+            color: #3b82f6;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .test-criteria ul {
+            list-style: none;
+            color: #cbd5e1;
+        }
+        
+        .test-criteria li {
+            margin: 0.25rem 0;
+            padding-left: 1rem;
+            position: relative;
+        }
+        
+        .test-criteria li:before {
+            content: "•";
+            color: #3b82f6;
+            position: absolute;
+            left: 0;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+        }
+        
+        .btn-secondary:hover {
+            box-shadow: 0 4px 12px rgba(107, 114, 128, 0.4);
+        }
+        
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-top: 1rem;
+        }
+        
+        .status-ready {
+            background: rgba(34, 197, 94, 0.1);
+            color: #22c55e;
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+        
+        .status-testing {
+            background: rgba(251, 191, 36, 0.1);
+            color: #fbbf24;
+            border: 1px solid rgba(251, 191, 36, 0.2);
+        }
+        
+        .instructions {
+            background: rgba(168, 85, 247, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border-left: 4px solid #a855f7;
+        }
+        
+        .instructions h3 {
+            color: #a855f7;
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
+        }
+        
+        .instructions ol {
+            color: #cbd5e1;
+            padding-left: 1.5rem;
+        }
+        
+        .instructions li {
+            margin: 0.5rem 0;
+            line-height: 1.5;
+        }
+        
+        .filter-preview {
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.875rem;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+        
+        .filter-preview-title {
+            color: #3b82f6;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        
+        .filter-preview-content {
+            color: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">Advanced Filtering Test Suite</h1>
+            <p class="subtitle">Comprehensive testing for MVA lead filtering functionality</p>
+        </div>
+        
+        <div class="instructions">
+            <h3>🧪 Testing Instructions</h3>
+            <ol>
+                <li>Open the <strong>agent-aurora.html</strong> file in a separate tab</li>
+                <li>Use the test scenarios below to verify filtering functionality</li>
+                <li>Check that filter combinations work correctly</li>
+                <li>Verify that active filter indicators appear</li>
+                <li>Test the "Clear Filters" functionality</li>
+                <li>Ensure filtered results are accurate</li>
+            </ol>
+        </div>
+        
+        <div class="test-section">
+            <h2 class="section-title">🔍 Medical Bill Range Filtering Tests</h2>
+            
+            <div class="test-grid">
+                <div class="test-card">
+                    <div class="test-name">High-Value Cases ($100,000+)</div>
+                    <div class="test-description">
+                        Filter for leads with medical bills exceeding $100,000 to identify high-value opportunities.
+                    </div>
+                    <div class="test-criteria">
+                        <h4>Test Criteria</h4>
+                        <ul>
+                            <li>Select "$100,000+" in Medical Bills filter</li>
+                            <li>Should show leads with "More than $100,000" in medical bills</li>
+                            <li>Should exclude leads with lower medical bill estimates</li>
+                            <li>Filter indicator should be active (blue border)</li>
+                        </ul>
+                    </div>
+                    <div class="filter-preview">
+                        <div class="filter-preview-title">Expected Matches:</div>
+                        <div class="filter-preview-content">
+                            • Sarah Johnson (Spinal cord injury)<br>
+                            • Any lead with medical bills > $100,000
+                        </div>
+                    </div>
+                    <div class="status-indicator status-ready">✅ Ready to Test</div>
+                </div>
+                
+                <div class="test-card">
+                    <div class="test-name">Medium-High Range ($50,000-$99,999)</div>
+                    <div class="test-description">
+                        Filter for leads with substantial medical bills in the medium-high range.
+                    </div>
+                    <div class="test-criteria">
+                        <h4>Test Criteria</h4>
+                        <ul>
+                            <li>Select "$50,000 - $99,999" in Medical Bills filter</li>
+                            <li>Should show leads with medical bills in this range</li>
+                            <li>Should exclude high-value and low-value cases</li>
+                            <li>Results should be accurate to the range</li>
+                        </ul>
+                    </div>
+                    <div class="filter-preview">
+                        <div class="filter-preview-title">Expected Matches:</div>
+                        <div class="filter-preview-content">
+                            • Leads with "$50,000 - $75,000" estimates<br>
+                            • Leads with "$75,000" estimates
+                        </div>
+                    </div>
+                    <div class="status-indicator status-ready">✅ Ready to Test</div>
+                </div>
+                
+                <div class="test-card">
+                    <div class="test-name">Standard Range ($10,000-$49,999)</div>
+                    <div class="test-description">
+                        Filter for leads with moderate medical bills representing standard cases.
+                    </div>
+                    <div class="test-criteria">
+                        <h4>Test Criteria</h4>
+                        <ul>
+                            <li>Select "$10,000 - $49,999" in Medical Bills filter</li>
+                            <li>Should show Michael Davis and similar leads</li>
+                            <li>Should exclude high-value and low-value cases</li>
+                            <li>Most common lead type should appear</li>
+                        </ul>
+                    </div>
+                    <div class="filter-preview">
+                        <div class="filter-preview-title">Expected Matches:</div>
+                        <div class="filter-preview-content">
+                            • Michael Davis (Whiplash case)<br>
+                            • Leads with "$10,000 - $25,000" estimates
+                        </div>
+                    </div>
+                    <div class="status-indicator status-ready">✅ Ready to Test</div>
+                </div>
+                
+                <div class="test-card">
+                    <div class="test-name">Low-Value Cases (Under $10,000)</div>
+                    <div class="test-description">
+                        Filter for leads with minimal medical expenses for quick resolution cases.
+                    </div>
+                    <div class="test-criteria">
+                        <h4>Test Criteria</h4>
+                        <ul>
+                            <li>Select "Under $10,000" in Medical Bills filter</li>
+                            <li>Should show leads with low medical bill estimates</li>
+                            <li>Should exclude medium and high-value cases</li>
+                            <li>Results should be accurate to the range</li>
+                        </ul>
+                    </div>
+                    <div class="filter-preview">
+                        <div class="filter-preview-title">Expected Matches:</div>
+                        <div class="filter-preview-content">
+                            • Leads with "Under $10,000" estimates<br>
+                            • Leads with "$5,000" estimates
+                        </div>
+                    </div>
+                    <div class="status-indicator status-ready">✅ Ready to Test</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2 class="section-title">🏥 Injury Type Filtering Tests</h2>
+            
+            <div class="test-grid">
+                <div class="test-card">
+                    <div class="test-name">Brain/Head Injuries</div>
+                    <div class="test-description">
+                        Filter for leads with traumatic brain injuries and head trauma cases.
+                    </div>
+                    <div class="test-criteria">
+                        <h4>Test Criteria</h4>
+                        <ul>
+                            <li>Select "Brain/Head Injury" in Injury Type filter</li>
+                            <li>Should match keywords: brain, head, memory, TBI</li>
+                            <li>Should show high-priority cases</li>
+                            <li>Should exclude other injury types</li>
+                        </ul>
+                    </div>
+                    <div class="filter-preview">
+                        <div class="filter-preview-title">Expected Matches:</div>
+                        <div class="filter-preview-content">
+                            • Leads with "brain injury" descriptions<br>
+                            • Leads with "TBI" mentions<br>
+                            • Leads with "head trauma" descriptions
+                        </div>
+                    </div>
+                    <div class="status-indicator status-ready">✅ Ready to Test</div>
+                </div>
+                
+                <div class="test-card">
+                    <div class="test-name">Spinal/Back Injuries</div>
+                    <div class="test-description">
+                        Filter for leads with spinal cord injuries and back trauma cases.
+                    </div>
+                    <div class="test-criteria">
+                        <h4>Test Criteria</h4>
+                        <ul>
+                            <li>Select "Spinal/Back Injury" in Injury Type filter</li>
+                            <li>Should match keywords: spinal, back, spine</li>
+                            <li>Should show Sarah Johnson (spinal cord injury)</li>
+                            <li>Should exclude other injury types</li>
+                        </ul>
+                    </div>
+                    <div class="filter-preview">
+                        <div class="filter-preview-title">Expected Matches:</div>
+                        <div class="filter-preview-content">
+                            • Sarah Johnson (Spinal cord injury)<br>
+                            • Leads with "back injury" descriptions<br>
+                            • Leads with "spine" related injuries
+                        </div>
+                    </div>
+                    <div class="status-indicator status-ready">✅ Ready to Test</div>
+                </div>
+                
+                <div class="test-card">
+                    <div class="test-name">Broken Bones/Fractures</div>
+                    <div class="test-description">
+                        Filter for leads with bone fractures and orthopedic injuries.
+                    </div>
+                    <div class="test-criteria">
+                        <h4>Test Criteria</h4>
+                        <ul>
+                            <li>Select "Broken Bones" in Injury Type filter</li>
+                            <li>Should match keywords: broken, fracture, bone</li>
+                            <li>Should show orthopedic cases</li>
+                            <li>Should exclude soft tissue injuries</li>
+                        </ul>
+                    </div>
+                    <div class="filter-preview">
+                        <div class="filter-preview-title">Expected Matches:</div>
+                        <div class="filter-preview-content">
+                            • Leads with "broken bones" descriptions<br>
+                            • Leads with "fracture" mentions<br>
+                            • Leads with "bone" injury descriptions
+                        </div>
+                    </div>
+                    <div class="status-indicator status-ready">✅ Ready to Test</div>
+                </div>
+                
+                <div class="test-card">
+                    <div class="test-name">Soft Tissue Injuries</div>
+                    <div class="test-description">
+                        Filter for leads with soft tissue damage and muscle injuries.
+                    </div>
+                    <div class="test-criteria">
+                        <h4>Test Criteria</h4>
+                        <ul>
+                            <li>Select "Soft Tissue" in Injury Type filter</li>
+                            <li>Should match keywords: soft, muscle, tissue</li>
+                            <li>Should show Michael Davis (whiplash case)</li>
+                            <li>Should exclude bone fractures and major injuries</li>
+                        </ul>
+                    </div>
+                    <div class="filter-preview">
+                        <div class="filter-preview-title">Expected Matches:</div>
+                        <div class="filter-preview-content">
+                            • Michael Davis (Whiplash case)<br>
+                            • Leads with "soft tissue" descriptions<br>
+                            • Leads with "muscle" injury mentions
+                        </div>
+                    </div>
+                    <div class="status-indicator status-ready">✅ Ready to Test</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2 class="section-title">⚖️ Legal Status & Compliance Tests</h2>
+            
+            <div class="test-grid">
+                <div class="test-card">
+                    <div class="test-name">No Current Lawyer</div>
+                    <div class="test-description">
+                        Filter for leads who are not currently represented by an attorney.
+                    </div>
+                    <div class="test-criteria">
+                        <h4>Test Criteria</h4>
+                        <ul>
+                            <li>Select "No Current Lawyer" in Lawyer Status filter</li>
+                            <li>Should show leads with "No" lawyer status</li>
+                            <li>Should exclude leads with existing representation</li>
+                            <li>Should show high-opportunity leads</li>
+                        </ul>
+                    </div>
+                    <div class="filter-preview">
+                        <div class="filter-preview-title">Expected Matches:</div>
+                        <div class="filter-preview-content">
+                            • Sarah Johnson (No lawyer)<br>
+                            • Michael Davis (No lawyer)<br>
+                            • All leads without current representation
+                        </div>
+                    </div>
+                    <div class="status-indicator status-ready">✅ Ready to Test</div>
+                </div>
+                
+                <div class="test-card">
+                    <div class="test-name">TrustedForm Verified</div>
+                    <div class="test-description">
+                        Filter for leads with TrustedForm compliance certification.
+                    </div>
+                    <div class="test-criteria">
+                        <h4>Test Criteria</h4>
+                        <ul>
+                            <li>Select "TrustedForm Verified" in Compliance filter</li>
+                            <li>Should show leads with trustedform_url present</li>
+                            <li>Should ensure compliance requirements are met</li>
+                            <li>Should exclude non-verified leads</li>
+                        </ul>
+                    </div>
+                    <div class="filter-preview">
+                        <div class="filter-preview-title">Expected Matches:</div>
+                        <div class="filter-preview-content">
+                            • Leads with TrustedForm URLs<br>
+                            • Compliant lead submissions<br>
+                            • Verified consent documentation
+                        </div>
+                    </div>
+                    <div class="status-indicator status-ready">✅ Ready to Test</div>
+                </div>
+                
+                <div class="test-card">
+                    <div class="test-name">Hospital Treatment</div>
+                    <div class="test-description">
+                        Filter for leads who received hospital treatment for their injuries.
+                    </div>
+                    <div class="test-criteria">
+                        <h4>Test Criteria</h4>
+                        <ul>
+                            <li>Select "Treated at Hospital" in Treatment filter</li>
+                            <li>Should match keywords: hospital, ICU</li>
+                            <li>Should show Sarah Johnson (ICU treatment)</li>
+                            <li>Should exclude outpatient-only cases</li>
+                        </ul>
+                    </div>
+                    <div class="filter-preview">
+                        <div class="filter-preview-title">Expected Matches:</div>
+                        <div class="filter-preview-content">
+                            • Sarah Johnson (ICU treatment)<br>
+                            • Leads with "hospital" treatment<br>
+                            • Serious injury cases requiring admission
+                        </div>
+                    </div>
+                    <div class="status-indicator status-ready">✅ Ready to Test</div>
+                </div>
+                
+                <div class="test-card">
+                    <div class="test-name">Fully Compliant</div>
+                    <div class="test-description">
+                        Filter for leads with both TrustedForm verification and consent.
+                    </div>
+                    <div class="test-criteria">
+                        <h4>Test Criteria</h4>
+                        <ul>
+                            <li>Select "Fully Compliant" in Compliance filter</li>
+                            <li>Should require both TrustedForm URL and consent=1</li>
+                            <li>Should show only premium compliant leads</li>
+                            <li>Should exclude partially compliant leads</li>
+                        </ul>
+                    </div>
+                    <div class="filter-preview">
+                        <div class="filter-preview-title">Expected Matches:</div>
+                        <div class="filter-preview-content">
+                            • Leads with TrustedForm + consent<br>
+                            • Fully documented submissions<br>
+                            • Premium compliance status
+                        </div>
+                    </div>
+                    <div class="status-indicator status-ready">✅ Ready to Test</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2 class="section-title">🔄 Combination Filtering Tests</h2>
+            
+            <div class="test-grid">
+                <div class="test-card">
+                    <div class="test-name">High-Value + No Lawyer</div>
+                    <div class="test-description">
+                        Test combining medical bill range with lawyer status for optimal leads.
+                    </div>
+                    <div class="test-criteria">
+                        <h4>Test Criteria</h4>
+                        <ul>
+                            <li>Select "$100,000+" medical bills</li>
+                            <li>Select "No Current Lawyer"</li>
+                            <li>Should show Sarah Johnson only</li>
+                            <li>Should show multiple filter indicators</li>
+                        </ul>
+                    </div>
+                    <div class="status-indicator status-testing">🧪 Multi-Filter Test</div>
+                </div>
+                
+                <div class="test-card">
+                    <div class="test-name">Spinal Injury + Hospital Treatment</div>
+                    <div class="test-description">
+                        Test combining injury type with treatment level for serious cases.
+                    </div>
+                    <div class="test-criteria">
+                        <h4>Test Criteria</h4>
+                        <ul>
+                            <li>Select "Spinal/Back Injury"</li>
+                            <li>Select "Treated at Hospital"</li>
+                            <li>Should show serious spinal cases only</li>
+                            <li>Should exclude minor back injuries</li>
+                        </ul>
+                    </div>
+                    <div class="status-indicator status-testing">🧪 Multi-Filter Test</div>
+                </div>
+                
+                <div class="test-card">
+                    <div class="test-name">Search + Filter Combination</div>
+                    <div class="test-description">
+                        Test combining text search with filter criteria.
+                    </div>
+                    <div class="test-criteria">
+                        <h4>Test Criteria</h4>
+                        <ul>
+                            <li>Search for "spinal" in search box</li>
+                            <li>Select "$100,000+" medical bills</li>
+                            <li>Should show Sarah Johnson only</li>
+                            <li>Should highlight search term if possible</li>
+                        </ul>
+                    </div>
+                    <div class="status-indicator status-testing">🧪 Multi-Filter Test</div>
+                </div>
+                
+                <div class="test-card">
+                    <div class="test-name">Clear All Filters</div>
+                    <div class="test-description">
+                        Test the clear filters functionality after applying multiple filters.
+                    </div>
+                    <div class="test-criteria">
+                        <h4>Test Criteria</h4>
+                        <ul>
+                            <li>Apply multiple filters first</li>
+                            <li>Click "Clear Filters" button</li>
+                            <li>Should reset all filter dropdowns to "all"</li>
+                            <li>Should show all leads again</li>
+                            <li>Should remove filter indicators</li>
+                        </ul>
+                    </div>
+                    <div class="status-indicator status-testing">🧪 Reset Test</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2 class="section-title">📊 Performance & UX Tests</h2>
+            
+            <div class="test-grid">
+                <div class="test-card">
+                    <div class="test-name">Filter Indicator Accuracy</div>
+                    <div class="test-description">
+                        Verify that active filter indicators appear and disappear correctly.
+                    </div>
+                    <div class="test-criteria">
+                        <h4>Test Criteria</h4>
+                        <ul>
+                            <li>Active filters should have blue borders</li>
+                            <li>Filter count badge should appear in header</li>
+                            <li>Inactive filters should have normal appearance</li>
+                            <li>Count should update dynamically</li>
+                        </ul>
+                    </div>
+                    <div class="status-indicator status-testing">🎨 UI/UX Test</div>
+                </div>
+                
+                <div class="test-card">
+                    <div class="test-name">No Results Handling</div>
+                    <div class="test-description">
+                        Test behavior when filter combination returns no results.
+                    </div>
+                    <div class="test-criteria">
+                        <h4>Test Criteria</h4>
+                        <ul>
+                            <li>Apply filters with no matches</li>
+                            <li>Should show "No leads match" message</li>
+                            <li>Should provide clear filters button</li>
+                            <li>Should provide refresh button</li>
+                        </ul>
+                    </div>
+                    <div class="status-indicator status-testing">🔍 Edge Case Test</div>
+                </div>
+                
+                <div class="test-card">
+                    <div class="test-name">Filter Preset Functionality</div>
+                    <div class="test-description">
+                        Test saving and loading filter presets for common scenarios.
+                    </div>
+                    <div class="test-criteria">
+                        <h4>Test Criteria</h4>
+                        <ul>
+                            <li>Apply multiple filters</li>
+                            <li>Click "Save Preset" button</li>
+                            <li>Enter preset name</li>
+                            <li>Verify preset is saved to localStorage</li>
+                        </ul>
+                    </div>
+                    <div class="status-indicator status-testing">💾 Storage Test</div>
+                </div>
+                
+                <div class="test-card">
+                    <div class="test-name">Real-time Filtering</div>
+                    <div class="test-description">
+                        Verify that filtering happens immediately without page refresh.
+                    </div>
+                    <div class="test-criteria">
+                        <h4>Test Criteria</h4>
+                        <ul>
+                            <li>Filters should apply instantly</li>
+                            <li>No page refresh required</li>
+                            <li>Search should filter as you type</li>
+                            <li>Results should update smoothly</li>
+                        </ul>
+                    </div>
+                    <div class="status-indicator status-testing">⚡ Performance Test</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2 class="section-title">🚀 Quick Test Actions</h2>
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <a href="agent-aurora.html" class="btn" target="_blank">
+                    🎯 Open Agent Dashboard
+                </a>
+                <a href="publisher-api-documentation.html" class="btn btn-secondary" target="_blank">
+                    📚 View API Documentation
+                </a>
+                <button class="btn btn-secondary" onclick="printTestChecklist()">
+                    📋 Print Test Checklist
+                </button>
+                <button class="btn btn-secondary" onclick="resetTestStatus()">
+                    🔄 Reset Test Status
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function printTestChecklist() {
+            const checklist = `
+            MVA Advanced Filtering Test Checklist
+            ====================================
+            
+            □ Medical Bill Range Filtering
+              □ High-Value Cases ($100,000+)
+              □ Medium-High Range ($50,000-$99,999)
+              □ Standard Range ($10,000-$49,999)
+              □ Low-Value Cases (Under $10,000)
+            
+            □ Injury Type Filtering
+              □ Brain/Head Injuries
+              □ Spinal/Back Injuries
+              □ Broken Bones/Fractures
+              □ Soft Tissue Injuries
+            
+            □ Legal Status & Compliance
+              □ No Current Lawyer
+              □ TrustedForm Verified
+              □ Hospital Treatment
+              □ Fully Compliant
+            
+            □ Combination Filtering
+              □ High-Value + No Lawyer
+              □ Spinal Injury + Hospital Treatment
+              □ Search + Filter Combination
+              □ Clear All Filters
+            
+            □ Performance & UX
+              □ Filter Indicator Accuracy
+              □ No Results Handling
+              □ Filter Preset Functionality
+              □ Real-time Filtering
+            
+            Test Results:
+            - Filters Applied Correctly: □ Yes □ No
+            - Filter Indicators Working: □ Yes □ No
+            - Clear Filters Working: □ Yes □ No
+            - Multi-Filter Combinations: □ Yes □ No
+            - Performance Acceptable: □ Yes □ No
+            
+            Notes:
+            _________________________________
+            _________________________________
+            _________________________________
+            `;
+            
+            const newWindow = window.open('', '_blank');
+            newWindow.document.write(`
+                <html>
+                    <head><title>MVA Filtering Test Checklist</title></head>
+                    <body style="font-family: monospace; white-space: pre-wrap; padding: 20px;">
+                        ${checklist}
+                    </body>
+                </html>
+            `);
+            newWindow.print();
+        }
+        
+        function resetTestStatus() {
+            const statusIndicators = document.querySelectorAll('.status-indicator');
+            statusIndicators.forEach(indicator => {
+                indicator.className = 'status-indicator status-ready';
+                indicator.innerHTML = '✅ Ready to Test';
+            });
+            
+            alert('🔄 Test status reset. All tests are ready to run again.');
+        }
+        
+        // Add click tracking for test cards
+        document.querySelectorAll('.test-card').forEach(card => {
+            card.addEventListener('click', function() {
+                const status = this.querySelector('.status-indicator');
+                if (status && status.classList.contains('status-ready')) {
+                    status.className = 'status-indicator status-testing';
+                    status.innerHTML = '🧪 Testing in Progress...';
+                    
+                    // Simulate test completion after 3 seconds
+                    setTimeout(() => {
+                        status.className = 'status-indicator status-ready';
+                        status.innerHTML = '✅ Test Complete';
+                    }, 3000);
+                }
+            });
+        });
+        
+        console.log('🧪 Advanced Filtering Test Suite Loaded');
+        console.log('📊 Test scenarios ready for execution');
+        console.log('🎯 Open agent-aurora.html to begin testing');
+    </script>
+</body>
+</html> 

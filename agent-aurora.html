@@ -793,6 +793,69 @@
         border-color: rgba(255, 255, 255, 0.15);
         box-shadow: none;
     }
+
+    /* Enhanced Filter Section */
+    .filter-section {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .filter-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .filter-row:last-child {
+        margin-bottom: 0;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .filter-section .form-input,
+    .filter-section .btn {
+        height: 40px;
+        border-radius: 8px;
+    }
+
+    .filter-section .btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+
+    .filter-section .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Active filter indicator */
+    .filter-active {
+        border-color: var(--accent-blue) !important;
+        background: rgba(59, 130, 246, 0.1) !important;
+    }
+
+    .filter-count {
+        background: var(--accent-blue);
+        color: white;
+        border-radius: 12px;
+        padding: 2px 8px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-left: 0.5rem;
+    }
     </style>
 </head>
 <body>
@@ -875,27 +938,87 @@
                 </div>
             </div>
             
-            <!-- Filter Section -->
+            <!-- Enhanced Filter Section -->
             <div class="filter-section">
-                <div class="filter-group">
-                    <input type="text" id="search-leads" placeholder="🔍 Search leads..." class="form-input">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <input type="text" id="search-leads" placeholder="🔍 Search leads..." class="form-input">
+                    </div>
+                    <div class="filter-group">
+                        <select id="filter-type" class="form-input">
+                            <option value="all">All Types</option>
+                            <option value="auto_accident">Auto Accident</option>
+                            <option value="pedestrian">Pedestrian Accident</option>
+                            <option value="slip_fall">Slip & Fall</option>
+                            <option value="medical_malpractice">Medical Malpractice</option>
+                            <option value="workplace_injury">Workplace Injury</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <select id="filter-medical-bills" class="form-input">
+                            <option value="all">All Medical Bills</option>
+                            <option value="high">$100,000+</option>
+                            <option value="medium-high">$50,000 - $99,999</option>
+                            <option value="medium">$10,000 - $49,999</option>
+                            <option value="low">Under $10,000</option>
+                            <option value="unknown">Not Specified</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="filter-group">
-                    <select id="filter-type" class="form-input">
-                        <option value="all">All Types</option>
-                        <option value="auto_accident">Auto Accident</option>
-                        <option value="slip_fall">Slip & Fall</option>
-                        <option value="medical_malpractice">Medical Malpractice</option>
-                        <option value="workplace_injury">Workplace Injury</option>
-                    </select>
+                
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <select id="filter-injury-type" class="form-input">
+                            <option value="all">All Injuries</option>
+                            <option value="brain">Brain/Head Injury</option>
+                            <option value="spinal">Spinal/Back Injury</option>
+                            <option value="broken">Broken Bones</option>
+                            <option value="soft_tissue">Soft Tissue</option>
+                            <option value="internal">Internal Injuries</option>
+                            <option value="multiple">Multiple Injuries</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <select id="filter-lawyer-status" class="form-input">
+                            <option value="all">All Lawyer Status</option>
+                            <option value="no_lawyer">No Current Lawyer</option>
+                            <option value="has_lawyer">Has Lawyer</option>
+                            <option value="unknown_lawyer">Lawyer Status Unknown</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <select id="filter-treatment" class="form-input">
+                            <option value="all">All Treatment</option>
+                            <option value="hospital">Treated at Hospital</option>
+                            <option value="er">Emergency Room</option>
+                            <option value="doctor">Saw Doctor</option>
+                            <option value="none">No Treatment</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="filter-group">
-                    <select id="filter-value" class="form-input">
-                        <option value="all">All Values</option>
-                        <option value="high">High Value ($1000+)</option>
-                        <option value="medium">Medium Value ($500-$999)</option>
-                        <option value="low">Low Value (<$500)</option>
-                    </select>
+                
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <select id="filter-compliance" class="form-input">
+                            <option value="all">All Compliance</option>
+                            <option value="verified">TrustedForm Verified</option>
+                            <option value="consented">Has Consent</option>
+                            <option value="compliant">Fully Compliant</option>
+                            <option value="incomplete">Incomplete Compliance</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <select id="filter-urgency" class="form-input">
+                            <option value="all">All Priority</option>
+                            <option value="high">High Priority</option>
+                            <option value="medium">Medium Priority</option>
+                            <option value="low">Low Priority</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <button class="btn btn-secondary" onclick="clearAllFilters()">🗑️ Clear Filters</button>
+                        <button class="btn btn-info" onclick="saveFilterPreset()">💾 Save Preset</button>
+                    </div>
                 </div>
             </div>
             
@@ -1792,75 +1915,478 @@
         }
     }
 
-    // Initialize dashboard - ENHANCED ERROR HANDLING
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('🎯 Agent dashboard initializing with error protection...');
-        
-        try {
-            // Update date and time with error handling
-            function updateDateTime() {
-                try {
-                    const now = new Date();
-                    const hour = now.getHours();
-                    let greeting = 'morning';
-                    
-                    if (hour >= 12 && hour < 17) greeting = 'afternoon';
-                    else if (hour >= 17) greeting = 'evening';
-                    
-                    const greetingEl = document.getElementById('time-greeting');
-                    const dateEl = document.getElementById('current-date');
-                    
-                    if (greetingEl) greetingEl.textContent = greeting;
-                    if (dateEl) {
-                        dateEl.textContent = now.toLocaleDateString('en-US', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                        });
-                    }
-                } catch (error) {
-                    console.error('Error updating date/time:', error);
-                }
-            }
-            
-            // Safe initialization with fallbacks
-            updateDateTime();
-            setInterval(updateDateTime, 60000);
+            // Enhanced Filtering System
+        let currentFilters = {
+            search: '',
+            type: 'all',
+            medicalBills: 'all',
+            injuryType: 'all',
+            lawyerStatus: 'all',
+            treatment: 'all',
+            compliance: 'all',
+            urgency: 'all'
+        };
 
-            // Initialize data with error handling
+        let filteredLeads = [];
+        let filterPresets = [];
+
+        // Apply all filters to leads
+        function applyFilters() {
             try {
+                let leads = [...mockAvailableLeads];
+                
+                // Apply search filter
+                if (currentFilters.search) {
+                    const searchTerm = currentFilters.search.toLowerCase();
+                    leads = leads.filter(lead => {
+                        const searchableText = [
+                            lead.name, lead.type, lead.phone, lead.email, lead.description,
+                            lead.estimated_medical_bills, lead.what_is_the_primary_injury,
+                            lead.city_where_the_injury_occurred, lead.additional_details
+                        ].join(' ').toLowerCase();
+                        return searchableText.includes(searchTerm);
+                    });
+                }
+
+                // Apply type filter
+                if (currentFilters.type !== 'all') {
+                    leads = leads.filter(lead => {
+                        const leadType = (lead.type || '').toLowerCase();
+                        const accidentType = (lead._what_best_describes_the_type_of_accident_you_were_in || '').toLowerCase();
+                        
+                        switch (currentFilters.type) {
+                            case 'auto_accident':
+                                return leadType.includes('auto') || accidentType.includes('vehicle');
+                            case 'pedestrian':
+                                return accidentType.includes('pedestrian') || accidentType.includes('bicycle');
+                            case 'slip_fall':
+                                return leadType.includes('slip') || leadType.includes('fall');
+                            case 'medical_malpractice':
+                                return leadType.includes('medical') || leadType.includes('malpractice');
+                            case 'workplace_injury':
+                                return leadType.includes('workplace') || leadType.includes('work');
+                            default:
+                                return true;
+                        }
+                    });
+                }
+
+                // Apply medical bills filter
+                if (currentFilters.medicalBills !== 'all') {
+                    leads = leads.filter(lead => {
+                        const bills = (lead.estimated_medical_bills || '').toLowerCase();
+                        
+                        switch (currentFilters.medicalBills) {
+                            case 'high':
+                                return bills.includes('100000') || bills.includes('100,000') || bills.includes('more than');
+                            case 'medium-high':
+                                return bills.includes('50000') || bills.includes('50,000') || bills.includes('75000');
+                            case 'medium':
+                                return bills.includes('10000') || bills.includes('25000') || bills.includes('40000');
+                            case 'low':
+                                return bills.includes('5000') || bills.includes('under') || bills.includes('less');
+                            case 'unknown':
+                                return !bills || bills === '';
+                            default:
+                                return true;
+                        }
+                    });
+                }
+
+                // Apply injury type filter
+                if (currentFilters.injuryType !== 'all') {
+                    leads = leads.filter(lead => {
+                        const injury = (lead.what_is_the_primary_injury || '').toLowerCase();
+                        
+                        switch (currentFilters.injuryType) {
+                            case 'brain':
+                                return injury.includes('brain') || injury.includes('head') || injury.includes('memory') || injury.includes('tbi');
+                            case 'spinal':
+                                return injury.includes('spinal') || injury.includes('back') || injury.includes('spine');
+                            case 'broken':
+                                return injury.includes('broken') || injury.includes('fracture') || injury.includes('bone');
+                            case 'soft_tissue':
+                                return injury.includes('soft') || injury.includes('muscle') || injury.includes('tissue');
+                            case 'internal':
+                                return injury.includes('internal') || injury.includes('organ');
+                            case 'multiple':
+                                return injury.includes('multiple') || injury.includes('various');
+                            default:
+                                return true;
+                        }
+                    });
+                }
+
+                // Apply lawyer status filter
+                if (currentFilters.lawyerStatus !== 'all') {
+                    leads = leads.filter(lead => {
+                        const lawyerStatus = (lead.are_you_currently_represented_by_a_lawyer_for_this_case || '').toLowerCase();
+                        
+                        switch (currentFilters.lawyerStatus) {
+                            case 'no_lawyer':
+                                return lawyerStatus.includes('no') || lawyerStatus === 'false';
+                            case 'has_lawyer':
+                                return lawyerStatus.includes('yes') || lawyerStatus === 'true';
+                            case 'unknown_lawyer':
+                                return !lawyerStatus || lawyerStatus === '';
+                            default:
+                                return true;
+                        }
+                    });
+                }
+
+                // Apply treatment filter
+                if (currentFilters.treatment !== 'all') {
+                    leads = leads.filter(lead => {
+                        const treatment = (lead.did_the_injured_person_receive_treatment || '').toLowerCase();
+                        
+                        switch (currentFilters.treatment) {
+                            case 'hospital':
+                                return treatment.includes('hospital');
+                            case 'er':
+                                return treatment.includes('emergency') || treatment.includes('er');
+                            case 'doctor':
+                                return treatment.includes('doctor') || treatment.includes('physician');
+                            case 'none':
+                                return treatment.includes('no') || treatment.includes('none');
+                            default:
+                                return true;
+                        }
+                    });
+                }
+
+                // Apply compliance filter
+                if (currentFilters.compliance !== 'all') {
+                    leads = leads.filter(lead => {
+                        const hasTrustedForm = !!lead.trustedform_url;
+                        const hasConsent = lead.consent === '1' || lead.consent === 1;
+                        
+                        switch (currentFilters.compliance) {
+                            case 'verified':
+                                return hasTrustedForm;
+                            case 'consented':
+                                return hasConsent;
+                            case 'compliant':
+                                return hasTrustedForm && hasConsent;
+                            case 'incomplete':
+                                return !hasTrustedForm || !hasConsent;
+                            default:
+                                return true;
+                        }
+                    });
+                }
+
+                // Apply urgency filter
+                if (currentFilters.urgency !== 'all') {
+                    leads = leads.filter(lead => {
+                        return (lead.urgency || '').toLowerCase() === currentFilters.urgency;
+                    });
+                }
+
+                filteredLeads = leads;
                 renderAvailableLeads();
-                renderMyLeads();
-                updateStats();
-                console.log('✅ Agent dashboard initialized successfully');
-            } catch (dataError) {
-                console.error('Error initializing dashboard data:', dataError);
-                // Show fallback message
-                const grids = ['available-leads-grid', 'my-leads-grid'];
-                grids.forEach(gridId => {
-                    const grid = document.getElementById(gridId);
-                    if (grid) {
-                        grid.innerHTML = '<div class="loading-state"><p>Dashboard loading...</p></div>';
-                    }
-                });
-            }
-            
-        } catch (error) {
-            console.error('Critical error initializing agent dashboard:', error);
-            // Show error message to user
-            const main = document.querySelector('.admin-main');
-            if (main) {
-                main.innerHTML = `
-                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
-                        <h2>⚠️ Dashboard Loading Issue</h2>
-                        <p>Please refresh the page to try again.</p>
-                        <button class="btn btn-primary" onclick="window.location.reload()">🔄 Refresh Page</button>
-                    </div>
-                `;
+                updateFilterIndicators();
+                
+                console.log(`🔍 Filters applied: ${leads.length}/${mockAvailableLeads.length} leads shown`);
+                
+            } catch (error) {
+                console.error('Error applying filters:', error);
+                filteredLeads = [...mockAvailableLeads];
+                renderAvailableLeads();
             }
         }
-    });
+
+        // Update filter indicators to show active filters
+        function updateFilterIndicators() {
+            const filterSelects = [
+                'filter-type', 'filter-medical-bills', 'filter-injury-type',
+                'filter-lawyer-status', 'filter-treatment', 'filter-compliance', 'filter-urgency'
+            ];
+
+            let activeCount = 0;
+            
+            filterSelects.forEach(id => {
+                const select = document.getElementById(id);
+                if (select && select.value !== 'all') {
+                    select.classList.add('filter-active');
+                    activeCount++;
+                } else if (select) {
+                    select.classList.remove('filter-active');
+                }
+            });
+
+            // Update search input indicator
+            const searchInput = document.getElementById('search-leads');
+            if (searchInput && searchInput.value) {
+                searchInput.classList.add('filter-active');
+                activeCount++;
+            } else if (searchInput) {
+                searchInput.classList.remove('filter-active');
+            }
+
+            // Update section header with filter count
+            const sectionHeader = document.querySelector('.section-title h2');
+            if (sectionHeader) {
+                const existingCount = sectionHeader.querySelector('.filter-count');
+                if (existingCount) existingCount.remove();
+                
+                if (activeCount > 0) {
+                    const countBadge = document.createElement('span');
+                    countBadge.className = 'filter-count';
+                    countBadge.textContent = activeCount;
+                    sectionHeader.appendChild(countBadge);
+                }
+            }
+        }
+
+        // Clear all filters
+        function clearAllFilters() {
+            try {
+                // Reset filter object
+                currentFilters = {
+                    search: '',
+                    type: 'all',
+                    medicalBills: 'all',
+                    injuryType: 'all',
+                    lawyerStatus: 'all',
+                    treatment: 'all',
+                    compliance: 'all',
+                    urgency: 'all'
+                };
+
+                // Reset UI elements
+                document.getElementById('search-leads').value = '';
+                document.getElementById('filter-type').value = 'all';
+                document.getElementById('filter-medical-bills').value = 'all';
+                document.getElementById('filter-injury-type').value = 'all';
+                document.getElementById('filter-lawyer-status').value = 'all';
+                document.getElementById('filter-treatment').value = 'all';
+                document.getElementById('filter-compliance').value = 'all';
+                document.getElementById('filter-urgency').value = 'all';
+
+                // Remove active indicators
+                document.querySelectorAll('.filter-active').forEach(el => {
+                    el.classList.remove('filter-active');
+                });
+
+                // Apply filters (which will show all leads)
+                applyFilters();
+                
+                console.log('🗑️ All filters cleared');
+                
+            } catch (error) {
+                console.error('Error clearing filters:', error);
+            }
+        }
+
+        // Save filter preset
+        function saveFilterPreset() {
+            try {
+                const presetName = prompt('Enter a name for this filter preset:');
+                if (presetName && presetName.trim()) {
+                    const preset = {
+                        name: presetName.trim(),
+                        filters: { ...currentFilters },
+                        created: new Date().toISOString()
+                    };
+                    
+                    filterPresets.push(preset);
+                    localStorage.setItem('agent_filter_presets', JSON.stringify(filterPresets));
+                    
+                    alert(`✅ Filter preset "${presetName}" saved successfully!`);
+                }
+            } catch (error) {
+                console.error('Error saving filter preset:', error);
+                alert('Error saving filter preset. Please try again.');
+            }
+        }
+
+        // Setup filter event listeners
+        function setupFilterListeners() {
+            try {
+                // Search input
+                const searchInput = document.getElementById('search-leads');
+                if (searchInput) {
+                    searchInput.addEventListener('input', function() {
+                        currentFilters.search = this.value;
+                        applyFilters();
+                    });
+                }
+
+                // Filter selects
+                const filterMappings = {
+                    'filter-type': 'type',
+                    'filter-medical-bills': 'medicalBills',
+                    'filter-injury-type': 'injuryType',
+                    'filter-lawyer-status': 'lawyerStatus',
+                    'filter-treatment': 'treatment',
+                    'filter-compliance': 'compliance',
+                    'filter-urgency': 'urgency'
+                };
+
+                Object.entries(filterMappings).forEach(([elementId, filterKey]) => {
+                    const element = document.getElementById(elementId);
+                    if (element) {
+                        element.addEventListener('change', function() {
+                            currentFilters[filterKey] = this.value;
+                            applyFilters();
+                        });
+                    }
+                });
+
+                console.log('✅ Filter listeners setup complete');
+                
+            } catch (error) {
+                console.error('Error setting up filter listeners:', error);
+            }
+        }
+
+        // Modified renderAvailableLeads to use filtered leads
+        function renderAvailableLeads() {
+            const grid = document.getElementById('available-leads-grid');
+            if (!grid) return;
+
+            const leadsToRender = filteredLeads.length > 0 ? filteredLeads : mockAvailableLeads;
+
+            if (leadsToRender.length === 0) {
+                grid.innerHTML = `
+                    <div class="loading-state">
+                        <p>No leads match your current filters</p>
+                        <button class="btn btn-secondary" onclick="clearAllFilters()">🗑️ Clear Filters</button>
+                        <button class="btn btn-primary" onclick="refreshLeads()">🔄 Refresh</button>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = leadsToRender.map(lead => `
+                <div class="lead-card" onclick="viewLeadDetails('${lead.id}')">
+                    <div class="lead-header">
+                        <div>
+                            <div class="lead-name">${lead.name}</div>
+                            <div class="lead-type">${lead.type}</div>
+                        </div>
+                        <div class="status-badge ${lead.urgency.toLowerCase()}">${lead.urgency} Priority</div>
+                    </div>
+                    <div class="lead-details">
+                        <div class="lead-detail">
+                            <span>📞</span>
+                            <span>${lead.phone}</span>
+                        </div>
+                        <div class="lead-detail">
+                            <span>📧</span>
+                            <span>${lead.email}</span>
+                        </div>
+                        <div class="lead-detail">
+                            <span>📍</span>
+                            <span>${lead.state}</span>
+                        </div>
+                        <div class="lead-detail">
+                            <span>📅</span>
+                            <span>Incident: ${lead.incidentDate}</span>
+                        </div>
+                        <div class="lead-detail">
+                            <span>💬</span>
+                            <span>${lead.description || lead.additional_details || 'No details provided'}</span>
+                        </div>
+                        ${lead.estimated_medical_bills ? `
+                        <div class="lead-detail">
+                            <span>💰</span>
+                            <span>Medical Bills: ${lead.estimated_medical_bills}</span>
+                        </div>
+                        ` : ''}
+                        ${lead.what_is_the_primary_injury ? `
+                        <div class="lead-detail">
+                            <span>🏥</span>
+                            <span>Primary Injury: ${lead.what_is_the_primary_injury}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                    <div class="lead-actions">
+                        <button class="action-btn-sm view" onclick="event.stopPropagation(); viewLeadDetails('${lead.id}')">
+                            👁️ View & Edit
+                        </button>
+                        <button class="action-btn-sm claim" onclick="event.stopPropagation(); claimLead('${lead.id}')">
+                            ⚡ Claim
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Initialize dashboard - ENHANCED ERROR HANDLING
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🎯 Agent dashboard initializing with error protection...');
+            
+            try {
+                // Update date and time with error handling
+                function updateDateTime() {
+                    try {
+                        const now = new Date();
+                        const hour = now.getHours();
+                        let greeting = 'morning';
+                        
+                        if (hour >= 12 && hour < 17) greeting = 'afternoon';
+                        else if (hour >= 17) greeting = 'evening';
+                        
+                        const greetingEl = document.getElementById('time-greeting');
+                        const dateEl = document.getElementById('current-date');
+                        
+                        if (greetingEl) greetingEl.textContent = greeting;
+                        if (dateEl) {
+                            dateEl.textContent = now.toLocaleDateString('en-US', {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Error updating date/time:', error);
+                    }
+                }
+                
+                // Safe initialization with fallbacks
+                updateDateTime();
+                setInterval(updateDateTime, 60000);
+
+                // Setup enhanced filtering
+                setupFilterListeners();
+                filteredLeads = [...mockAvailableLeads];
+
+                // Initialize data with error handling
+                try {
+                    renderAvailableLeads();
+                    renderMyLeads();
+                    updateStats();
+                    console.log('✅ Agent dashboard initialized successfully');
+                } catch (dataError) {
+                    console.error('Error initializing dashboard data:', dataError);
+                    // Show fallback message
+                    const grids = ['available-leads-grid', 'my-leads-grid'];
+                    grids.forEach(gridId => {
+                        const grid = document.getElementById(gridId);
+                        if (grid) {
+                            grid.innerHTML = '<div class="loading-state"><p>Dashboard loading...</p></div>';
+                        }
+                    });
+                }
+                
+            } catch (error) {
+                console.error('Critical error initializing agent dashboard:', error);
+                // Show error message to user
+                const main = document.querySelector('.admin-main');
+                if (main) {
+                    main.innerHTML = `
+                        <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                            <h2>⚠️ Dashboard Loading Issue</h2>
+                            <p>Please refresh the page to try again.</p>
+                            <button class="btn btn-primary" onclick="window.location.reload()">🔄 Refresh Page</button>
+                        </div>
+                    `;
+                }
+            }
+        });
 
     // Add global error handler
     window.addEventListener('error', function(e) {

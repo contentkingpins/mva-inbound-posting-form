@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MVA Lead API Documentation - Publisher Integration Guide</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+            line-height: 1.6;
+            color: #1f2937;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        .main-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            font-size: 1.125rem;
+            color: #6b7280;
+            font-weight: 500;
+        }
+        
+        .content {
+            display: grid;
+            gap: 2rem;
+        }
+        
+        .section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .field-group {
+            margin-bottom: 2rem;
+        }
+        
+        .field-group-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        
+        .field-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+        }
+        
+        .field-table th,
+        .field-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .field-table th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .field-name {
+            font-family: 'Monaco', 'Consolas', monospace;
+            background: #f3f4f6;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.875rem;
+        }
+        
+        .field-type {
+            color: #059669;
+            font-weight: 500;
+        }
+        
+        .required {
+            color: #dc2626;
+            font-weight: 600;
+        }
+        
+        .optional {
+            color: #6b7280;
+        }
+        
+        .code-block {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.875rem;
+            line-height: 1.5;
+            margin: 1rem 0;
+        }
+        
+        .endpoint {
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-weight: 600;
+            margin: 1rem 0;
+        }
+        
+        .note {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+        
+        .warning {
+            background: #fef2f2;
+            border-left: 4px solid #ef4444;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+        
+        .success {
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+        
+        .nav-menu {
+            position: sticky;
+            top: 2rem;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .nav-menu ul {
+            list-style: none;
+        }
+        
+        .nav-menu li {
+            margin: 0.5rem 0;
+        }
+        
+        .nav-menu a {
+            color: #6b7280;
+            text-decoration: none;
+            padding: 0.5rem 0;
+            display: block;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+        
+        .nav-menu a:hover {
+            color: #374151;
+            background: #f3f4f6;
+            padding-left: 0.5rem;
+        }
+        
+        @media (min-width: 768px) {
+            .content {
+                grid-template-columns: 250px 1fr;
+                gap: 2rem;
+            }
+        }
+        
+        .example-payload {
+            background: #0f172a;
+            color: #e2e8f0;
+            padding: 1.5rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+        
+        .json-key {
+            color: #38bdf8;
+        }
+        
+        .json-string {
+            color: #a3e635;
+        }
+        
+        .json-number {
+            color: #fb7185;
+        }
+        
+        .json-boolean {
+            color: #fbbf24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="main-title">MVA Lead API Documentation</h1>
+            <p class="subtitle">Comprehensive integration guide for Motor Vehicle Accident lead posting</p>
+        </div>
+        
+        <div class="content">
+            <div class="nav-menu">
+                <h3>Navigation</h3>
+                <ul>
+                    <li><a href="#overview">Overview</a></li>
+                    <li><a href="#authentication">Authentication</a></li>
+                    <li><a href="#endpoints">API Endpoints</a></li>
+                    <li><a href="#core-fields">Core Fields</a></li>
+                    <li><a href="#mva-medical">Medical Information</a></li>
+                    <li><a href="#mva-legal">Legal Status</a></li>
+                    <li><a href="#mva-source">Source & Tracking</a></li>
+                    <li><a href="#mva-compliance">Compliance Data</a></li>
+                    <li><a href="#examples">Complete Examples</a></li>
+                    <li><a href="#response-codes">Response Codes</a></li>
+                    <li><a href="#testing">Testing Guide</a></li>
+                </ul>
+            </div>
+            
+            <div class="main-content">
+                <section id="overview" class="section">
+                    <h2 class="section-title">📋 Overview</h2>
+                    <p>The MVA Lead API allows publishers to submit motor vehicle accident leads with comprehensive medical, legal, and compliance information. This enhanced data model provides law firms with the detailed information needed to properly evaluate and prioritize cases.</p>
+                    
+                    <div class="note">
+                        <strong>API Version:</strong> 2.1 (Enhanced MVA Support)<br>
+                        <strong>Protocol:</strong> HTTPS POST<br>
+                        <strong>Format:</strong> JSON<br>
+                        <strong>Encoding:</strong> UTF-8
+                    </div>
+                </section>
+                
+                <section id="authentication" class="section">
+                    <h2 class="section-title">🔐 Authentication</h2>
+                    <p>All API requests require authentication using your publisher API key.</p>
+                    
+                    <div class="code-block">
+                        POST /api/leads
+                        Content-Type: application/json
+                        Authorization: Bearer YOUR_API_KEY
+                        X-Publisher-ID: YOUR_PUBLISHER_ID
+                    </div>
+                    
+                    <div class="warning">
+                        <strong>Security Note:</strong> Never expose your API key in client-side code. All requests must be made from your server.
+                    </div>
+                </section>
+                
+                <section id="endpoints" class="section">
+                    <h2 class="section-title">🎯 API Endpoints</h2>
+                    
+                    <div class="field-group">
+                        <h3 class="field-group-title">Production Endpoint</h3>
+                        <div class="endpoint">POST https://api.mva-leads.com/api/leads</div>
+                    </div>
+                    
+                    <div class="field-group">
+                        <h3 class="field-group-title">Staging Endpoint</h3>
+                        <div class="endpoint">POST https://staging-api.mva-leads.com/api/leads</div>
+                    </div>
+                    
+                    <div class="field-group">
+                        <h3 class="field-group-title">Test Endpoint</h3>
+                        <div class="endpoint">POST https://test-api.mva-leads.com/api/leads</div>
+                    </div>
+                </section>
+                
+                <section id="core-fields" class="section">
+                    <h2 class="section-title">🔧 Core Lead Fields</h2>
+                    <p>These are the essential fields required for all lead submissions.</p>
+                    
+                    <table class="field-table">
+                        <thead>
+                            <tr>
+                                <th>Field Name</th>
+                                <th>Type</th>
+                                <th>Required</th>
+                                <th>Description</th>
+                                <th>Example</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="field-name">name</span></td>
+                                <td class="field-type">string</td>
+                                <td class="required">Required</td>
+                                <td>Full name of the lead</td>
+                                <td>John Smith</td>
+                            </tr>
+                            <tr>
+                                <td><span class="field-name">email</span></td>
+                                <td class="field-type">string</td>
+                                <td class="required">Required</td>
+                                <td>Email address</td>
+                                <td>john.smith@email.com</td>
+                            </tr>
+                            <tr>
+                                <td><span class="field-name">phone</span></td>
+                                <td class="field-type">string</td>
+                                <td class="required">Required</td>
+                                <td>Phone number</td>
+                                <td>555-123-4567</td>
+                            </tr>
+                            <tr>
+                                <td><span class="field-name">type</span></td>
+                                <td class="field-type">string</td>
+                                <td class="required">Required</td>
+                                <td>Type of case</td>
+                                <td>Motor Vehicle Accident</td>
+                            </tr>
+                            <tr>
+                                <td><span class="field-name">state</span></td>
+                                <td class="field-type">string</td>
+                                <td class="required">Required</td>
+                                <td>State where incident occurred</td>
+                                <td>California</td>
+                            </tr>
+                            <tr>
+                                <td><span class="field-name">incidentDate</span></td>
+                                <td class="field-type">string</td>
+                                <td class="required">Required</td>
+                                <td>Date of incident (YYYY-MM-DD)</td>
+                                <td>2024-01-15</td>
+                            </tr>
+                            <tr>
+                                <td><span class="field-name">description</span></td>
+                                <td class="field-type">string</td>
+                                <td class="optional">Optional</td>
+                                <td>Brief description of incident</td>
+                                <td>Rear-ended at intersection</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </section>
+                
+                <section id="mva-medical" class="section">
+                    <h2 class="section-title">🏥 Medical Information Fields</h2>
+                    <p>Enhanced medical data for proper case evaluation and prioritization.</p>
+                    
+                    <table class="field-table">
+                        <thead>
+                            <tr>
+                                <th>Field Name</th>
+                                <th>Type</th>
+                                <th>Required</th>
+                                <th>Description</th>
+                                <th>Example Values</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="field-name">estimated_medical_bills</span></td>
+                                <td class="field-type">string</td>
+                                <td class="optional">Optional</td>
+                                <td>Estimated medical expenses</td>
+                                <td>"$50,000 - $75,000", "More than $100,000", "Under $10,000"</td>
+                            </tr>
+                            <tr>
+                                <td><span class="field-name">what_is_the_primary_injury</span></td>
+                                <td class="field-type">string</td>
+                                <td class="optional">Optional</td>
+                                <td>Primary injury sustained</td>
+                                <td>"Spinal cord injury", "Brain injury/TBI", "Broken bones", "Soft tissue injury"</td>
+                            </tr>
+                            <tr>
+                                <td><span class="field-name">did_the_injured_person_receive_treatment</span></td>
+                                <td class="field-type">string</td>
+                                <td class="optional">Optional</td>
+                                <td>Type of medical treatment received</td>
+                                <td>"Treated at hospital", "Emergency room", "Saw a doctor", "No treatment yet"</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <div class="note">
+                        <strong>Medical Bill Ranges:</strong> Use standardized ranges for consistency:<br>
+                        • "Under $10,000"<br>
+                        • "$10,000 - $25,000"<br>
+                        • "$25,000 - $50,000"<br>
+                        • "$50,000 - $100,000"<br>
+                        • "More than $100,000"
+                    </div>
+                </section>
+                
+                <section id="mva-legal" class="section">
+                    <h2 class="section-title">⚖️ Legal Status Fields</h2>
+                    <p>Legal status information to help firms identify available opportunities.</p>
+                    
+                    <table class="field-table">
+                        <thead>
+                            <tr>
+                                <th>Field Name</th>
+                                <th>Type</th>
+                                <th>Required</th>
+                                <th>Description</th>
+                                <th>Example Values</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="field-name">are_you_currently_represented_by_a_lawyer_for_this_case</span></td>
+                                <td class="field-type">string</td>
+                                <td class="optional">Optional</td>
+                                <td>Current legal representation status</td>
+                                <td>"Yes", "No", "Not sure"</td>
+                            </tr>
+                            <tr>
+                                <td><span class="field-name">was_a_police_report_filed</span></td>
+                                <td class="field-type">string</td>
+                                <td class="optional">Optional</td>
+                                <td>Police report filing status</td>
+                                <td>"Yes", "No", "Don't know"</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </section>
+                
+                <section id="mva-source" class="section">
+                    <h2 class="section-title">📊 Source & Tracking Fields</h2>
+                    <p>Source attribution and tracking information for campaign optimization.</p>
+                    
+                    <table class="field-table">
+                        <thead>
+                            <tr>
+                                <th>Field Name</th>
+                                <th>Type</th>
+                                <th>Required</th>
+                                <th>Description</th>
+                                <th>Example Values</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="field-name">xselect4</span></td>
+                                <td class="field-type">string</td>
+                                <td class="optional">Optional</td>
+                                <td>Source identifier/campaign code</td>
+                                <td>"campaign_001", "google_ads_mva", "facebook_traffic"</td>
+                            </tr>
+                            <tr>
+                                <td><span class="field-name">source_url</span></td>
+                                <td class="field-type">string</td>
+                                <td class="optional">Optional</td>
+                                <td>Source URL where lead originated</td>
+                                <td>"https://example.com/mva-form"</td>
+                            </tr>
+                            <tr>
+                                <td><span class="field-name">leadip</span></td>
+                                <td class="field-type">string</td>
+                                <td class="optional">Optional</td>
+                                <td>IP address of lead (IPv4/IPv6)</td>
+                                <td>"192.168.1.100", "2001:db8::1"</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </section>
+                
+                <section id="mva-compliance" class="section">
+                    <h2 class="section-title">✅ Compliance & Consent Fields</h2>
+                    <p>Compliance tracking and consent verification for regulatory requirements.</p>
+                    
+                    <table class="field-table">
+                        <thead>
+                            <tr>
+                                <th>Field Name</th>
+                                <th>Type</th>
+                                <th>Required</th>
+                                <th>Description</th>
+                                <th>Example Values</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="field-name">trustedform_url</span></td>
+                                <td class="field-type">string</td>
+                                <td class="optional">Optional</td>
+                                <td>TrustedForm certificate URL</td>
+                                <td>"https://cert.trustedform.com/abc123..."</td>
+                            </tr>
+                            <tr>
+                                <td><span class="field-name">consent</span></td>
+                                <td class="field-type">string</td>
+                                <td class="optional">Optional</td>
+                                <td>User consent status</td>
+                                <td>"1" (consented), "0" (not consented)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    
+                    <div class="warning">
+                        <strong>Compliance Requirement:</strong> Ensure proper consent is obtained before lead submission. TrustedForm certification is highly recommended for compliance verification.
+                    </div>
+                </section>
+                
+                <section id="examples" class="section">
+                    <h2 class="section-title">📝 Complete Example Payloads</h2>
+                    
+                    <div class="field-group">
+                        <h3 class="field-group-title">High-Value MVA Lead Example</h3>
+                        <div class="example-payload">
+{
+  <span class="json-key">"name"</span>: <span class="json-string">"Sarah Johnson"</span>,
+  <span class="json-key">"email"</span>: <span class="json-string">"sarah.johnson@email.com"</span>,
+  <span class="json-key">"phone"</span>: <span class="json-string">"555-987-6543"</span>,
+  <span class="json-key">"type"</span>: <span class="json-string">"Motor Vehicle Accident"</span>,
+  <span class="json-key">"state"</span>: <span class="json-string">"Texas"</span>,
+  <span class="json-key">"incidentDate"</span>: <span class="json-string">"2024-01-20"</span>,
+  <span class="json-key">"description"</span>: <span class="json-string">"T-bone collision at major intersection"</span>,
+  
+  <span class="json-key">"estimated_medical_bills"</span>: <span class="json-string">"More than $100,000"</span>,
+  <span class="json-key">"what_is_the_primary_injury"</span>: <span class="json-string">"Spinal cord injury with potential paralysis"</span>,
+  <span class="json-key">"did_the_injured_person_receive_treatment"</span>: <span class="json-string">"Treated at hospital - ICU"</span>,
+  
+  <span class="json-key">"are_you_currently_represented_by_a_lawyer_for_this_case"</span>: <span class="json-string">"No"</span>,
+  <span class="json-key">"was_a_police_report_filed"</span>: <span class="json-string">"Yes"</span>,
+  
+  <span class="json-key">"xselect4"</span>: <span class="json-string">"high_value_mva_campaign"</span>,
+  <span class="json-key">"source_url"</span>: <span class="json-string">"https://legalform.com/severe-accident"</span>,
+  <span class="json-key">"leadip"</span>: <span class="json-string">"192.168.1.150"</span>,
+  
+  <span class="json-key">"trustedform_url"</span>: <span class="json-string">"https://cert.trustedform.com/abc123def456"</span>,
+  <span class="json-key">"consent"</span>: <span class="json-string">"1"</span>
+}
+                        </div>
+                    </div>
+                    
+                    <div class="field-group">
+                        <h3 class="field-group-title">Standard MVA Lead Example</h3>
+                        <div class="example-payload">
+{
+  <span class="json-key">"name"</span>: <span class="json-string">"Michael Davis"</span>,
+  <span class="json-key">"email"</span>: <span class="json-string">"m.davis@email.com"</span>,
+  <span class="json-key">"phone"</span>: <span class="json-string">"555-234-5678"</span>,
+  <span class="json-key">"type"</span>: <span class="json-string">"Motor Vehicle Accident"</span>,
+  <span class="json-key">"state"</span>: <span class="json-string">"Florida"</span>,
+  <span class="json-key">"incidentDate"</span>: <span class="json-string">"2024-02-05"</span>,
+  <span class="json-key">"description"</span>: <span class="json-string">"Rear-ended while stopped at red light"</span>,
+  
+  <span class="json-key">"estimated_medical_bills"</span>: <span class="json-string">"$10,000 - $25,000"</span>,
+  <span class="json-key">"what_is_the_primary_injury"</span>: <span class="json-string">"Whiplash and neck pain"</span>,
+  <span class="json-key">"did_the_injured_person_receive_treatment"</span>: <span class="json-string">"Saw a doctor"</span>,
+  
+  <span class="json-key">"are_you_currently_represented_by_a_lawyer_for_this_case"</span>: <span class="json-string">"No"</span>,
+  <span class="json-key">"was_a_police_report_filed"</span>: <span class="json-string">"Yes"</span>,
+  
+  <span class="json-key">"xselect4"</span>: <span class="json-string">"standard_mva_ppc"</span>,
+  <span class="json-key">"source_url"</span>: <span class="json-string">"https://accidentforms.com/claim"</span>,
+  <span class="json-key">"leadip"</span>: <span class="json-string">"10.0.0.25"</span>,
+  
+  <span class="json-key">"trustedform_url"</span>: <span class="json-string">"https://cert.trustedform.com/xyz789abc"</span>,
+  <span class="json-key">"consent"</span>: <span class="json-string">"1"</span>
+}
+                        </div>
+                    </div>
+                    
+                    <div class="field-group">
+                        <h3 class="field-group-title">Minimal Required Fields Example</h3>
+                        <div class="example-payload">
+{
+  <span class="json-key">"name"</span>: <span class="json-string">"Jennifer Wilson"</span>,
+  <span class="json-key">"email"</span>: <span class="json-string">"j.wilson@email.com"</span>,
+  <span class="json-key">"phone"</span>: <span class="json-string">"555-345-6789"</span>,
+  <span class="json-key">"type"</span>: <span class="json-string">"Motor Vehicle Accident"</span>,
+  <span class="json-key">"state"</span>: <span class="json-string">"New York"</span>,
+  <span class="json-key">"incidentDate"</span>: <span class="json-string">"2024-02-10"</span>
+}
+                        </div>
+                        <div class="note">
+                            <strong>Note:</strong> While only core fields are required, providing enhanced MVA data significantly increases lead value and conversion rates.
+                        </div>
+                    </div>
+                </section>
+                
+                <section id="response-codes" class="section">
+                    <h2 class="section-title">📊 Response Codes & Handling</h2>
+                    
+                    <div class="field-group">
+                        <h3 class="field-group-title">Success Response</h3>
+                        <div class="success">
+                            <strong>HTTP 200 OK</strong>
+                            <div class="code-block">
+{
+  "status": "success",
+  "lead_id": "lead_abc123def456",
+  "message": "Lead submitted successfully",
+  "timestamp": "2024-02-15T10:30:00Z"
+}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="field-group">
+                        <h3 class="field-group-title">Error Responses</h3>
+                        <table class="field-table">
+                            <thead>
+                                <tr>
+                                    <th>Status Code</th>
+                                    <th>Error Type</th>
+                                    <th>Description</th>
+                                    <th>Action Required</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>400</strong></td>
+                                    <td>Bad Request</td>
+                                    <td>Missing required fields or invalid data format</td>
+                                    <td>Check payload structure and required fields</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>401</strong></td>
+                                    <td>Unauthorized</td>
+                                    <td>Invalid or missing API key</td>
+                                    <td>Verify authentication credentials</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>403</strong></td>
+                                    <td>Forbidden</td>
+                                    <td>Publisher account suspended or inactive</td>
+                                    <td>Contact support</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>429</strong></td>
+                                    <td>Rate Limited</td>
+                                    <td>Too many requests - rate limit exceeded</td>
+                                    <td>Implement exponential backoff and retry</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>500</strong></td>
+                                    <td>Server Error</td>
+                                    <td>Internal server error</td>
+                                    <td>Retry request after delay</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+                
+                <section id="testing" class="section">
+                    <h2 class="section-title">🧪 Testing Guide</h2>
+                    
+                    <div class="field-group">
+                        <h3 class="field-group-title">Test Scenarios</h3>
+                        <ol>
+                            <li><strong>High-Value Lead:</strong> Submit lead with medical bills >$100,000 and serious injury</li>
+                            <li><strong>Standard Lead:</strong> Submit lead with moderate medical bills and common injury</li>
+                            <li><strong>Minimal Lead:</strong> Submit lead with only required fields</li>
+                            <li><strong>Invalid Data:</strong> Test error handling with missing/invalid fields</li>
+                            <li><strong>Compliance Test:</strong> Submit leads with and without TrustedForm certification</li>
+                        </ol>
+                    </div>
+                    
+                    <div class="field-group">
+                        <h3 class="field-group-title">Integration Checklist</h3>
+                        <ul>
+                            <li>✅ API authentication working</li>
+                            <li>✅ Required fields validation</li>
+                            <li>✅ Enhanced MVA fields collection</li>
+                            <li>✅ Error handling implemented</li>
+                            <li>✅ Rate limiting respected</li>
+                            <li>✅ Compliance data included</li>
+                            <li>✅ Success/failure logging</li>
+                            <li>✅ Test environment validation</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="note">
+                        <strong>Testing Tip:</strong> Use the staging environment for all integration testing. Production should only be used once testing is complete and approved.
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('.nav-menu a').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href').substring(1);
+                const targetElement = document.getElementById(targetId);
+                if (targetElement) {
+                    targetElement.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+        
+        // Highlight current section in navigation
+        window.addEventListener('scroll', function() {
+            const sections = document.querySelectorAll('section[id]');
+            const navLinks = document.querySelectorAll('.nav-menu a');
+            
+            let currentSection = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+                if (pageYOffset >= sectionTop - 200) {
+                    currentSection = section.getAttribute('id');
+                }
+            });
+            
+            navLinks.forEach(link => {
+                link.style.color = '#6b7280';
+                link.style.background = 'transparent';
+                link.style.paddingLeft = '0';
+                if (link.getAttribute('href') === '#' + currentSection) {
+                    link.style.color = '#374151';
+                    link.style.background = '#f3f4f6';
+                    link.style.paddingLeft = '0.5rem';
+                }
+            });
+        });
+    </script>
+</body>
+</html> 
