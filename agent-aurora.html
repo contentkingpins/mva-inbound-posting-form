@@ -1322,13 +1322,28 @@
                     </div>
                 </div>
                 
-                <div class="form-group">
-                    <label class="form-label">Urgency</label>
-                    <select id="newLeadUrgency" class="form-input">
-                        <option value="Low">Low Priority</option>
-                        <option value="Medium" selected>Medium Priority</option>
-                        <option value="High">High Priority</option>
-                    </select>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Publisher Attribution *</label>
+                        <select id="newLeadPublisher" class="form-input" required>
+                            <option value="">Select Publisher</option>
+                            <option value="PUB123456789">PUB123456789 - Premium Legal Leads LLC</option>
+                            <option value="PUB987654321">PUB987654321 - Traffic Accident Pros</option>
+                            <option value="PUB555444333">PUB555444333 - Accident Report Network</option>
+                            <option value="UNKNOWN">UNKNOWN - Unknown/Missing Tracking</option>
+                        </select>
+                        <small style="color: var(--text-secondary); font-size: 0.75rem; margin-top: 0.25rem; display: block;">
+                            📞 When callers mention seeing specific ads, select the publisher whose ad they saw. This ensures proper revenue attribution for phone conversions.
+                        </small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Urgency</label>
+                        <select id="newLeadUrgency" class="form-input">
+                            <option value="Low">Low Priority</option>
+                            <option value="Medium" selected>Medium Priority</option>
+                            <option value="High">High Priority</option>
+                        </select>
+                    </div>
                 </div>
                 
                 <div class="form-group">
@@ -1934,6 +1949,10 @@
 
     function createNewLead() {
         try {
+            // Populate publisher dropdown with current data
+            populatePublisherDropdown();
+            
+            // Open modal
             document.getElementById('createLeadModal').classList.add('active');
         } catch (error) {
             console.error('Error opening create lead modal:', error);
@@ -2006,10 +2025,82 @@
     }
 
     // Create new lead functions
+    function populatePublisherDropdown() {
+        try {
+            const publisherSelect = document.getElementById('newLeadPublisher');
+            if (!publisherSelect) return;
+            
+            // Clear existing options except the first one
+            publisherSelect.innerHTML = '<option value="">Select Publisher</option>';
+            
+            // Get publishers from localStorage
+            const publishers = JSON.parse(localStorage.getItem('publishers') || '[]');
+            
+            // Add publisher options
+            publishers.forEach(publisher => {
+                const option = document.createElement('option');
+                option.value = publisher.vendorCode;
+                option.textContent = `${publisher.vendorCode} - ${publisher.name}`;
+                publisherSelect.appendChild(option);
+            });
+            
+            // Add standard options
+            const standardOptions = [
+                { value: 'UNKNOWN', text: 'UNKNOWN - Unknown/Missing Tracking' }
+            ];
+            
+            standardOptions.forEach(option => {
+                const optionElement = document.createElement('option');
+                optionElement.value = option.value;
+                optionElement.textContent = option.text;
+                publisherSelect.appendChild(optionElement);
+            });
+            
+            console.log(`📋 Publisher dropdown populated with ${publishers.length} active publishers`);
+            
+        } catch (error) {
+            console.error('Error populating publisher dropdown:', error);
+            // Fallback to hardcoded options if localStorage fails
+            const publisherSelect = document.getElementById('newLeadPublisher');
+            if (publisherSelect) {
+                publisherSelect.innerHTML = `
+                    <option value="">Select Publisher</option>
+                    <option value="PUB123456789">PUB123456789 - Premium Legal Leads LLC</option>
+                    <option value="PUB987654321">PUB987654321 - Traffic Accident Pros</option>
+                    <option value="PUB555444333">PUB555444333 - Accident Report Network</option>
+                    <option value="UNKNOWN">UNKNOWN - Unknown/Missing Tracking</option>
+                `;
+            }
+        }
+    }
+
     function saveNewLead(event) {
         event.preventDefault();
         
         try {
+            // Get publisher attribution
+            const selectedPublisher = document.getElementById('newLeadPublisher').value;
+            
+            // Get publisher name from dropdown text or localStorage
+            let publisherName = 'Unknown Publisher';
+            try {
+                const publisherSelect = document.getElementById('newLeadPublisher');
+                const selectedOption = publisherSelect.options[publisherSelect.selectedIndex];
+                if (selectedOption && selectedOption.textContent) {
+                    publisherName = selectedOption.textContent.split(' - ')[1] || 'Unknown Publisher';
+                }
+            } catch (nameError) {
+                console.warn('Error getting publisher name:', nameError);
+                // Fallback to hardcoded names
+                const publisherNames = {
+                    'PUB123456789': 'Premium Legal Leads LLC',
+                    'PUB987654321': 'Traffic Accident Pros',
+                    'PUB555444333': 'Accident Report Network',
+                    'UNKNOWN': 'Unknown/Missing Tracking'
+                };
+                publisherName = publisherNames[selectedPublisher] || 'Unknown Publisher';
+            }
+            
             // Create new lead object
             const newLead = {
                 id: 'lead_' + Date.now(),
@@ -2023,7 +2114,21 @@
                 description: document.getElementById('newLeadDescription').value,
                 urgency: document.getElementById('newLeadUrgency').value,
                 lastContact: 'Never contacted',
-                notes: ''
+                notes: '',
+                // Publisher Attribution
+                vendor_code: selectedPublisher,
+                publisher_name: publisherName,
+                // Basic MVA fields for consistency
+                estimated_medical_bills: 'Unknown',
+                what_is_the_primary_injury: 'Not specified',
+                did_the_injured_person_receive_treatment: 'Unknown',
+                are_you_currently_represented_by_a_lawyer_for_this_case: 'Unknown',
+                was_a_police_report_filed: 'Unknown',
+                xselect4: 'agent_created',
+                source_url: selectedPublisher === 'UNKNOWN' ? 'Unknown/Missing Tracking' : 'Agent Created Lead',
+                leadip: 'N/A',
+                trustedform_url: '',
+                consent: '0'  // All agent-created leads need verification
             };
 
             // Add to available leads
@@ -2034,7 +2139,7 @@
             updateStats();
             closeCreateModal();
             
-            alert(`✅ Lead created successfully!\n\n${newLead.name} has been added to available leads.`);
+            alert(`✅ Lead created successfully!\n\n${newLead.name} has been added to available leads.\n\nPublisher: ${newLead.publisher_name} (${newLead.vendor_code})`);
         } catch (error) {
             console.error('Error creating new lead:', error);
             alert('Error creating lead. Please try again.');
