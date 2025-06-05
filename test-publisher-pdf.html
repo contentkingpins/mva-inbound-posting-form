@@ -156,10 +156,10 @@
                     format: 'a4'
                 });
                 
-                // Add header
-                doc.setFontSize(20);
-                doc.setFont(undefined, 'bold');
-                doc.text('Claim Connectors - API Integration', 20, 25);
+                            // Add header
+            doc.setFontSize(20);
+            doc.setFont(undefined, 'bold');
+            doc.text('Claim Connectors - API Integration', 20, 25);
                 
                 doc.setFontSize(16);
                 doc.text(`Publisher: ${publisherName}`, 20, 35);
@@ -208,7 +208,7 @@
                 
                 // Sample payload
                 doc.setFont(undefined, 'bold');
-                doc.text('Sample Lead Data:', 25, 183);
+                doc.text('Sample Lead Data (Enhanced MVA Fields):', 25, 183);
                 
                 doc.setFont('courier', 'normal');
                 doc.setFontSize(8);
@@ -219,8 +219,26 @@
                     '  "email": "john.smith@email.com",',
                     '  "phone_home": "(555) 123-4567",',
                     '  "state": "CA",',
-                    '  "incident_type": "auto_accident",',
-                    `  "vendor_code": "${vendorCode}"`,
+                    '  "zip": "90210",',
+                    `  "vendor_code": "${vendorCode}",`,
+                    '  "leadip": "192.168.1.100",',
+                    '  "source_url": "https://example.com/accident-form",',
+                    '  "xselect4": "campaign_name",',
+                    '  "posturl": "example.com",',
+                    '  "consent": "1",',
+                    '  "trustedform": "https://cert.trustedform.com/abc123",',
+                    '  "additional_details": "Rear-ended at red light",',
+                    '  "estimated_medical_bills": "$25,000 - $50,000",',
+                    '  "what_is_the_primary_injury": "Whiplash",',
+                    '  "did_the_injured_person_receive_treatment": "Treated at a hospital",',
+                    '  "are_you_currently_represented_by_a_lawyer_for_this_case": "No",',
+                    '  "was_a_police_report_filed": "Yes",',
+                    '  "_what_best_describes_the_type_of_accident_you_were_in": "Motor Vehicle",',
+                    '  "city_where_the_injury_occurred": "Los Angeles",',
+                    '  "when_did_the_accident_happen": "Within the last year",',
+                    '  "who_was_hurt_in_the_accident": "I was hurt",',
+                    '  "lead_source": "paid",',
+                    '  "provider_ip": "199.250.204.228"',
                     '}'
                 ];
                 

@@ -259,16 +259,34 @@ X-API-Key: ${publisher.apiKey}
 X-Vendor-Code: ${publisher.vendorCode}
 X-Tracking-ID: ${publisher.trackingId}
 
-SAMPLE PAYLOAD:
+SAMPLE PAYLOAD (Enhanced MVA Fields):
 {
   "first_name": "John",
   "last_name": "Smith",
   "email": "john.smith@email.com",
   "phone_home": "(555) 123-4567",
   "state": "CA",
-  "incident_type": "auto_accident",
+  "zip": "90210",
   "vendor_code": "${publisher.vendorCode}",
-  "tracking_id": "${publisher.trackingId}"
+  "tracking_id": "${publisher.trackingId}",
+  "leadip": "192.168.1.100",
+  "source_url": "https://example.com/accident-form",
+  "xselect4": "campaign_name",
+  "posturl": "example.com",
+  "consent": "1",
+  "trustedform": "https://cert.trustedform.com/abc123def456",
+  "additional_details": "Rear-ended at red light, neck and back pain",
+  "estimated_medical_bills": "$25,000 - $50,000",
+  "what_is_the_primary_injury": "Whiplash and back strain",
+  "did_the_injured_person_receive_treatment": "Treated at a hospital",
+  "are_you_currently_represented_by_a_lawyer_for_this_case": "No",
+  "was_a_police_report_filed": "Yes",
+  "_what_best_describes_the_type_of_accident_you_were_in": "Motor Vehicle Accident",
+  "city_where_the_injury_occurred": "Los Angeles",
+  "when_did_the_accident_happen": "Within the last year",
+  "who_was_hurt_in_the_accident": "I was hurt",
+  "lead_source": "paid",
+  "provider_ip": "199.250.204.228"
 }
 
 SUPPORT:
