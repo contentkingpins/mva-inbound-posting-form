@@ -22,8 +22,19 @@ class PublisherAPIManager {
             // Setup event listeners
             this.setupEventListeners();
             
-            // Load initial data
-            await this.refreshPublishers();
+            // Check if user is authenticated before loading data
+            if (this.apiService.isAuthenticated()) {
+                console.log('✅ User authenticated, loading publishers...');
+                await this.refreshPublishers();
+            } else {
+                console.log('⚠️ User not authenticated, skipping publisher load');
+                this.showInfo('Please log in to view publishers');
+                // Show empty state
+                this.currentPublishers = [];
+                this.renderPublishersTable();
+                this.updatePublisherStats();
+                this.updatePublisherCount();
+            }
             
             console.log('✅ Publisher API Manager initialized successfully');
         } catch (error) {
@@ -116,7 +127,14 @@ class PublisherAPIManager {
             }
         } catch (error) {
             console.error('❌ Error loading publishers:', error);
-            this.showError('Failed to load publishers from server');
+            
+            // Check if it's an authentication error
+            if (error.message.includes('Unauthorized') || error.message.includes('authentication')) {
+                console.log('🔐 Authentication error - user needs to log in');
+                this.showInfo('Please log in to view publishers');
+            } else {
+                this.showError('Failed to load publishers from server');
+            }
             return [];
         }
     }
@@ -138,8 +156,34 @@ class PublisherAPIManager {
             this.showLoading(false);
         } catch (error) {
             console.error('❌ Error refreshing publishers:', error);
-            this.showError('Failed to refresh publisher list');
+            
+            // Check if it's an authentication error
+            if (error.message.includes('Unauthorized') || error.message.includes('authentication')) {
+                console.log('🔐 Authentication error during refresh - user needs to log in');
+                this.showInfo('Please log in to view publishers');
+            } else {
+                this.showError('Failed to refresh publisher list');
+            }
             this.showLoading(false);
+        }
+    }
+
+    /**
+     * Load publishers after successful authentication
+     * This can be called from login handlers
+     */
+    async loadAfterAuth() {
+        try {
+            console.log('🔐 Loading publishers after authentication...');
+            if (this.apiService.isAuthenticated()) {
+                await this.refreshPublishers();
+                console.log('✅ Publishers loaded after authentication');
+            } else {
+                console.warn('⚠️ Called loadAfterAuth but user is not authenticated');
+            }
+        } catch (error) {
+            console.error('❌ Error loading publishers after auth:', error);
+            this.showError('Failed to load publishers after login');
         }
     }
 
@@ -700,4 +744,7 @@ window.handleCreatePublisher = async function() {
 window.bulkActivatePublishers = () => publisherManager?.bulkActivatePublishers();
 window.bulkDeactivatePublishers = () => publisherManager?.bulkDeactivatePublishers();
 window.bulkDeletePublishers = () => publisherManager?.bulkDeletePublishers();
-window.refreshPublishers = () => publisherManager?.refreshPublishers(); 
+window.refreshPublishers = () => publisherManager?.refreshPublishers();
+
+// Export authentication-related functions
+window.loadPublishersAfterAuth = () => publisherManager?.loadAfterAuth(); 
