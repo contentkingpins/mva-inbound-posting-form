@@ -74,6 +74,18 @@ async function verifyToken(event) {
       exp: decoded.exp
     };
     
+    // PRODUCTION FIX: Grant admin access to main app owner
+    const adminEmails = [
+      'george@contentkingpins.com',
+      'admin@contentkingpins.com',
+      'alex@contentkingpins.com'
+    ];
+    
+    if (user.email && adminEmails.includes(user.email.toLowerCase())) {
+      console.log(`Granting admin access to authorized user: ${user.email}`);
+      user.role = 'admin';
+    }
+    
     // Check if token is expired
     if (user.exp && Date.now() >= user.exp * 1000) {
       console.log('Token is expired');
