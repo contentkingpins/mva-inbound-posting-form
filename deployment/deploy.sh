@@ -158,7 +158,30 @@ ANALYTICS_ID=$(create_resource_if_not_exists $ADMIN_ID "analytics")
 create_method_if_not_exists $ANALYTICS_ID "GET"
 create_method_if_not_exists $ANALYTICS_ID "OPTIONS"
 
-echo_success "API Gateway resources created"
+# Create /vendors resource (MISSING - THIS IS WHY PUBLISHER CREATION FAILS!)
+VENDORS_ID=$(create_resource_if_not_exists $ROOT_ID "vendors")
+create_method_if_not_exists $VENDORS_ID "GET"
+create_method_if_not_exists $VENDORS_ID "POST"
+create_method_if_not_exists $VENDORS_ID "OPTIONS"
+
+# Create /vendors/{id} resource
+VENDOR_ID_ID=$(create_resource_if_not_exists $VENDORS_ID "{id}")
+create_method_if_not_exists $VENDOR_ID_ID "GET"
+create_method_if_not_exists $VENDOR_ID_ID "PUT"
+create_method_if_not_exists $VENDOR_ID_ID "DELETE"
+create_method_if_not_exists $VENDOR_ID_ID "OPTIONS"
+
+# Create /vendors/{id}/api-key resource
+VENDOR_API_KEY_ID=$(create_resource_if_not_exists $VENDOR_ID_ID "api-key")
+create_method_if_not_exists $VENDOR_API_KEY_ID "PUT"
+create_method_if_not_exists $VENDOR_API_KEY_ID "OPTIONS"
+
+# Create /vendors/bulk-update resource
+VENDOR_BULK_ID=$(create_resource_if_not_exists $VENDORS_ID "bulk-update")
+create_method_if_not_exists $VENDOR_BULK_ID "POST"
+create_method_if_not_exists $VENDOR_BULK_ID "OPTIONS"
+
+echo_success "API Gateway resources created (including missing vendor routes)"
 
 # Step 7: Configure Lambda integrations
 echo "🔗 Configuring Lambda integrations..."
@@ -191,7 +214,16 @@ create_integration $LEAD_ID_ID "DELETE"
 create_integration $STATS_ID "GET"
 create_integration $ANALYTICS_ID "GET"
 
-echo_success "Lambda integrations configured"
+# Vendor integrations (MISSING - THIS IS WHY PUBLISHER CREATION FAILS!)
+create_integration $VENDORS_ID "GET"
+create_integration $VENDORS_ID "POST"
+create_integration $VENDOR_ID_ID "GET"
+create_integration $VENDOR_ID_ID "PUT"
+create_integration $VENDOR_ID_ID "DELETE"
+create_integration $VENDOR_API_KEY_ID "PUT"
+create_integration $VENDOR_BULK_ID "POST"
+
+echo_success "Lambda integrations configured (including vendor routes)"
 
 # Step 8: Add Lambda permissions
 echo "🔐 Adding Lambda permissions..."
@@ -242,6 +274,14 @@ else
     echo_warning "Admin endpoints may not be accessible (HTTP $HTTP_CODE)"
 fi
 
+# Test vendor endpoint (will return 401 without auth, which is expected)
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X OPTIONS "$BASE_URL/vendors")
+if [ "$HTTP_CODE" = "200" ]; then
+    echo_success "Vendor endpoints accessible"
+else
+    echo_warning "Vendor endpoints may not be accessible (HTTP $HTTP_CODE)"
+fi
+
 echo ""
 echo "🎉 Deployment completed successfully!"
 echo ""
@@ -252,6 +292,13 @@ echo "   • PATCH  $BASE_URL/leads/{id}"
 echo "   • DELETE $BASE_URL/leads/{id}"
 echo "   • GET    $BASE_URL/admin/stats"
 echo "   • GET    $BASE_URL/admin/analytics"
+echo "   • GET    $BASE_URL/vendors"
+echo "   • POST   $BASE_URL/vendors"
+echo "   • GET    $BASE_URL/vendors/{id}"
+echo "   • PUT    $BASE_URL/vendors/{id}"
+echo "   • DELETE $BASE_URL/vendors/{id}"
+echo "   • PUT    $BASE_URL/vendors/{id}/api-key"
+echo "   • POST   $BASE_URL/vendors/bulk-update"
 echo ""
 echo "🔑 Authentication required for all endpoints except OPTIONS"
 echo "📖 See DEPLOYMENT_GUIDE.md for detailed usage instructions"
