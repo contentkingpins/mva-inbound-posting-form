@@ -7,7 +7,8 @@
     <link rel="stylesheet" href="styles.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Amazon Cognito Identity SDK -->
+    <!-- AWS SDK and Amazon Cognito Identity SDK -->
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1062.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.3.1/dist/amazon-cognito-identity.min.js"></script>
     <!-- API Service -->
     <script src="js/api-service.js"></script>
@@ -416,10 +417,7 @@ console.log('🔧 Configuration injected at build time - no external loading nee
         &copy; 2023 Claim Connectors. All rights reserved.
     </div>
 
-    <!-- Scripts -->
-    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1062.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/amazon-cognito-identity-js@6.0.0/dist/amazon-cognito-identity.min.js"></script>
-    <script src="login-init.js"></script>
+    <!-- Scripts are already loaded in head - no need to duplicate -->
     
     <!-- Error Tracking & Monitoring System -->
     <script src="js/error-tracker.js"></script>
@@ -428,31 +426,43 @@ console.log('🔧 Configuration injected at build time - no external loading nee
         // Initialize minimal monitoring for login page
         console.log('🔐 Initializing login monitoring...');
         
-        // Track login attempts
+        // Track login attempts (with error handling)
         if (window.analyticsTracker) {
-            // Track page load
-            window.analyticsTracker.trackFeature('login_page_loaded');
-            
-            // Track login form submission
-            const loginForm = document.getElementById('login-form');
-            if (loginForm) {
-                loginForm.addEventListener('submit', () => {
-                    window.analyticsTracker.track({
-                        category: 'conversion',
-                        action: 'login_attempt',
-                        metadata: {
-                            timestamp: Date.now()
+            try {
+                // Track page load
+                window.analyticsTracker.trackFeature('login_page_loaded');
+                
+                // Track login form submission
+                const loginForm = document.getElementById('login-form');
+                if (loginForm) {
+                    loginForm.addEventListener('submit', () => {
+                        try {
+                            window.analyticsTracker.track({
+                                category: 'conversion',
+                                action: 'login_attempt',
+                                metadata: {
+                                    timestamp: Date.now()
+                                }
+                            });
+                        } catch (analyticsError) {
+                            console.warn('⚠️ Analytics tracking failed:', analyticsError.message);
                         }
                     });
-                });
-            }
-            
-            // Track password reset requests
-            document.addEventListener('click', (e) => {
-                if (e.target.id === 'forgot-password-link') {
-                    window.analyticsTracker.trackFeature('forgot_password_clicked');
                 }
-            });
+                
+                // Track password reset requests
+                document.addEventListener('click', (e) => {
+                    if (e.target.id === 'forgot-password-link') {
+                        try {
+                            window.analyticsTracker.trackFeature('forgot_password_clicked');
+                        } catch (analyticsError) {
+                            console.warn('⚠️ Analytics tracking failed:', analyticsError.message);
+                        }
+                    }
+                });
+            } catch (analyticsError) {
+                console.warn('⚠️ Analytics initialization failed:', analyticsError.message);
+            }
         }
         
         // Enhanced error tracking for authentication

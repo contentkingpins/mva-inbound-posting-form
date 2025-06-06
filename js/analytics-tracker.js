@@ -13,6 +13,7 @@ class AnalyticsTracker {
         this.batchSize = 50; // Send events in batches
         this.batchInterval = 30000; // Send batch every 30 seconds
         this.enabled = true;
+        this.analyticsDisabled = false; // Flag to prevent spam when endpoint is unavailable
         
         // Event categories
         this.CATEGORIES = {
@@ -320,6 +321,11 @@ class AnalyticsTracker {
         
         if (eventsToSend.length === 0) return;
         
+        // If analytics endpoint is not available, don't spam with requests
+        if (this.analyticsDisabled) {
+            return;
+        }
+        
         try {
             const response = await fetch(`${this.apiEndpoint}/analytics/events`, {
                 method: 'POST',
@@ -341,9 +347,19 @@ class AnalyticsTracker {
                 if (window.APP_CONFIG?.debug) {
                     console.log(`📊 Sent ${eventsToSend.length} analytics events`);
                 }
+            } else if (response.status === 0 || response.status >= 400) {
+                // Likely CORS or server error - disable further attempts for this session
+                console.warn('⚠️ Analytics endpoint unavailable, disabling for this session');
+                this.analyticsDisabled = true;
             }
         } catch (error) {
-            console.warn('Failed to send analytics batch:', error);
+            // Handle CORS and network errors gracefully
+            if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
+                console.warn('⚠️ Analytics endpoint blocked by CORS, disabling for this session');
+                this.analyticsDisabled = true;
+            } else {
+                console.warn('Failed to send analytics batch:', error.message);
+            }
         }
     }
     

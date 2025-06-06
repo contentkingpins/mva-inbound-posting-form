@@ -41,16 +41,23 @@ async function getUsernameByEmail(email) {
   return data.username;
 }
 
-// User sign-in function - modified to look up username by email first
+// User sign-in function - with fallback for backend API issues
 async function signIn(email, password) {
   try {
     console.log('🔐 Starting authentication for:', email);
     
-    // First find the username for this email using backend API
-    const username = await getUsernameByEmail(email);
-    console.log('✅ Found username for login:', username);
+    let username = email; // Default to using email as username
     
-    // Proceed with authentication using the found username
+    // Try to find the username for this email using backend API (with fallback)
+    try {
+      username = await getUsernameByEmail(email);
+      console.log('✅ Found username for login:', username);
+    } catch (backendError) {
+      console.warn('⚠️ Backend API unavailable, using email as username:', backendError.message);
+      // Continue with email as username - common Cognito pattern
+    }
+    
+    // Proceed with authentication using the found username (or email fallback)
     const authenticationData = {
       Username: username, // Use the found username instead of email
       Password: password
@@ -199,9 +206,19 @@ async function completePasswordReset() {
   
   try {
     // Get stored user data
-    const username = sessionStorage.getItem('cognitoUser');
+    let username = sessionStorage.getItem('cognitoUser');
     const email = sessionStorage.getItem('userEmail');
     const userAttributes = JSON.parse(sessionStorage.getItem('userAttributes') || '{}');
+    
+    // If no username stored, try to get it from backend API with fallback
+    if (!username && email) {
+      try {
+        username = await getUsernameByEmail(email);
+      } catch (backendError) {
+        console.warn('⚠️ Backend API unavailable for password reset, using email as username');
+        username = email; // Fallback to email
+      }
+    }
     
     if (!username) {
       throw new Error('User session data is missing.');
@@ -478,8 +495,13 @@ document.addEventListener('DOMContentLoaded', function() {
           e.preventDefault();
           
           try {
-            // Get the username for this email
-            const username = await getUsernameByEmail(email);
+            // Get the username for this email (with fallback)
+            let username = email; // Default fallback
+            try {
+              username = await getUsernameByEmail(email);
+            } catch (backendError) {
+              console.warn('⚠️ Backend API unavailable for verification resend, using email as username');
+            }
             
             // Create Cognito user
             const userData = {
