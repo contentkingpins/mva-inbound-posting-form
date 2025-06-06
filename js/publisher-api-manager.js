@@ -98,25 +98,89 @@ class PublisherAPIManager {
 
             console.log('📡 Loading publishers from API with params:', queryParams);
 
-            const response = await this.apiService.getVendors(queryParams);
-            
-            if (response.vendors) {
-                if (resetPagination) {
-                    this.currentPublishers = response.vendors;
-                } else {
-                    this.currentPublishers = [...this.currentPublishers, ...response.vendors];
-                }
-
-                this.pagination = response.pagination || { hasMore: false, lastKey: null };
+            // Try API first
+            try {
+                const response = await this.apiService.getVendors(queryParams);
                 
-                console.log(`📊 Loaded ${response.vendors.length} publishers. Total: ${this.currentPublishers.length}`);
-                return response.vendors;
-            } else {
-                throw new Error('Invalid response format from API');
+                if (response.vendors) {
+                    if (resetPagination) {
+                        this.currentPublishers = response.vendors;
+                    } else {
+                        this.currentPublishers = [...this.currentPublishers, ...response.vendors];
+                    }
+
+                    this.pagination = response.pagination || { hasMore: false, lastKey: null };
+                    
+                    console.log(`📊 Loaded ${response.vendors.length} publishers from API. Total: ${this.currentPublishers.length}`);
+                    return response.vendors;
+                } else {
+                    throw new Error('Invalid response format from API');
+                }
+            } catch (apiError) {
+                console.warn('⚠️ API load failed, falling back to localStorage:', apiError.message);
+                
+                // Fallback to localStorage
+                return this.loadPublishersFromLocalStorage();
             }
         } catch (error) {
             console.error('❌ Error loading publishers:', error);
             this.showError('Failed to load publishers from server');
+            return [];
+        }
+    }
+
+    /**
+     * Load publishers from localStorage (fallback method)
+     */
+    loadPublishersFromLocalStorage() {
+        try {
+            console.log('📁 Loading publishers from localStorage...');
+            
+            const stored = localStorage.getItem('claim_connectors_publishers');
+            let publishers = stored ? JSON.parse(stored) : [];
+            
+            // Apply filters if any
+            if (this.filters.search) {
+                const search = this.filters.search.toLowerCase();
+                publishers = publishers.filter(pub => 
+                    pub.name.toLowerCase().includes(search) ||
+                    pub.email.toLowerCase().includes(search) ||
+                    pub.vendor_code.toLowerCase().includes(search)
+                );
+            }
+            
+            if (this.filters.status && this.filters.status !== 'all') {
+                publishers = publishers.filter(pub => pub.status === this.filters.status);
+            }
+            
+            // Sort by most recent first
+            publishers.sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
+            
+            // Apply pagination for consistency
+            const limit = this.filters.limit || 50;
+            const startIndex = 0; // For simplicity, always start from beginning with localStorage
+            const endIndex = startIndex + limit;
+            const paginatedPublishers = publishers.slice(startIndex, endIndex);
+            
+            this.currentPublishers = paginatedPublishers;
+            this.pagination = { 
+                hasMore: publishers.length > endIndex, 
+                lastKey: null 
+            };
+            
+            console.log('✅ Publishers loaded from localStorage:', this.currentPublishers.length);
+            
+            // Show info message about offline mode
+            if (publishers.length === 0) {
+                this.showInfo('No publishers found. Create your first publisher to get started!');
+            } else {
+                this.showInfo(`Loaded ${this.currentPublishers.length} publishers from offline storage.`);
+            }
+            
+            return this.currentPublishers;
+        } catch (error) {
+            console.error('❌ Error loading from localStorage:', error);
+            this.currentPublishers = [];
             return [];
         }
     }
@@ -142,47 +206,129 @@ class PublisherAPIManager {
     }
 
     /**
-     * Create new publisher via API
+     * Create new publisher via API with localStorage fallback
      */
     async createPublisher(publisherData) {
         try {
             console.log('🏢 Creating publisher via API:', publisherData);
             
-            const response = await this.apiService.createVendor({
-                name: publisherData.name,
-                email: publisherData.email,
-                contact_phone: publisherData.contact_phone || '',
-                website: publisherData.website || '',
-                notes: publisherData.notes || '',
-                status: publisherData.status || 'active'
-            });
+            // Try API first
+            try {
+                const response = await this.apiService.createVendor({
+                    name: publisherData.name,
+                    email: publisherData.email,
+                    contact_phone: publisherData.contact_phone || '',
+                    website: publisherData.website || '',
+                    notes: publisherData.notes || '',
+                    status: publisherData.status || 'active'
+                });
 
-            if (response.vendor) {
-                console.log('✅ Publisher created successfully via API:', response.vendor.id);
+                if (response.vendor) {
+                    console.log('✅ Publisher created successfully via API:', response.vendor.id);
+                    
+                    // Add to current list
+                    this.currentPublishers.unshift(response.vendor);
+                    
+                    // Update UI
+                    this.renderPublishersTable();
+                    this.updatePublisherStats();
+                    this.updatePublisherCount();
+                    
+                    // Show success message
+                    this.showSuccess(`Publisher "${response.vendor.name}" created successfully!`);
+                    
+                    // Download credentials
+                    this.downloadPublisherCredentials(response.vendor);
+                    
+                    return response.vendor;
+                } else {
+                    throw new Error('Invalid response from server');
+                }
+            } catch (apiError) {
+                console.warn('⚠️ API creation failed, falling back to localStorage:', apiError.message);
                 
-                // Add to current list
-                this.currentPublishers.unshift(response.vendor);
-                
-                // Update UI
-                this.renderPublishersTable();
-                this.updatePublisherStats();
-                this.updatePublisherCount();
-                
-                // Show success message
-                this.showSuccess(`Publisher "${response.vendor.name}" created successfully!`);
-                
-                // Download credentials
-                this.downloadPublisherCredentials(response.vendor);
-                
-                return response.vendor;
-            } else {
-                throw new Error('Invalid response from server');
+                // Fallback to localStorage approach
+                return this.createPublisherLocalStorage(publisherData);
             }
         } catch (error) {
             console.error('❌ Error creating publisher:', error);
             this.showError(`Failed to create publisher: ${error.message}`);
             throw error;
         }
+    }
+
+    /**
+     * Create publisher using localStorage (fallback method)
+     */
+    createPublisherLocalStorage(publisherData) {
+        console.log('📁 Creating publisher with localStorage fallback');
+        
+        // Generate unique IDs
+        const vendorCode = this.generateVendorCode();
+        const apiKey = this.generateAPIKey();
+        const trackingId = this.generateTrackingId();
+        
+        const newPublisher = {
+            id: `pub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            name: publisherData.name.trim(),
+            email: publisherData.email.trim().toLowerCase(),
+            contact_phone: publisherData.contact_phone || '',
+            website: publisherData.website || '',
+            vendor_code: vendorCode,
+            api_key: apiKey,
+            tracking_id: trackingId,
+            status: publisherData.status || 'active',
+            notes: publisherData.notes || '',
+            created_date: new Date().toISOString(),
+            last_updated: new Date().toISOString(),
+            lead_count: 0,
+            revenue: 0,
+            last_activity: null
+        };
+        
+        // Save to localStorage
+        const stored = localStorage.getItem('claim_connectors_publishers');
+        let publishers = stored ? JSON.parse(stored) : [];
+        publishers.push(newPublisher);
+        localStorage.setItem('claim_connectors_publishers', JSON.stringify(publishers));
+        
+        // Add to current list
+        this.currentPublishers.unshift(newPublisher);
+        
+        // Update UI
+        this.renderPublishersTable();
+        this.updatePublisherStats();
+        this.updatePublisherCount();
+        
+        // Show success message
+        this.showSuccess(`Publisher "${newPublisher.name}" created successfully (offline mode)!`);
+        
+        // Download credentials
+        this.downloadPublisherCredentials(newPublisher);
+        
+        console.log('✅ Publisher created successfully via localStorage:', newPublisher.id);
+        return newPublisher;
+    }
+
+    /**
+     * Generate vendor code
+     */
+    generateVendorCode() {
+        return 'PUB' + Date.now().toString().slice(-9);
+    }
+
+    /**
+     * Generate API key
+     */
+    generateAPIKey() {
+        return 'api_' + Math.random().toString(36).substr(2, 24) + '_' + Date.now().toString(36);
+    }
+
+    /**
+     * Generate tracking ID
+     */
+    generateTrackingId() {
+        return 'TRK_' + Math.random().toString(36).substr(2, 8).toUpperCase();
     }
 
 
@@ -607,6 +753,15 @@ Notes: ${publisher.notes || 'None'}
             window.addActivityFeedItem(message, 'warning');
         } else {
             alert('Warning: ' + message);
+        }
+    }
+
+    showInfo(message) {
+        console.log('ℹ️', message);
+        if (window.addActivityFeedItem) {
+            window.addActivityFeedItem(message, 'info');
+        } else {
+            console.log('Info: ' + message);
         }
     }
 }
