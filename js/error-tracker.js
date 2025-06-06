@@ -491,5 +491,7 @@ class ErrorTracker {
 // Create singleton instance
 window.errorTracker = new ErrorTracker();
 
-// Export for modules
-export default window.errorTracker; 
+// Export for CommonJS/Node.js environments
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = window.errorTracker;
+} 

@@ -1,5 +1,9 @@
-const AWS = require('aws-sdk');
-const dynamodb = new AWS.DynamoDB.DocumentClient();
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBDocumentClient, ScanCommand, GetCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
+
+// Initialize DynamoDB client
+const client = new DynamoDBClient({ region: 'us-east-1' });
+const dynamodb = DynamoDBDocumentClient.from(client);
 const jwt = require('jsonwebtoken');
 
 // Environment variables
@@ -44,7 +48,7 @@ async function getAgentCapacity(agentEmail) {
       }
     };
     
-    const assignedLeads = await dynamodb.scan(leadParams).promise();
+    const assignedLeads = await dynamodb.send(new ScanCommand(leadParams));
     const currentCapacity = assignedLeads.Items ? assignedLeads.Items.length : 0;
     
     // Get agent's max capacity from users table
@@ -53,7 +57,7 @@ async function getAgentCapacity(agentEmail) {
       Key: { email: agentEmail }
     };
     
-    const userResult = await dynamodb.get(userParams).promise();
+    const userResult = await dynamodb.send(new GetCommand(userParams));
     const maxCapacity = userResult.Item?.max_capacity || 25; // Default to 25
     
     return {
@@ -103,7 +107,7 @@ exports.assignLead = async (event) => {
       Key: { lead_id: leadId }
     };
     
-    const leadResult = await dynamodb.get(leadParams).promise();
+    const leadResult = await dynamodb.send(new GetCommand(leadParams));
     if (!leadResult.Item) {
       return {
         statusCode: 404,
@@ -147,7 +151,7 @@ exports.assignLead = async (event) => {
       updateParams.ExpressionAttributeValues[':notes'] = notes;
     }
     
-    const updateResult = await dynamodb.update(updateParams).promise();
+    const updateResult = await dynamodb.send(new UpdateCommand(updateParams));
     
     // Get updated capacity
     const updatedCapacity = await getAgentCapacity(agent_email);
@@ -212,7 +216,7 @@ exports.reassignLead = async (event) => {
       Key: { lead_id: leadId }
     };
     
-    const leadResult = await dynamodb.get(leadParams).promise();
+    const leadResult = await dynamodb.send(new GetCommand(leadParams));
     if (!leadResult.Item) {
       return {
         statusCode: 404,
@@ -257,7 +261,7 @@ exports.reassignLead = async (event) => {
       updateParams.ExpressionAttributeValues[':notes'] = notes;
     }
     
-    const updateResult = await dynamodb.update(updateParams).promise();
+    const updateResult = await dynamodb.send(new UpdateCommand(updateParams));
     
     return {
       statusCode: 200,
@@ -317,7 +321,7 @@ exports.getAgents = async (event) => {
       }
     };
     
-    const usersResult = await dynamodb.scan(userParams).promise();
+    const usersResult = await dynamodb.send(new ScanCommand(userParams));
     const agents = usersResult.Items || [];
     
     // Process each agent
@@ -439,7 +443,7 @@ exports.updateAgentCapacity = async (event) => {
       ReturnValues: 'ALL_NEW'
     };
     
-    const updateResult = await dynamodb.update(updateParams).promise();
+    const updateResult = await dynamodb.send(new UpdateCommand(updateParams));
     
     // Get updated capacity info
     const capacity = await getAgentCapacity(agentId);

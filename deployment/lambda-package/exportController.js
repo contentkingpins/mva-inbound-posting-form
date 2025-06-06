@@ -1,8 +1,17 @@
-const AWS = require('aws-sdk');
-const dynamodb = new AWS.DynamoDB.DocumentClient();
-const s3 = new AWS.S3();
-const sqs = new AWS.SQS();
-const ses = new AWS.SES();
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBDocumentClient, ScanCommand, QueryCommand } = require('@aws-sdk/lib-dynamodb');
+
+// Initialize DynamoDB client
+const client = new DynamoDBClient({ region: 'us-east-1' });
+const dynamodb = DynamoDBDocumentClient.from(client);
+const { S3Client } = require('@aws-sdk/client-s3');
+const { SQSClient } = require('@aws-sdk/client-sqs');
+
+const s3 = new S3Client({ region: 'us-east-1' });
+const sqs = new SQSClient({ region: 'us-east-1' });
+const { SESClient } = require('@aws-sdk/client-ses');
+
+const ses = new SESClient({ region: 'us-east-1' });
 const jwt = require('jsonwebtoken');
 
 // Environment variables

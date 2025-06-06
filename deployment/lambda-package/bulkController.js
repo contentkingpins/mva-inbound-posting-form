@@ -1,5 +1,9 @@
-const AWS = require('aws-sdk');
-const dynamodb = new AWS.DynamoDB.DocumentClient();
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBDocumentClient, ScanCommand, UpdateCommand, BatchWriteCommand } = require('@aws-sdk/lib-dynamodb');
+
+// Initialize DynamoDB client
+const client = new DynamoDBClient({ region: 'us-east-1' });
+const dynamodb = DynamoDBDocumentClient.from(client);
 const jwt = require('jsonwebtoken');
 
 // Environment variables

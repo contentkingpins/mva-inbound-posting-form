@@ -468,5 +468,7 @@ class AnalyticsTracker {
 // Create singleton instance
 window.analyticsTracker = new AnalyticsTracker();
 
-// Export for modules
-export default window.analyticsTracker; 
+// Export for CommonJS/Node.js environments
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = window.analyticsTracker;
+} 
