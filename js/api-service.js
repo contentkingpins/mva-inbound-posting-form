@@ -686,8 +686,9 @@ class MVACRMAPIService {
   }
 }
 
-// Create global instance
+// Create global instance and make constructor available
 window.apiService = new MVACRMAPIService();
+window.MVACRMAPIService = MVACRMAPIService;
 
 // Export for module systems
 if (typeof module !== 'undefined' && module.exports) {

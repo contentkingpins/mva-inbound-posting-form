@@ -31,9 +31,6 @@
     <!-- jsPDF for generating PDF instructions -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
-    <!-- ENTERPRISE PUBLISHER API MANAGER - Real backend DynamoDB integration -->
-    <script src="js/publisher-api-manager.js"></script>
-    
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -1040,7 +1037,84 @@
         </div>
     </div>
 
-    <!-- ENTERPRISE PUBLISHER API MANAGER - Real backend DynamoDB integration -->
+    <!-- Load API Service first, then Publisher Manager -->
+    <script src="js/api-service.js"></script>
     <script src="js/publisher-api-manager.js"></script>
+    
+    <!-- Admin Dashboard Functions -->
+    <script>
+    // Essential admin functions that were missing
+    function viewAllLeads() {
+        const allLeadsSection = document.getElementById('all-leads-section');
+        allLeadsSection.style.display = 'block';
+        allLeadsSection.scrollIntoView({ behavior: 'smooth' });
+        console.log('📋 Showing all leads section');
+    }
+    
+    function hideAllLeads() {
+        const allLeadsSection = document.getElementById('all-leads-section');
+        allLeadsSection.style.display = 'none';
+        console.log('✖️ Hiding all leads section');
+    }
+    
+    function refreshAllLeads() {
+        console.log('🔄 Refreshing all leads...');
+        // Implement refresh logic
+    }
+    
+    function exportAllLeads() {
+        console.log('📊 Exporting all leads...');
+        // Implement export logic
+    }
+    
+    function reassignLead() {
+        console.log('🔄 Opening reassign lead dialog...');
+        // Implement reassign logic
+    }
+    
+    function bulkActions() {
+        console.log('📦 Opening bulk actions...');
+        // Implement bulk actions
+    }
+    
+    function agentDashboard() {
+        window.location.href = 'agent-aurora.html';
+    }
+    
+    function handleLogout() {
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.href = 'login.html';
+    }
+    
+    // Initialize admin dashboard
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🏢 Admin Dashboard initializing...');
+        
+        // Set current date
+        const currentDate = document.getElementById('current-date');
+        if (currentDate) {
+            currentDate.textContent = new Date().toLocaleDateString();
+        }
+        
+        // Set greeting based on time
+        const timeGreeting = document.getElementById('time-greeting');
+        const hour = new Date().getHours();
+        if (timeGreeting) {
+            if (hour < 12) timeGreeting.textContent = 'morning';
+            else if (hour < 18) timeGreeting.textContent = 'afternoon';
+            else timeGreeting.textContent = 'evening';
+        }
+        
+        // Set admin name
+        const adminName = document.getElementById('admin-name');
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        if (adminName && user.email) {
+            adminName.textContent = user.email.split('@')[0];
+        }
+        
+        console.log('✅ Admin Dashboard initialized');
+    });
+    </script>
 </body>
 </html>
