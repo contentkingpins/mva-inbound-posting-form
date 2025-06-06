@@ -224,5 +224,5 @@ window.leadImport = leadImport;
 window.agentDashboard = agentDashboard;
 
 console.log('✅ ALL BUTTON FUNCTIONS LOADED AND EXPOSED TO GLOBAL SCOPE');
-console.log('🔧 Functions available:', Object.keys(window).filter(k => typeof window[k] === 'function' && k.includes('Modal')));
+console.log('🔧 Functions available:', Object.keys(window).filter(k => typeof window[k] === 'function' && k.includes('Modal'))); 
 console.log('🏢 handleCreatePublisher available:', typeof window.handleCreatePublisher); 

@@ -288,55 +288,55 @@
         text-decoration: none;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
-
+    
     .btn:hover {
         transform: translateY(-1px);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
-
+    
     .btn-primary {
         background: linear-gradient(135deg, var(--accent-blue), #2563EB);
         color: white;
         border: 1px solid var(--accent-blue);
     }
-
+    
     .btn-secondary {
         background: linear-gradient(135deg, var(--bg-accent), var(--bg-secondary));
         color: var(--text-primary);
         border: 1px solid var(--border-accent);
     }
-
+    
     .btn-success {
         background: linear-gradient(135deg, var(--success), #059669);
         color: white;
         border: 1px solid var(--success);
     }
-
+    
     .btn-info {
         background: linear-gradient(135deg, #3B82F6, #2563EB);
         color: white;
         border: 1px solid #3B82F6;
     }
-
+    
     .btn-warning {
         background: linear-gradient(135deg, var(--warning), #D97706);
         color: white;
         border: 1px solid var(--warning);
     }
-
+    
     .btn-danger {
         background: linear-gradient(135deg, var(--error), #DC2626);
         color: white;
         border: 1px solid var(--error);
     }
-
+    
     .btn-sm {
         padding: 0.5rem 1rem;
         font-size: 0.8rem;
         font-weight: 600;
         white-space: nowrap;
     }
-    
+
     /* Activity Feed */
     .activity-feed {
         max-height: 400px;
@@ -361,7 +361,7 @@
         background: var(--bg-accent);
         transform: translateX(4px);
     }
-    
+
     /* Management Actions */
     .management-actions {
         display: grid;
@@ -496,7 +496,7 @@
         appearance: none;
         cursor: pointer;
     }
-    
+
     /* Modal Styles */
     .modal-overlay {
         display: none;
@@ -568,7 +568,7 @@
         gap: 1rem;
         justify-content: flex-end;
     }
-    
+
     /* Responsive Design */
     @media (max-width: 768px) {
         .admin-grid {
@@ -662,7 +662,7 @@
                     <div class="stat-value" id="active-agents">0</div>
                     <div class="stat-label">Active Agents</div>
                     <div class="stat-change positive" id="agents-change">3 online now</div>
-                </div>
+                    </div>
             </div>
             
             <div class="stat-card conversion">
@@ -671,7 +671,7 @@
                     <div class="stat-value" id="conversion-rate">0%</div>
                     <div class="stat-label">Close Rate</div>
                     <div class="stat-change positive" id="conversion-change">+5% improvement</div>
-                </div>
+                        </div>
             </div>
             
             <div class="stat-card revenue">
@@ -691,22 +691,22 @@
                     <div class="section-title">
                         <span class="section-icon">📝</span>
                         <h2>Recent Activity</h2>
-                    </div>
+                </div>
                 </div>
                 
                 <div class="activity-feed" id="activity-feed">
                     <!-- Activity items will be populated here -->
-                </div>
+            </div>
             </section>
-            
+
             <section class="admin-section lead-management">
-                <div class="section-header">
-                    <div class="section-title">
+            <div class="section-header">
+                <div class="section-title">
                         <span class="section-icon">⚙️</span>
                         <h2>Lead Management</h2>
-                    </div>
                 </div>
-                
+            </div>
+            
                 <div class="management-actions">
                     <button class="action-btn" onclick="viewAllLeads()">
                         <span class="btn-icon">📋</span>
@@ -727,8 +727,8 @@
                         <span class="btn-icon">👤</span>
                         <span class="btn-text">Agent View</span>
                     </button>
-                </div>
-            </section>
+            </div>
+        </section>
         </div>
 
         <!-- Publisher Management Section -->
@@ -745,7 +745,7 @@
                     <button class="btn btn-warning" onclick="exportPublishers()">📊 Export</button>
                 </div>
             </div>
-
+            
             <!-- Publisher Stats Overview -->
             <div class="publisher-stats-grid">
                 <div class="stat-card">
@@ -753,36 +753,36 @@
                     <div class="stat-content">
                         <div class="stat-value" id="total-publishers">0</div>
                         <div class="stat-label">Total Publishers</div>
-                    </div>
-                </div>
+                            </div>
+                                </div>
                 <div class="stat-card">
                     <div class="stat-icon">🟢</div>
                     <div class="stat-content">
                         <div class="stat-value" id="active-publishers">0</div>
                         <div class="stat-label">Active</div>
-                    </div>
-                </div>
+                            </div>
+                        </div>
                 <div class="stat-card">
                     <div class="stat-icon">📋</div>
                     <div class="stat-content">
                         <div class="stat-value" id="total-publisher-leads">0</div>
                         <div class="stat-label">Total Leads</div>
-                    </div>
-                </div>
+                            </div>
+                            </div>
                 <div class="stat-card">
                     <div class="stat-icon">💰</div>
                     <div class="stat-content">
                         <div class="stat-value" id="total-publisher-revenue">$0</div>
                         <div class="stat-label">Total Revenue</div>
+                        </div>
                     </div>
                 </div>
-            </div>
-
+                
             <!-- Publisher Filters -->
             <div class="publisher-filters">
                 <div class="filter-group">
                     <input type="text" id="publisher-search" placeholder="Search publishers..." class="form-input">
-                </div>
+                        </div>
                 <div class="filter-group">
                     <select id="publisher-status-filter" class="form-input">
                         <option value="">All Status</option>
@@ -791,7 +791,7 @@
                         <option value="pending">Pending</option>
                         <option value="suspended">Suspended</option>
                     </select>
-                </div>
+                        </div>
                 <div class="filter-group">
                     <select id="publisher-sort" class="form-input">
                         <option value="name">Sort by Name</option>
@@ -799,9 +799,9 @@
                         <option value="leads">Sort by Leads</option>
                         <option value="created">Sort by Date</option>
                     </select>
+                    </div>
                 </div>
-            </div>
-
+                
             <!-- Publishers Table -->
             <div class="table-container">
                 <table class="admin-table" id="publishers-table">
@@ -825,13 +825,13 @@
                         <!-- Publishers will be populated here -->
                     </tbody>
                 </table>
-            </div>
-
+                </div>
+                
             <!-- Bulk Actions Bar -->
             <div class="bulk-actions-bar" id="bulk-publishers-actions" style="display: none;">
                 <div class="bulk-info">
                     <span id="selected-publishers-count">0</span> publishers selected
-                </div>
+                        </div>
                 <div class="bulk-buttons">
                     <button class="btn btn-secondary" onclick="bulkActivatePublishers()">🟢 Activate</button>
                     <button class="btn btn-warning" onclick="bulkDeactivatePublishers()">🔴 Deactivate</button>
@@ -843,19 +843,19 @@
 
         <!-- All Leads Management Section -->
         <section class="admin-section all-leads-management" id="all-leads-section" style="display: none;">
-            <div class="section-header">
-                <div class="section-title">
+                <div class="section-header">
+                    <div class="section-title">
                     <span class="section-icon">📋</span>
                     <h2>All Incoming Leads</h2>
                     <span class="publisher-count" id="all-leads-count">0 leads</span>
-                </div>
+                    </div>
                 <div class="section-actions">
                     <button class="btn btn-secondary" onclick="refreshAllLeads()">🔄 Refresh</button>
                     <button class="btn btn-info" onclick="exportAllLeads()">📊 Export CSV</button>
                     <button class="btn btn-warning" onclick="hideAllLeads()">✖️ Close</button>
-                </div>
-            </div>
-
+                        </div>
+                    </div>
+                    
             <!-- Lead Stats Overview -->
             <div class="publisher-stats-grid">
                 <div class="stat-card">
@@ -863,36 +863,36 @@
                     <div class="stat-content">
                         <div class="stat-value" id="total-all-leads">0</div>
                         <div class="stat-label">Total Leads</div>
-                    </div>
-                </div>
+                        </div>
+                        </div>
                 <div class="stat-card">
                     <div class="stat-icon">💰</div>
                     <div class="stat-content">
                         <div class="stat-value" id="high-value-leads">0</div>
                         <div class="stat-label">High-Value Leads</div>
                     </div>
-                </div>
+                        </div>
                 <div class="stat-card">
                     <div class="stat-icon">🎯</div>
                     <div class="stat-content">
                         <div class="stat-value" id="available-leads-count">0</div>
                         <div class="stat-label">Available</div>
+                        </div>
                     </div>
-                </div>
                 <div class="stat-card">
                     <div class="stat-icon">👤</div>
                     <div class="stat-content">
                         <div class="stat-value" id="claimed-leads-count">0</div>
                         <div class="stat-label">Claimed</div>
+                        </div>
+                        </div>
                     </div>
-                </div>
-            </div>
 
             <!-- Lead Filters -->
             <div class="publisher-filters">
                 <div class="filter-group">
                     <input type="text" id="lead-search" placeholder="Search leads by name, email, phone..." class="form-input">
-                </div>
+                    </div>
                 <div class="filter-group">
                     <select id="lead-publisher-filter" class="form-input">
                         <option value="">All Publishers</option>
@@ -917,7 +917,7 @@
                         <option value="medium">Medium-Value ($10k-$99k)</option>
                         <option value="low">Low-Value (<$10k)</option>
                     </select>
-                </div>
+                    </div>
                 <div class="filter-group">
                     <select id="lead-sort" class="form-input">
                         <option value="newest">Newest First</option>
@@ -927,7 +927,7 @@
                         <option value="state">By State</option>
                     </select>
                 </div>
-            </div>
+        </div>
 
             <!-- Leads Table -->
             <div class="table-container">
@@ -953,12 +953,12 @@
                     </tbody>
                 </table>
             </div>
-
+            
             <!-- Bulk Actions Bar for Leads -->
             <div class="bulk-actions-bar" id="bulk-leads-actions" style="display: none;">
                 <div class="bulk-info">
                     <span id="selected-leads-count">0</span> leads selected
-                </div>
+                    </div>
                 <div class="bulk-buttons">
                     <button class="btn btn-secondary" onclick="bulkAssignLeads()">👤 Assign Agent</button>
                     <button class="btn btn-info" onclick="bulkExportLeads()">📊 Export Selected</button>
@@ -1049,14 +1049,14 @@
         allLeadsSection.style.display = 'block';
         allLeadsSection.scrollIntoView({ behavior: 'smooth' });
         console.log('📋 Showing all leads section');
-    }
+        }
     
     function hideAllLeads() {
         const allLeadsSection = document.getElementById('all-leads-section');
         allLeadsSection.style.display = 'none';
         console.log('✖️ Hiding all leads section');
     }
-    
+
     function refreshAllLeads() {
         console.log('🔄 Refreshing all leads...');
         // Implement refresh logic
@@ -1066,12 +1066,12 @@
         console.log('📊 Exporting all leads...');
         // Implement export logic
     }
-    
+
     function reassignLead() {
         console.log('🔄 Opening reassign lead dialog...');
         // Implement reassign logic
     }
-    
+
     function bulkActions() {
         console.log('📦 Opening bulk actions...');
         // Implement bulk actions
@@ -1080,10 +1080,10 @@
     function agentDashboard() {
         window.location.href = 'agent-aurora.html';
     }
-    
+
     function handleLogout() {
-        localStorage.clear();
-        sessionStorage.clear();
+            localStorage.clear();
+            sessionStorage.clear();
         window.location.href = 'login.html';
     }
     
@@ -1127,17 +1127,17 @@
             if (hour < 12) timeGreeting.textContent = 'morning';
             else if (hour < 18) timeGreeting.textContent = 'afternoon';
             else timeGreeting.textContent = 'evening';
-        }
-        
+    }
+
         // Set admin name
         const adminName = document.getElementById('admin-name');
         const user = JSON.parse(localStorage.getItem('user') || '{}');
         if (adminName && user.email) {
             adminName.textContent = user.email.split('@')[0];
-        }
+                }
         
         console.log('✅ Admin Dashboard initialized');
-    });
+            });
     
     // Check if user is properly authenticated
     function checkAuthentication() {
@@ -1153,8 +1153,8 @@
             alert('Session expired. Please log in again.');
             window.location.href = 'login.html';
             return false;
-        }
-        
+    }
+
         try {
             const userData = JSON.parse(user);
             const userRole = userData['custom:role'] || userData.role || 'agent';
@@ -1164,8 +1164,8 @@
                 alert('Admin access required. Redirecting to appropriate dashboard...');
                 window.location.href = 'agent-aurora.html';
                 return false;
-            }
-            
+    }
+
             console.log('✅ Authentication verified. Admin access granted.');
             return true;
         } catch (error) {
