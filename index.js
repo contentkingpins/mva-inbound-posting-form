@@ -1864,6 +1864,11 @@ function isJwtProtectedRoute(path) {
     return false; // Use API key authentication instead of JWT
   }
   
+  // VENDOR ENDPOINTS SHOULD USE JWT FOR ADMIN ACCESS
+  if (path === '/vendors' || path.startsWith('/vendors/')) {
+    return true; // Use JWT authentication for vendor management
+  }
+  
   return !path.match(/^\/auth\/(login|register|forgot-password|verify-reset-token|reset-password)$/);
 }
 
@@ -1875,7 +1880,9 @@ function isAdminRoute(path) {
          path.match(/^\/admin\/analytics\//) || // Analytics endpoints
          path.match(/^\/admin\/reports\//) || // Reports endpoints
          path.match(/^\/admin\/vendors\/create\/?$/) || // Vendor creation
-         path.match(/^\/admin\/force-logout-all\/?$/); // Force logout endpoint
+         path.match(/^\/admin\/force-logout-all\/?$/) || // Force logout endpoint
+         path === '/vendors' || // GET/POST /vendors for admin vendor management
+         path.match(/^\/vendors\/[^\/]+\/regenerate-key$/); // Regenerate API keys
 }
 
 // Helper function to determine if a route requires agent role
