@@ -72,7 +72,7 @@ class PublisherAPIManager {
     }
 
     /**
-     * Load publishers from backend API (with localStorage fallback)
+     * Load publishers from backend API
      */
     async loadPublishers(resetPagination = true) {
         try {
@@ -98,57 +98,25 @@ class PublisherAPIManager {
 
             console.log('📡 Loading publishers from API with params:', queryParams);
 
-            try {
-                const response = await this.apiService.getVendors(queryParams);
-                
-                if (response.vendors) {
-                    let publishers = response.vendors;
-                    
-                    // Also load localStorage publishers
-                    const localPublishers = JSON.parse(localStorage.getItem('publishers') || '[]');
-                    if (localPublishers.length > 0) {
-                        console.log(`📦 Found ${localPublishers.length} publishers in localStorage`);
-                        publishers = [...publishers, ...localPublishers];
-                    }
-                    
-                    if (resetPagination) {
-                        this.currentPublishers = publishers;
-                    } else {
-                        this.currentPublishers = [...this.currentPublishers, ...publishers];
-                    }
-
-                    this.pagination = response.pagination || { hasMore: false, lastKey: null };
-                    
-                    console.log(`📊 Loaded ${publishers.length} publishers total (${response.vendors.length} from API, ${localPublishers.length} from localStorage)`);
-                    return publishers;
-                } else {
-                    throw new Error('Invalid response format from API');
-                }
-            } catch (apiError) {
-                console.warn('⚠️ API loading failed, using localStorage only:', apiError.message);
-                
-                // FALLBACK: Load only from localStorage
-                const localPublishers = JSON.parse(localStorage.getItem('publishers') || '[]');
-                
+            const response = await this.apiService.getVendors(queryParams);
+            
+            if (response.vendors) {
                 if (resetPagination) {
-                    this.currentPublishers = localPublishers;
+                    this.currentPublishers = response.vendors;
                 } else {
-                    this.currentPublishers = [...this.currentPublishers, ...localPublishers];
+                    this.currentPublishers = [...this.currentPublishers, ...response.vendors];
                 }
 
-                this.pagination = { hasMore: false, lastKey: null };
+                this.pagination = response.pagination || { hasMore: false, lastKey: null };
                 
-                console.log(`📦 Loaded ${localPublishers.length} publishers from localStorage only`);
-                
-                if (localPublishers.length === 0) {
-                    this.showWarning('No publishers found. Backend API unavailable - using local storage.');
-                }
-                
-                return localPublishers;
+                console.log(`📊 Loaded ${response.vendors.length} publishers. Total: ${this.currentPublishers.length}`);
+                return response.vendors;
+            } else {
+                throw new Error('Invalid response format from API');
             }
         } catch (error) {
             console.error('❌ Error loading publishers:', error);
-            this.showError('Failed to load publishers');
+            this.showError('Failed to load publishers from server');
             return [];
         }
     }
@@ -174,91 +142,41 @@ class PublisherAPIManager {
     }
 
     /**
-     * Create new publisher via API (with localStorage fallback)
+     * Create new publisher via API
      */
     async createPublisher(publisherData) {
         try {
             console.log('🏢 Creating publisher via API:', publisherData);
             
-            // Try API first
-            try {
-                const response = await this.apiService.createVendor({
-                    name: publisherData.name,
-                    email: publisherData.email,
-                    contact_phone: publisherData.contact_phone || '',
-                    website: publisherData.website || '',
-                    notes: publisherData.notes || '',
-                    status: publisherData.status || 'active'
-                });
+            const response = await this.apiService.createVendor({
+                name: publisherData.name,
+                email: publisherData.email,
+                contact_phone: publisherData.contact_phone || '',
+                website: publisherData.website || '',
+                notes: publisherData.notes || '',
+                status: publisherData.status || 'active'
+            });
 
-                if (response.vendor) {
-                    console.log('✅ Publisher created successfully via API:', response.vendor.id);
-                    
-                    // Add to current list
-                    this.currentPublishers.unshift(response.vendor);
-                    
-                    // Update UI
-                    this.renderPublishersTable();
-                    this.updatePublisherStats();
-                    this.updatePublisherCount();
-                    
-                    // Show success message
-                    this.showSuccess(`Publisher "${response.vendor.name}" created successfully!`);
-                    
-                    // Download credentials
-                    this.downloadPublisherCredentials(response.vendor);
-                    
-                    return response.vendor;
-                }
-            } catch (apiError) {
-                console.warn('⚠️ API creation failed, using localStorage fallback:', apiError.message);
-                
-                // FALLBACK: Create publisher in localStorage
-                const publisherId = `pub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-                const vendorCode = this.generateVendorCode();
-                const apiKey = this.generateAPIKey();
-                const trackingId = this.generateTrackingId();
-                
-                const newPublisher = {
-                    id: publisherId,
-                    name: publisherData.name,
-                    email: publisherData.email,
-                    contact_phone: publisherData.contact_phone || '',
-                    website: publisherData.website || '',
-                    vendor_code: vendorCode,
-                    api_key: apiKey,
-                    tracking_id: trackingId,
-                    status: publisherData.status || 'active',
-                    notes: publisherData.notes || '',
-                    created_date: new Date().toISOString(),
-                    created_by: 'admin',
-                    last_updated: new Date().toISOString(),
-                    lead_count: 0,
-                    revenue: 0,
-                    last_activity: null,
-                    _localStorage: true // Flag to indicate this is stored locally
-                };
-                
-                // Store in localStorage
-                const existingPublishers = JSON.parse(localStorage.getItem('publishers') || '[]');
-                existingPublishers.push(newPublisher);
-                localStorage.setItem('publishers', JSON.stringify(existingPublishers));
+            if (response.vendor) {
+                console.log('✅ Publisher created successfully via API:', response.vendor.id);
                 
                 // Add to current list
-                this.currentPublishers.unshift(newPublisher);
+                this.currentPublishers.unshift(response.vendor);
                 
                 // Update UI
                 this.renderPublishersTable();
                 this.updatePublisherStats();
                 this.updatePublisherCount();
                 
-                // Show success message with warning
-                this.showWarning(`Publisher "${newPublisher.name}" created successfully!\n\n⚠️ Stored locally due to backend authentication issue.\n\nVendor Code: ${vendorCode}\nAPI Key: ${apiKey}\nTracking ID: ${trackingId}`);
+                // Show success message
+                this.showSuccess(`Publisher "${response.vendor.name}" created successfully!`);
                 
                 // Download credentials
-                this.downloadPublisherCredentials(newPublisher);
+                this.downloadPublisherCredentials(response.vendor);
                 
-                return newPublisher;
+                return response.vendor;
+            } else {
+                throw new Error('Invalid response from server');
             }
         } catch (error) {
             console.error('❌ Error creating publisher:', error);
@@ -266,34 +184,7 @@ class PublisherAPIManager {
             throw error;
         }
     }
-    
-    // Helper function to generate vendor code
-    generateVendorCode() {
-        const prefix = 'PUB';
-        const timestamp = Date.now().toString().slice(-6);
-        const random = Math.random().toString(36).substr(2, 3).toUpperCase();
-        return `${prefix}${timestamp}${random}`;
-    }
-    
-    // Helper function to generate API key
-    generateAPIKey() {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        let result = 'api_';
-        for (let i = 0; i < 32; i++) {
-            result += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return result;
-    }
-    
-    // Helper function to generate tracking ID
-    generateTrackingId() {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        let result = 'TRK';
-        for (let i = 0; i < 8; i++) {
-            result += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return result;
-    }
+
 
     /**
      * Update publisher via API

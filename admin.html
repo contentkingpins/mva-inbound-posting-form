@@ -1148,49 +1148,11 @@
         console.log('Auth token present:', !!authToken);
         console.log('User data present:', !!user);
         
-        // TEMPORARY: For testing purposes, create admin session if missing
         if (!authToken || !user) {
-            console.warn('⚠️ Missing authentication data. Creating temporary admin session for testing...');
-            
-            // Create temporary admin session
-            const tempAdminUser = {
-                email: 'admin@contentkingpins.com',
-                role: 'admin',
-                'custom:role': 'admin',
-                name: 'Admin User'
-            };
-            
-            // Create a temporary JWT-like token (for testing only)
-            // Create JWT header and payload
-            const header = {
-                "alg": "HS256",
-                "typ": "JWT"
-            };
-            
-            const payload = {
-                sub: 'admin-temp',
-                user_id: 'admin-temp',
-                email: 'admin@contentkingpins.com',
-                role: 'admin',
-                'custom:role': 'admin',
-                username: 'admin',
-                preferred_username: 'admin',
-                exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60), // 24 hours in seconds
-                iat: Math.floor(Date.now() / 1000)
-            };
-            
-            // Create a simple JWT-like token (base64 encoded header.payload.signature)
-            const encodedHeader = btoa(JSON.stringify(header)).replace(/=/g, '');
-            const encodedPayload = btoa(JSON.stringify(payload)).replace(/=/g, '');
-            const tempToken = `${encodedHeader}.${encodedPayload}.temp-signature`;
-            
-            localStorage.setItem('auth_token', tempToken);
-            localStorage.setItem('user', JSON.stringify(tempAdminUser));
-            localStorage.setItem('accessToken', tempToken);
-            localStorage.setItem('mva_token', tempToken);
-            
-            console.log('✅ Temporary admin session created');
-            return true;
+            console.warn('⚠️ Missing authentication data. Redirecting to login...');
+            alert('Session expired. Please log in again.');
+            window.location.href = 'login.html';
+            return false;
         }
         
         try {
