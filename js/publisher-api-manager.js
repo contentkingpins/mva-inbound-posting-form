@@ -22,10 +22,10 @@ class ProductionPublisherManager {
       this.setupEventListeners();
       
       // Check authentication (from memory, not localStorage)
-      if (this.authService.isAuthenticated() && this.authService.isAdmin()) {
+      if (this.authService && this.authService.isAuthenticated() && this.authService.isAdmin()) {
         console.log('✅ Admin authenticated, loading publishers...');
         await this.refreshPublishers();
-      } else if (this.authService.isAuthenticated()) {
+      } else if (this.authService && this.authService.isAuthenticated()) {
         console.log('⚠️ User authenticated but not admin');
         this.showError('Admin access required for publisher management');
       } else {
@@ -70,6 +70,10 @@ class ProductionPublisherManager {
       console.log('📡 Loading publishers from:', endpoint);
 
       // Use production auth service for API call
+      if (!this.authService || !this.authService.apiRequest) {
+        throw new Error('Authentication service not available');
+      }
+      
       const response = await this.authService.apiRequest(endpoint);
       
       if (response.vendors) {
@@ -91,11 +95,46 @@ class ProductionPublisherManager {
       
       if (error.message.includes('Not authenticated')) {
         this.showError('Session expired. Please log in again.');
-        this.authService.logout();
+        if (this.authService && this.authService.logout) {
+          this.authService.logout();
+        }
       } else {
         this.showError(`Failed to load publishers: ${error.message}`);
       }
       return [];
+    }
+  }
+
+  /**
+   * Create a new publisher
+   */
+  async createPublisher(publisherData) {
+    try {
+      console.log('🏢 Creating publisher:', publisherData);
+      
+      if (!this.authService || !this.authService.apiRequest) {
+        throw new Error('Authentication service not available');
+      }
+
+      // Validate required fields
+      if (!publisherData.name || !publisherData.email) {
+        throw new Error('Publisher name and email are required');
+      }
+
+      const response = await this.authService.apiRequest('/vendors', {
+        method: 'POST',
+        body: publisherData
+      });
+
+      console.log('✅ Publisher created successfully:', response);
+      
+      // Refresh publishers list
+      await this.refreshPublishers();
+      
+      return response;
+    } catch (error) {
+      console.error('❌ Error creating publisher:', error);
+      throw error;
     }
   }
 
@@ -120,14 +159,20 @@ class ProductionPublisherManager {
     this.updatePublisherCount();
   }
 
-  // ... other methods similar to original but using this.authService.apiRequest()
-  
   showError(message) {
     console.error('❌', message);
+    if (typeof showNotification === 'function') {
+      showNotification(message, 'error');
+    } else {
+      alert('Error: ' + message);
+    }
   }
 
   showInfo(message) {
     console.log('ℹ️', message);
+    if (typeof showNotification === 'function') {
+      showNotification(message, 'info');
+    }
   }
 
   updatePublisherStats() {
@@ -153,4 +198,141 @@ class ProductionPublisherManager {
 // Export for production use
 window.ProductionPublisherManager = ProductionPublisherManager;
 
-console.log('🏢 Production Publisher Manager loaded - NO localStorage dependencies'); 
+// DEDICATED handleCreatePublisher function to stop the infinite loop
+function handleCreatePublisher() {
+  console.log('🏢 DEDICATED handleCreatePublisher called from publisher-manager.js');
+  
+  try {
+    // Get form values
+    const name = document.getElementById('new-publisher-name')?.value?.trim();
+    const email = document.getElementById('new-publisher-email')?.value?.trim();
+    const code = document.getElementById('new-publisher-code')?.value?.trim();
+    const apiKey = document.getElementById('new-publisher-api-key')?.value?.trim();
+    const status = document.getElementById('new-publisher-status')?.value || 'active';
+
+    // Validate required fields
+    if (!name) {
+      alert('Please enter a publisher name');
+      return;
+    }
+
+    if (!email) {
+      alert('Please enter a contact email');
+      return;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      alert('Please enter a valid email address');
+      return;
+    }
+
+    if (!code) {
+      alert('Please enter a vendor code');
+      return;
+    }
+
+    if (!apiKey) {
+      alert('Please enter an API key');
+      return;
+    }
+
+    // Create publisher data object
+    const publisherData = {
+      name,
+      email,
+      vendorCode: code,
+      apiKey,
+      status
+    };
+
+    // Get the publisher manager instance
+    const publisherManager = window.productionPublisherManager;
+    
+    if (!publisherManager) {
+      throw new Error('Publisher manager not initialized');
+    }
+
+    // Show loading state
+    const createBtn = document.querySelector('#add-publisher-modal .btn-primary');
+    if (createBtn) {
+      createBtn.disabled = true;
+      createBtn.textContent = 'Creating...';
+    }
+
+    // Create publisher
+    publisherManager.createPublisher(publisherData)
+      .then(() => {
+        alert(`✅ Publisher "${name}" created successfully!`);
+        closeModal('add-publisher-modal');
+      })
+      .catch(error => {
+        console.error('Publisher creation failed:', error);
+        alert(`❌ Failed to create publisher: ${error.message}`);
+      })
+      .finally(() => {
+        // Reset button state
+        if (createBtn) {
+          createBtn.disabled = false;
+          createBtn.textContent = 'Create Publisher';
+        }
+      });
+
+  } catch (error) {
+    console.error('Error in handleCreatePublisher:', error);
+    alert(`❌ Error creating publisher: ${error.message}`);
+  }
+}
+
+function closeModal(modalId) {
+  try {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+      modal.classList.remove('active');
+      console.log('✅ Modal closed:', modalId);
+    }
+  } catch (error) {
+    console.error('Error closing modal:', error);
+  }
+}
+
+// Expose the DEDICATED function to global scope
+window.handleCreatePublisher = handleCreatePublisher;
+window.closeModal = closeModal;
+
+console.log('🏢 Production Publisher Manager loaded - NO localStorage dependencies');
+console.log('✅ DEDICATED handleCreatePublisher exposed to global scope');
+
+// Initialize the production publisher manager when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  // Wait for auth service to be available
+  const initializeManager = () => {
+    if (window.prodAuth) {
+      console.log('🚀 Initializing Production Publisher Manager...');
+      window.productionPublisherManager = new ProductionPublisherManager();
+      window.productionPublisherManager.initialize();
+      console.log('✅ Production Publisher Manager instance created and available globally');
+    } else {
+      console.log('⏳ Waiting for auth service...');
+      setTimeout(initializeManager, 100);
+    }
+  };
+  
+  initializeManager();
+});
+
+// Also expose for immediate use if DOM already loaded
+if (document.readyState === 'loading') {
+  // Already added event listener above
+} else {
+  // DOM already loaded, initialize immediately
+  setTimeout(() => {
+    if (window.prodAuth && !window.productionPublisherManager) {
+      console.log('🚀 Late initializing Production Publisher Manager...');
+      window.productionPublisherManager = new ProductionPublisherManager();
+      window.productionPublisherManager.initialize();
+      console.log('✅ Production Publisher Manager instance created globally');
+    }
+  }, 500);
+} 
