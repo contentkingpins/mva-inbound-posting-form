@@ -79,7 +79,8 @@ async function verifyToken(event) {
     const adminEmails = [
       'george@contentkingpins.com',
       'admin@contentkingpins.com',
-      'alex@contentkingpins.com'
+      'alex@contentkingpins.com',
+      'asiegel@contentkingpins.com'
     ];
     
     if (user.email && adminEmails.includes(user.email.toLowerCase())) {
