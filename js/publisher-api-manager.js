@@ -5,7 +5,23 @@
 class ProductionPublisherManager {
   constructor() {
     // Try multiple auth service options for compatibility
-    this.authService = window.prodAuth || window.apiService || null;
+    const rawAuthService = window.prodAuth || window.apiService || null;
+    
+    // Create compatibility wrapper for legacy API service
+    if (rawAuthService && !rawAuthService.apiRequest && rawAuthService.request) {
+      this.authService = {
+        ...rawAuthService,
+        // Map legacy methods to expected interface
+        apiRequest: (endpoint, options = {}) => rawAuthService.request(endpoint, options),
+        isAuthenticated: () => rawAuthService.isAuthenticated(),
+        isAdmin: () => rawAuthService.isAdmin(),
+        logout: () => rawAuthService.logout()
+      };
+      console.log('🔧 Created compatibility wrapper for legacy API service');
+    } else {
+      this.authService = rawAuthService;
+    }
+    
     this.selectedPublishers = new Set();
     this.currentPublishers = [];
     this.pagination = { hasMore: false, lastKey: null };
