@@ -4,7 +4,8 @@
  */
 class ProductionPublisherManager {
   constructor() {
-    this.authService = window.prodAuth;
+    // Try multiple auth service options for compatibility
+    this.authService = window.prodAuth || window.apiService || null;
     this.selectedPublishers = new Set();
     this.currentPublishers = [];
     this.pagination = { hasMore: false, lastKey: null };
@@ -306,15 +307,16 @@ console.log('✅ DEDICATED handleCreatePublisher exposed to global scope');
 
 // Initialize the production publisher manager when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
-  // Wait for auth service to be available
+  // Wait for auth service to be available (check for both options)
   const initializeManager = () => {
-    if (window.prodAuth) {
-      console.log('🚀 Initializing Production Publisher Manager...');
+    const authService = window.prodAuth || window.apiService;
+    if (authService) {
+      console.log(`🚀 Initializing Production Publisher Manager with ${authService === window.prodAuth ? 'Enterprise Cognito' : 'Legacy API Service'}...`);
       window.productionPublisherManager = new ProductionPublisherManager();
       window.productionPublisherManager.initialize();
       console.log('✅ Production Publisher Manager instance created and available globally');
     } else {
-      console.log('⏳ Waiting for auth service...');
+      console.log('⏳ Waiting for auth service (prodAuth or apiService)...');
       setTimeout(initializeManager, 100);
     }
   };
@@ -328,8 +330,9 @@ if (document.readyState === 'loading') {
 } else {
   // DOM already loaded, initialize immediately
   setTimeout(() => {
-    if (window.prodAuth && !window.productionPublisherManager) {
-      console.log('🚀 Late initializing Production Publisher Manager...');
+    const authService = window.prodAuth || window.apiService;
+    if (authService && !window.productionPublisherManager) {
+      console.log(`🚀 Late initializing Production Publisher Manager with ${authService === window.prodAuth ? 'Enterprise Cognito' : 'Legacy API Service'}...`);
       window.productionPublisherManager = new ProductionPublisherManager();
       window.productionPublisherManager.initialize();
       console.log('✅ Production Publisher Manager instance created globally');
