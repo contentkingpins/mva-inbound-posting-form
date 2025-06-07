@@ -8,12 +8,13 @@ const cognito = new CognitoIdentityProviderClient({ region: 'us-east-1' });
 const USER_POOL_ID = process.env.USER_POOL_ID || 'us-east-1_lhc964tLD';
 const JWT_SECRET = process.env.JWT_SECRET || 'your-fallback-secret-key';
 
-// CORS headers
+// CORS headers - More permissive for debugging
 const CORS_HEADERS = {
   'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': 'https://main.d21xta9fg9b6w.amplifyapp.com',
+  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-api-key'
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-api-key, X-Amz-Date, X-Api-Key, X-Amz-Security-Token',
+  'Access-Control-Max-Age': '86400'
 };
 
 /**
