@@ -112,6 +112,12 @@ async function verifyToken(event) {
  * @returns {Object} - Modified event with user info or error response
  */
 async function authenticateRequest(event) {
+  // Skip authentication for OPTIONS requests (CORS preflight)
+  if (event.httpMethod === 'OPTIONS') {
+    console.log('Skipping authentication for OPTIONS request');
+    return null; // No error, allow OPTIONS to continue
+  }
+  
   const user = await verifyToken(event);
   
   if (!user) {
