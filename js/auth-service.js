@@ -1,245 +1,232 @@
-// Authentication Service for Lead Management System
+/**
+ * Production Authentication Service
+ * NO localStorage - uses proper security patterns
+ */
+class ProductionAuthService {
+  constructor() {
+    this.userPoolId = 'us-east-1_lhc964tLD';
+    this.clientId = '5t6mane4fnvineksoqb4ta0iu1';
+    this.apiEndpoint = 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod';
+    this.currentUser = null;
+    this.tokenRefreshTimer = null;
+  }
 
-class AuthService {
-    constructor() {
-        this.cognitoConfig = null;
-        this.userPool = null;
-        this.currentUser = null;
-        this.initialized = false;
-        this.initializationPromise = null;
-        this.refreshInterval = null;
-        this.retryAttempts = 3;
-        this.retryDelay = 1000; // 1 second
-    }
+  /**
+   * Secure login - tokens never stored in localStorage
+   */
+  async login(email, password) {
+    try {
+      // Use Cognito SDK for authentication
+      const authDetails = new AmazonCognitoIdentity.AuthenticationDetails({
+        Username: email,
+        Password: password
+      });
 
-    /**
-     * Initialize the authentication service
-     */
-    async initialize() {
-        if (this.initializationPromise) {
-            return this.initializationPromise;
-        }
+      const userData = {
+        Username: email,
+        Pool: new AmazonCognitoIdentity.CognitoUserPool({
+          UserPoolId: this.userPoolId,
+          ClientId: this.clientId
+        })
+      };
 
-        this.initializationPromise = new Promise(async (resolve, reject) => {
-            try {
-                // Wait for Cognito SDK
-                await this.waitForCognitoSDK();
+      const cognitoUser = new AmazonCognitoIdentity.CognitoUser(userData);
 
-                // Get configuration
-                this.cognitoConfig = window.AppConfig ? 
-                    window.AppConfig.getCognitoConfig() :
-                    {
-                        UserPoolId: 'us-east-1_lhc964tLD',
-                        ClientId: '5t6mane4fnvineksoqb4ta0iu1'
-                    };
-
-                // Initialize user pool
-                this.userPool = new AmazonCognitoIdentity.CognitoUserPool(this.cognitoConfig);
-                
-                // Try to get current user
-                this.currentUser = this.userPool.getCurrentUser();
-
-                // Setup token refresh
-                this.setupTokenRefresh();
-
-                this.initialized = true;
-                resolve(true);
-            } catch (error) {
-                console.error('Failed to initialize auth service:', error);
-                reject(error);
-            }
-        });
-
-        return this.initializationPromise;
-    }
-
-    /**
-     * Wait for Cognito SDK to load
-     */
-    waitForCognitoSDK() {
-        return new Promise((resolve, reject) => {
-            if (typeof AmazonCognitoIdentity !== 'undefined') {
-                resolve();
-                return;
-            }
-
-            let attempts = 0;
-            const maxAttempts = 10;
-            const interval = setInterval(() => {
-                attempts++;
-                if (typeof AmazonCognitoIdentity !== 'undefined') {
-                    clearInterval(interval);
-                    resolve();
-                } else if (attempts >= maxAttempts) {
-                    clearInterval(interval);
-                    reject(new Error('Cognito SDK failed to load'));
-                }
-            }, 500);
-        });
-    }
-
-    /**
-     * Check if user is authenticated
-     */
-    async checkAuth(retryCount = 0) {
-        try {
-            if (!this.initialized) {
-                await this.initialize();
-            }
-
-            if (!this.currentUser) {
-                throw new Error('No user session found');
-            }
-
-            // Get user data from localStorage
-            const userStr = localStorage.getItem('user');
-            if (!userStr) {
-                throw new Error('No user data found');
-            }
-
-            const userData = JSON.parse(userStr);
-            if (!userData.email || !userData.role) {
-                throw new Error('Invalid user data');
-            }
-
-            // Verify session is valid
-            const session = await this.getSession();
-            if (!session.isValid()) {
-                throw new Error('Invalid session');
-            }
-
-            // Update tokens
-            this.updateTokens(session);
-
-            return {
-                isAuthenticated: true,
-                user: userData
+      return new Promise((resolve, reject) => {
+        cognitoUser.authenticateUser(authDetails, {
+          onSuccess: (result) => {
+            // Store user info in memory only (not localStorage)
+            this.currentUser = {
+              email: email,
+              idToken: result.getIdToken().getJwtToken(),
+              accessToken: result.getAccessToken().getJwtToken(),
+              refreshToken: result.getRefreshToken().getToken(),
+              cognitoUser: cognitoUser
             };
 
-        } catch (error) {
-            console.error('Auth check failed:', error);
+            // Setup automatic token refresh
+            this.setupTokenRefresh();
 
-            // Retry logic
-            if (retryCount < this.retryAttempts) {
-                console.log(`Retrying auth check (${retryCount + 1}/${this.retryAttempts})...`);
-                await new Promise(resolve => setTimeout(resolve, this.retryDelay));
-                return this.checkAuth(retryCount + 1);
-            }
-
-            // Clear auth data
-            this.clearAuthData();
-            
-            return {
-                isAuthenticated: false,
-                error: error.message
-            };
-        }
-    }
-
-    /**
-     * Get current session
-     */
-    getSession() {
-        return new Promise((resolve, reject) => {
-            if (!this.currentUser) {
-                reject(new Error('No user session'));
-                return;
-            }
-
-            this.currentUser.getSession((err, session) => {
-                if (err) {
-                    reject(err);
-                    return;
-                }
-                resolve(session);
-            });
+            resolve(this.currentUser);
+          },
+          onFailure: reject,
+          newPasswordRequired: (userAttributes) => {
+            resolve({ newPasswordRequired: true, userAttributes, cognitoUser });
+          }
         });
+      });
+    } catch (error) {
+      throw new Error(`Login failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get current authentication token (from memory, not localStorage)
+   */
+  getAuthToken() {
+    return this.currentUser?.idToken || null;
+  }
+
+  /**
+   * Check if user is authenticated
+   */
+  isAuthenticated() {
+    return !!(this.currentUser?.idToken);
+  }
+
+  /**
+   * Get user info
+   */
+  getCurrentUser() {
+    if (!this.currentUser) return null;
+
+    try {
+      // Decode token to get user info
+      const tokenPayload = JSON.parse(atob(this.currentUser.idToken.split('.')[1]));
+      return {
+        email: tokenPayload.email,
+        sub: tokenPayload.sub,
+        role: this.determineUserRole(tokenPayload.email),
+        emailVerified: tokenPayload.email_verified
+      };
+    } catch (error) {
+      console.error('Error parsing token:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Determine user role (matches backend logic)
+   */
+  determineUserRole(email) {
+    const adminEmails = [
+      'george@contentkingpins.com',
+      'admin@contentkingpins.com',
+      'alex@contentkingpins.com'
+    ];
+
+    return adminEmails.includes(email.toLowerCase()) ? 'admin' : 'agent';
+  }
+
+  /**
+   * Make authenticated API request
+   */
+  async apiRequest(endpoint, options = {}) {
+    const token = this.getAuthToken();
+    
+    if (!token) {
+      throw new Error('Not authenticated');
     }
 
-    /**
-     * Update tokens in localStorage
-     */
-    updateTokens(session) {
-        const accessToken = session.getAccessToken().getJwtToken();
-        const idToken = session.getIdToken().getJwtToken();
-        const refreshToken = session.getRefreshToken().getToken();
+    const config = {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...options.headers
+      }
+    };
 
-        localStorage.setItem('accessToken', accessToken);
-        localStorage.setItem('idToken', idToken);
-        localStorage.setItem('refreshToken', refreshToken);
-        localStorage.setItem('auth_token', idToken); // For backward compatibility
+    const response = await fetch(`${this.apiEndpoint}${endpoint}`, config);
+
+    if (response.status === 401) {
+      // Token expired, try refresh
+      await this.refreshToken();
+      // Retry with new token
+      config.headers.Authorization = `Bearer ${this.getAuthToken()}`;
+      return fetch(`${this.apiEndpoint}${endpoint}`, config);
     }
 
-    /**
-     * Setup token refresh
-     */
-    setupTokenRefresh() {
-        // Clear existing interval if any
-        if (this.refreshInterval) {
-            clearInterval(this.refreshInterval);
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.message || `HTTP ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Refresh token automatically
+   */
+  async refreshToken() {
+    if (!this.currentUser?.cognitoUser) {
+      throw new Error('No user to refresh');
+    }
+
+    return new Promise((resolve, reject) => {
+      this.currentUser.cognitoUser.getSession((err, session) => {
+        if (err) {
+          this.logout();
+          reject(err);
+          return;
         }
 
-        // Refresh immediately
-        this.refreshToken();
-
-        // Setup periodic refresh (45 minutes)
-        this.refreshInterval = setInterval(() => {
-            this.refreshToken();
-        }, 45 * 60 * 1000);
-    }
-
-    /**
-     * Refresh token
-     */
-    async refreshToken(retryCount = 0) {
-        try {
-            const session = await this.getSession();
-            this.updateTokens(session);
-        } catch (error) {
-            console.error('Token refresh failed:', error);
-
-            // Retry logic
-            if (retryCount < this.retryAttempts) {
-                console.log(`Retrying token refresh (${retryCount + 1}/${this.retryAttempts})...`);
-                await new Promise(resolve => setTimeout(resolve, this.retryDelay));
-                return this.refreshToken(retryCount + 1);
-            }
-
-            // Clear auth data and redirect
-            this.clearAuthData();
-            window.location.href = 'login.html';
+        if (session.isValid()) {
+          // Update tokens in memory
+          this.currentUser.idToken = session.getIdToken().getJwtToken();
+          this.currentUser.accessToken = session.getAccessToken().getJwtToken();
+          resolve(session);
+        } else {
+          this.logout();
+          reject(new Error('Session expired'));
         }
+      });
+    });
+  }
+
+  /**
+   * Setup automatic token refresh
+   */
+  setupTokenRefresh() {
+    // Clear existing timer
+    if (this.tokenRefreshTimer) {
+      clearInterval(this.tokenRefreshTimer);
     }
 
-    /**
-     * Clear authentication data
-     */
-    clearAuthData() {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('idToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('user');
-        
-        if (this.refreshInterval) {
-            clearInterval(this.refreshInterval);
-        }
+    // Refresh every 45 minutes
+    this.tokenRefreshTimer = setInterval(async () => {
+      try {
+        await this.refreshToken();
+        console.log('Token refreshed successfully');
+      } catch (error) {
+        console.error('Token refresh failed:', error);
+        this.logout();
+      }
+    }, 45 * 60 * 1000);
+  }
 
-        this.currentUser = null;
+  /**
+   * Secure logout - clears memory only
+   */
+  logout() {
+    if (this.currentUser?.cognitoUser) {
+      this.currentUser.cognitoUser.signOut();
     }
 
-    /**
-     * Sign out user
-     */
-    signOut() {
-        if (this.currentUser) {
-            this.currentUser.signOut();
-        }
-        this.clearAuthData();
-        window.location.href = 'login.html';
+    if (this.tokenRefreshTimer) {
+      clearInterval(this.tokenRefreshTimer);
     }
+
+    this.currentUser = null;
+    window.location.href = '/login.html';
+  }
+
+  /**
+   * Check user role
+   */
+  isAdmin() {
+    const user = this.getCurrentUser();
+    return user?.role === 'admin';
+  }
+
+  isAgent() {
+    const user = this.getCurrentUser();
+    return user?.role === 'agent';
+  }
 }
 
-// Create and export singleton instance
-const authService = new AuthService();
-window.authService = authService; // Make available globally 
+// Export for production use
+window.ProductionAuthService = ProductionAuthService;
+window.prodAuth = new ProductionAuthService();
+
+console.log('🔐 Production Authentication Service loaded - NO localStorage used'); 
