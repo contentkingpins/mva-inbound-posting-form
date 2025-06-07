@@ -25,21 +25,32 @@ const CORS_HEADERS = {
 exports.handler = async (event) => {
   console.log('Router received event:', JSON.stringify(event, null, 2));
   
-  // Extract the resource path from the event
-  const path = event.resource || event.path || '';
-  const httpMethod = event.httpMethod || '';
-  
-  console.log('Routing request - Path:', path, 'Method:', httpMethod);
-  
   try {
-    // Handle CORS preflight requests for all routes
+    // Extract the resource path from the event
+    const path = event.resource || event.path || '';
+    const httpMethod = event.httpMethod || '';
+    
+    console.log('Routing request - Path:', path, 'Method:', httpMethod);
+    
+    // IMPROVED: Handle CORS preflight requests for all routes with better error handling
     if (httpMethod === 'OPTIONS') {
-      console.log('Handling OPTIONS request');
-      return {
+      console.log('✅ Handling OPTIONS preflight request for path:', path);
+      console.log('✅ Request headers:', JSON.stringify(event.headers, null, 2));
+      
+      // Return successful CORS response immediately
+      const corsResponse = {
         statusCode: 200,
-        headers: CORS_HEADERS,
+        headers: {
+          "Access-Control-Allow-Origin": "https://main.d21xta9fg9b6w.amplifyapp.com",
+          "Access-Control-Allow-Headers": "Content-Type,Authorization,x-api-key,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
+          "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+          "Access-Control-Max-Age": "86400"
+        },
         body: ''
       };
+      
+      console.log('✅ Returning CORS response:', JSON.stringify(corsResponse, null, 2));
+      return corsResponse;
     }
     
     // Route based on the API Gateway resource path
