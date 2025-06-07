@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🔍 Authentication Diagnostic</title>
+    <style>
+        body { font-family: monospace; margin: 20px; background: #1a1a1a; color: #fff; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .pass { background: #2d5a2d; }
+        .fail { background: #5a2d2d; }
+        .warn { background: #5a5a2d; }
+        button { margin: 5px; padding: 10px; background: #333; color: #fff; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #444; }
+        pre { background: #000; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔍 MVA Authentication Diagnostic</h1>
+    <p>This will test the complete auth flow to find exactly where it's failing.</p>
+    
+    <button onclick="runFullDiagnostic()">🚀 Run Full Diagnostic</button>
+    <button onclick="clearAllAuth()">🧹 Clear All Auth Data</button>
+    <button onclick="showCurrentState()">📊 Show Current State</button>
+    
+    <div id="results"></div>
+
+    <script>
+        const API_BASE = 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod';
+        
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong> ${message}`;
+            document.getElementById('results').appendChild(div);
+        }
+        
+        function clearAllAuth() {
+            localStorage.clear();
+            sessionStorage.clear();
+            log('🧹 Cleared all authentication data', 'warn');
+        }
+        
+        function showCurrentState() {
+            log('<h3>📊 Current Authentication State:</h3>', 'info');
+            
+            const tokens = {
+                auth_token: localStorage.getItem('auth_token'),
+                accessToken: localStorage.getItem('accessToken'),
+                idToken: localStorage.getItem('idToken'),
+                mva_token: localStorage.getItem('mva_token'),
+                user: localStorage.getItem('user')
+            };
+            
+            for (const [key, value] of Object.entries(tokens)) {
+                if (value) {
+                    if (key === 'user') {
+                        try {
+                            const userData = JSON.parse(value);
+                            log(`✅ ${key}: ${userData.email} (${userData.role || userData['custom:role'] || 'no role'})`, 'pass');
+                        } catch (e) {
+                            log(`❌ ${key}: Invalid JSON`, 'fail');
+                        }
+                    } else {
+                        log(`✅ ${key}: ${value.substring(0, 50)}...`, 'pass');
+                    }
+                } else {
+                    log(`❌ ${key}: Missing`, 'fail');
+                }
+            }
+        }
+        
+        async function testAPICall(endpoint, description) {
+            log(`🔄 Testing ${description}...`, 'info');
+            
+            const token = localStorage.getItem('auth_token') || localStorage.getItem('accessToken') || localStorage.getItem('idToken');
+            
+            if (!token) {
+                log(`❌ ${description}: No auth token available`, 'fail');
+                return false;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                        'Origin': 'https://main.d21xta9fg9b6w.amplifyapp.com'
+                    }
+                });
+                
+                const responseText = await response.text();
+                
+                if (response.ok) {
+                    log(`✅ ${description}: SUCCESS (${response.status})`, 'pass');
+                    if (responseText) {
+                        try {
+                            const data = JSON.parse(responseText);
+                            log(`📄 Response: ${JSON.stringify(data, null, 2).substring(0, 200)}...`, 'info');
+                        } catch (e) {
+                            log(`📄 Response: ${responseText.substring(0, 200)}...`, 'info');
+                        }
+                    }
+                    return true;
+                } else {
+                    log(`❌ ${description}: ${response.status} ${response.statusText}`, 'fail');
+                    log(`📄 Error: ${responseText}`, 'fail');
+                    return false;
+                }
+            } catch (error) {
+                log(`❌ ${description}: Network error - ${error.message}`, 'fail');
+                return false;
+            }
+        }
+        
+        async function runFullDiagnostic() {
+            document.getElementById('results').innerHTML = '';
+            log('<h2>🚀 Starting Full Authentication Diagnostic</h2>', 'info');
+            
+            // Step 1: Check current state
+            showCurrentState();
+            
+            // Step 2: Test API endpoints
+            log('<h3>🔗 Testing API Endpoints:</h3>', 'info');
+            await testAPICall('/vendors', 'Vendors Endpoint');
+            await testAPICall('/admin/stats', 'Admin Stats Endpoint');
+            await testAPICall('/admin/analytics', 'Admin Analytics Endpoint');
+            await testAPICall('/leads', 'Leads Endpoint');
+            
+            // Step 3: Token analysis
+            log('<h3>🔍 Token Analysis:</h3>', 'info');
+            const token = localStorage.getItem('auth_token') || localStorage.getItem('idToken');
+            if (token) {
+                try {
+                    const parts = token.split('.');
+                    if (parts.length === 3) {
+                        const payload = JSON.parse(atob(parts[1]));
+                        log(`✅ JWT Token is valid format`, 'pass');
+                        log(`📧 Token Email: ${payload.email || 'Not found'}`, payload.email ? 'pass' : 'fail');
+                        log(`👤 Token Role: ${payload['custom:role'] || payload.role || 'Not found'}`, (payload['custom:role'] || payload.role) ? 'pass' : 'fail');
+                        log(`⏰ Token Expires: ${payload.exp ? new Date(payload.exp * 1000).toLocaleString() : 'Not found'}`, 'info');
+                        log(`⏰ Token Issued: ${payload.iat ? new Date(payload.iat * 1000).toLocaleString() : 'Not found'}`, 'info');
+                        
+                        // Check if token is expired
+                        if (payload.exp && payload.exp < Date.now() / 1000) {
+                            log(`❌ Token is EXPIRED!`, 'fail');
+                        } else {
+                            log(`✅ Token is still valid`, 'pass');
+                        }
+                        
+                        log(`<pre>${JSON.stringify(payload, null, 2)}</pre>`, 'info');
+                    } else {
+                        log(`❌ Token is not valid JWT format`, 'fail');
+                    }
+                } catch (e) {
+                    log(`❌ Could not decode token: ${e.message}`, 'fail');
+                }
+            } else {
+                log(`❌ No JWT token found in localStorage`, 'fail');
+            }
+            
+            log('<h3>🎯 Diagnostic Complete</h3>', 'info');
+        }
+    </script>
+</body>
+</html> 
