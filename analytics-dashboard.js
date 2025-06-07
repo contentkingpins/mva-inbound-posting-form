@@ -59,7 +59,7 @@ function checkAuthentication() {
     
     // Check for admin access
     const userRole = user['custom:role'] || user.role || 'agent';
-    const knownAdminEmails = ['george@contentkingpins.com', 'admin@contentkingpins.com'];
+    const knownAdminEmails = ['george@contentkingpins.com', 'admin@contentkingpins.com', 'asiegel@contentkingpins.com'];
     const isAdmin = userRole === 'admin' || knownAdminEmails.includes(user.email.toLowerCase());
     
     if (!isAdmin) {

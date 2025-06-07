@@ -57,7 +57,8 @@ async function checkAuth() {
     // Known admin emails (fallback for users without proper role attribute)
     const knownAdminEmails = [
         'george@contentkingpins.com',
-        'admin@contentkingpins.com'
+        'admin@contentkingpins.com',
+        'asiegel@contentkingpins.com'
     ];
     
     console.log('Admin auth check:', {

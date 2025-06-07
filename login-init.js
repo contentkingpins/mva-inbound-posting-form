@@ -305,7 +305,7 @@ async function completePasswordReset() {
               const userEmail = (userData.email || '').toLowerCase().trim();
               
               // Define admin emails clearly
-              const adminEmails = ['george@contentkingpins.com', 'admin@contentkingpins.com'];
+              const adminEmails = ['george@contentkingpins.com', 'admin@contentkingpins.com', 'asiegel@contentkingpins.com'];
               
               console.log('🔍 Role detection details:', {
                 email: userEmail,
@@ -618,10 +618,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 const userRole = userData['custom:role'] || userData.role || 'agent';
                 const userEmail = (userData.email || '').toLowerCase().trim();
                 
-                // Define admin emails clearly
-                const adminEmails = ['george@contentkingpins.com', 'admin@contentkingpins.com'];
-                
-                console.log('🔍 Role detection details:', {
+                              // Define admin emails clearly
+              const adminEmails = ['george@contentkingpins.com', 'admin@contentkingpins.com', 'asiegel@contentkingpins.com'];
+              
+              console.log('🔍 Role detection details:', {
                   email: userEmail,
                   customRole: userData['custom:role'],
                   role: userData.role,
