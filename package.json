@@ -5,9 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "mkdir -p dist && cp -R dashboard/* dist/",
+    "build": "node scripts/optimize-css.js && mkdir -p dist && cp -R *.html *.css *.js js css images dist/ 2>/dev/null || true",
     "build:auth": "rollup -c",
-    "deploy": "aws amplify start-deployment --app-id d21xta9fg9b6w --branch-name main --source-url dist/"
+    "deploy": "git add . && git commit -m 'Deploy: Frontend updates' && git push origin main"
   },
   "dependencies": {
     "@aws-sdk/client-cognito-identity-provider": "^3.458.0",
