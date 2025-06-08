@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendor Creation Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .test-section { background: #f5f5f5; padding: 20px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        input, select { padding: 8px; margin: 5px 0; border: 1px solid #ddd; border-radius: 4px; }
+        .test-result { background: white; padding: 10px; margin: 10px 0; border-left: 4px solid #007bff; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Vendor Creation Test</h1>
+    <p>Testing if the backend team's fixes actually work...</p>
+
+    <div class="test-section">
+        <h3>📋 Test Configuration</h3>
+        <label>Auth Token:</label>
+        <input type="text" id="auth-token" placeholder="Enter your admin JWT token" style="width: 400px;">
+        <br>
+        <label>Vendor Name:</label>
+        <input type="text" id="vendor-name" value="Test Publisher">
+        <br>
+        <label>Vendor Code:</label>
+        <input type="text" id="vendor-code" value="TEST001">
+        <br>
+        <button onclick="runTests()">🚀 Run All Tests</button>
+        <button onclick="clearResults()">🧹 Clear Results</button>
+    </div>
+
+    <div id="test-results"></div>
+
+    <script>
+        const API_BASE = 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod';
+        
+        function addTestResult(title, status, details) {
+            const resultsDiv = document.getElementById('test-results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${status}`;
+            resultDiv.innerHTML = `
+                <h4>${title}</h4>
+                <pre>${details}</pre>
+            `;
+            resultsDiv.appendChild(resultDiv);
+        }
+        
+        function clearResults() {
+            document.getElementById('test-results').innerHTML = '';
+        }
+        
+        async function testCorsOptions() {
+            console.log('🔍 Testing CORS OPTIONS request...');
+            addTestResult('🔍 Testing CORS OPTIONS', 'info', 'Sending OPTIONS request to /vendors...');
+            
+            try {
+                const response = await fetch(`${API_BASE}/vendors`, {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Origin': 'https://main.d21xta9fg9b6w.amplifyapp.com'
+                    }
+                });
+                
+                const responseText = await response.text();
+                const headers = {};
+                for (let [key, value] of response.headers.entries()) {
+                    headers[key] = value;
+                }
+                
+                if (response.ok) {
+                    addTestResult('✅ CORS OPTIONS Test', 'success', 
+                        `Status: ${response.status} ${response.statusText}\n` +
+                        `Headers: ${JSON.stringify(headers, null, 2)}\n` +
+                        `Response: ${responseText}`
+                    );
+                    return true;
+                } else {
+                    addTestResult('❌ CORS OPTIONS Test', 'error', 
+                        `Status: ${response.status} ${response.statusText}\n` +
+                        `Headers: ${JSON.stringify(headers, null, 2)}\n` +
+                        `Response: ${responseText}`
+                    );
+                    return false;
+                }
+            } catch (error) {
+                addTestResult('❌ CORS OPTIONS Test', 'error', `Error: ${error.message}`);
+                return false;
+            }
+        }
+        
+        async function testVendorList() {
+            console.log('📋 Testing vendor list...');
+            addTestResult('📋 Testing Vendor List', 'info', 'Fetching vendor list...');
+            
+            const token = document.getElementById('auth-token').value;
+            if (!token) {
+                addTestResult('❌ Vendor List Test', 'error', 'No auth token provided');
+                return false;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE}/vendors`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                        'Origin': 'https://main.d21xta9fg9b6w.amplifyapp.com'
+                    }
+                });
+                
+                const responseText = await response.text();
+                let parsedResponse;
+                try {
+                    parsedResponse = JSON.parse(responseText);
+                } catch (e) {
+                    parsedResponse = responseText;
+                }
+                
+                if (response.ok) {
+                    addTestResult('✅ Vendor List Test', 'success', 
+                        `Status: ${response.status} ${response.statusText}\n` +
+                        `Response: ${JSON.stringify(parsedResponse, null, 2)}`
+                    );
+                    return true;
+                } else {
+                    addTestResult('❌ Vendor List Test', 'error', 
+                        `Status: ${response.status} ${response.statusText}\n` +
+                        `Response: ${JSON.stringify(parsedResponse, null, 2)}`
+                    );
+                    return false;
+                }
+            } catch (error) {
+                addTestResult('❌ Vendor List Test', 'error', `Error: ${error.message}`);
+                return false;
+            }
+        }
+        
+        async function testVendorCreation() {
+            console.log('🏢 Testing vendor creation...');
+            addTestResult('🏢 Testing Vendor Creation', 'info', 'Creating test vendor...');
+            
+            const token = document.getElementById('auth-token').value;
+            const vendorName = document.getElementById('vendor-name').value;
+            const vendorCode = document.getElementById('vendor-code').value;
+            
+            if (!token || !vendorName || !vendorCode) {
+                addTestResult('❌ Vendor Creation Test', 'error', 'Missing required fields');
+                return false;
+            }
+            
+            const vendorData = {
+                name: vendorName,
+                vendor_code: vendorCode,
+                description: 'Test vendor created by frontend test',
+                email: 'test@example.com'
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/vendors`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                        'Origin': 'https://main.d21xta9fg9b6w.amplifyapp.com'
+                    },
+                    body: JSON.stringify(vendorData)
+                });
+                
+                const responseText = await response.text();
+                let parsedResponse;
+                try {
+                    parsedResponse = JSON.parse(responseText);
+                } catch (e) {
+                    parsedResponse = responseText;
+                }
+                
+                if (response.ok) {
+                    addTestResult('✅ Vendor Creation Test', 'success', 
+                        `Status: ${response.status} ${response.statusText}\n` +
+                        `Vendor Data Sent: ${JSON.stringify(vendorData, null, 2)}\n` +
+                        `Response: ${JSON.stringify(parsedResponse, null, 2)}`
+                    );
+                    return true;
+                } else {
+                    addTestResult('❌ Vendor Creation Test', 'error', 
+                        `Status: ${response.status} ${response.statusText}\n` +
+                        `Vendor Data Sent: ${JSON.stringify(vendorData, null, 2)}\n` +
+                        `Response: ${JSON.stringify(parsedResponse, null, 2)}`
+                    );
+                    return false;
+                }
+            } catch (error) {
+                addTestResult('❌ Vendor Creation Test', 'error', 
+                    `Error: ${error.message}\n` +
+                    `Vendor Data: ${JSON.stringify(vendorData, null, 2)}`
+                );
+                return false;
+            }
+        }
+        
+        async function runTests() {
+            clearResults();
+            
+            addTestResult('🚀 Starting Tests', 'info', 'Testing backend team\'s claimed fixes...');
+            
+            // Test 1: CORS OPTIONS
+            const corsWorking = await testCorsOptions();
+            
+            // Test 2: Vendor List
+            const listWorking = await testVendorList();
+            
+            // Test 3: Vendor Creation (only if list works)
+            let creationWorking = false;
+            if (listWorking) {
+                creationWorking = await testVendorCreation();
+            } else {
+                addTestResult('⏭️ Skipping Vendor Creation', 'info', 'Vendor list failed, skipping creation test');
+            }
+            
+            // Summary
+            const summary = `
+                CORS OPTIONS: ${corsWorking ? '✅ Working' : '❌ Failed'}
+                Vendor List: ${listWorking ? '✅ Working' : '❌ Failed'}
+                Vendor Creation: ${creationWorking ? '✅ Working' : listWorking ? '❌ Failed' : '⏭️ Skipped'}
+                
+                Overall: ${corsWorking && listWorking && creationWorking ? '✅ ALL WORKING!' : '❌ Some issues remain'}
+            `;
+            
+            addTestResult('📊 Test Summary', corsWorking && listWorking && creationWorking ? 'success' : 'error', summary);
+        }
+        
+        // Auto-fill token if available
+        window.addEventListener('load', () => {
+            const token = localStorage.getItem('auth_token') || localStorage.getItem('idToken');
+            if (token) {
+                document.getElementById('auth-token').value = token;
+                addTestResult('💡 Info', 'info', 'Found auth token in localStorage. Click "Run All Tests" to verify backend fixes.');
+            } else {
+                addTestResult('⚠️ Warning', 'error', 'No auth token found. Please login first or paste a token above.');
+            }
+        });
+    </script>
+</body>
+</html> 
