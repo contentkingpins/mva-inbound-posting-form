@@ -14,15 +14,40 @@ const exportController = require('./exportController');
 const documentController = require('./documentController');
 const documentSearch = require('./documentSearch');
 
-// CORS headers for consistency
+// CORS headers for consistency - used in all non-OPTIONS responses
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "https://main.d21xta9fg9b6w.amplifyapp.com",
-  "Access-Control-Allow-Headers": "Content-Type,Authorization,x-api-key",
+  "Access-Control-Allow-Headers": "Content-Type,Authorization,x-api-key,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
   "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
   "Content-Type": "application/json"
 };
 
 exports.handler = async (event) => {
+  // CRITICAL: Handle OPTIONS first, before ANY other logic that could fail
+  console.log('🚀 Lambda handler start - Method:', event.httpMethod);
+  
+  // Handle CORS preflight requests IMMEDIATELY - before any other processing
+  if (event.httpMethod === 'OPTIONS') {
+    console.log('✅ Processing OPTIONS preflight request');
+    console.log('✅ Request path:', event.path || event.resource);
+    console.log('✅ Request origin:', event.headers?.Origin || event.headers?.origin);
+    
+    const corsResponse = {
+      statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "https://main.d21xta9fg9b6w.amplifyapp.com",
+        "Access-Control-Allow-Headers": "Content-Type,Authorization,x-api-key,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
+        "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+        "Access-Control-Max-Age": "86400",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ message: "CORS preflight successful" })
+    };
+    
+    console.log('✅ Returning OPTIONS response:', JSON.stringify(corsResponse, null, 2));
+    return corsResponse;
+  }
+
   console.log('Router received event:', JSON.stringify(event, null, 2));
   
   try {
@@ -31,27 +56,6 @@ exports.handler = async (event) => {
     const httpMethod = event.httpMethod || '';
     
     console.log('Routing request - Path:', path, 'Method:', httpMethod);
-    
-    // IMPROVED: Handle CORS preflight requests for all routes with better error handling
-    if (httpMethod === 'OPTIONS') {
-      console.log('✅ Handling OPTIONS preflight request for path:', path);
-      console.log('✅ Request headers:', JSON.stringify(event.headers, null, 2));
-      
-      // Return successful CORS response immediately
-      const corsResponse = {
-        statusCode: 200,
-        headers: {
-          "Access-Control-Allow-Origin": "https://main.d21xta9fg9b6w.amplifyapp.com",
-          "Access-Control-Allow-Headers": "Content-Type,Authorization,x-api-key,X-Amz-Date,X-Api-Key,X-Amz-Security-Token",
-          "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
-          "Access-Control-Max-Age": "86400"
-        },
-        body: ''
-      };
-      
-      console.log('✅ Returning CORS response:', JSON.stringify(corsResponse, null, 2));
-      return corsResponse;
-    }
     
     // Route based on the API Gateway resource path
     

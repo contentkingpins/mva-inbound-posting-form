@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Current State Debug</title>
+</head>
+<body>
+    <h1>MVA System Debug</h1>
+    <div id="debug-output"></div>
+    
+    <script src="js/api-service.js"></script>
+    <script>
+    async function debugCurrentState() {
+        const output = document.getElementById('debug-output');
+        let html = '<h2>Authentication Status</h2>';
+        
+        // Check localStorage
+        const tokens = {
+            auth_token: localStorage.getItem('auth_token'),
+            accessToken: localStorage.getItem('accessToken'), 
+            mva_token: localStorage.getItem('mva_token'),
+            user: localStorage.getItem('user')
+        };
+        
+        html += '<h3>LocalStorage Tokens:</h3>';
+        for (const [key, value] of Object.entries(tokens)) {
+            html += `<p><strong>${key}:</strong> ${value ? '✅ Present' : '❌ Missing'}</p>`;
+        }
+        
+        // Check API service
+        const apiService = window.apiService;
+        html += '<h3>API Service Status:</h3>';
+        html += `<p><strong>isAuthenticated():</strong> ${apiService?.isAuthenticated() ? '✅ True' : '❌ False'}</p>`;
+        html += `<p><strong>getUserRole():</strong> ${apiService?.getUserRole() || 'Not found'}</p>`;
+        html += `<p><strong>isAdmin():</strong> ${apiService?.isAdmin() ? '✅ True' : '❌ False'}</p>`;
+        
+        // Test API call
+        html += '<h3>API Test:</h3>';
+        try {
+            const response = await apiService.getVendors();
+            html += `<p><strong>GET /vendors:</strong> ✅ Success - ${response.vendors?.length || 0} vendors found</p>`;
+        } catch (error) {
+            html += `<p><strong>GET /vendors:</strong> ❌ Error - ${error.message}</p>`;
+        }
+        
+        output.innerHTML = html;
+    }
+    
+    // Run debug when page loads
+    document.addEventListener('DOMContentLoaded', debugCurrentState);
+    </script>
+</body>
+</html> 

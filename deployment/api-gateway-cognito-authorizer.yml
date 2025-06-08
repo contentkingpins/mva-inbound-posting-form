@@ -1,0 +1,53 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Add Cognito Authorizer to existing MVA CRM API Gateway'
+
+Parameters:
+  ExistingApiGatewayId:
+    Type: String
+    Default: '9qtb4my1ij'
+    Description: 'Your existing API Gateway ID'
+  
+  ExistingUserPoolId:
+    Type: String  
+    Default: 'us-east-1_lhc964tLD'
+    Description: 'Your existing Cognito User Pool ID'
+    
+  ExistingUserPoolClientId:
+    Type: String
+    Default: '5t6mane4fnvineksoqb4ta0iu1'
+    Description: 'Your existing Cognito User Pool Client ID'
+
+Resources:
+  # Cognito Authorizer for API Gateway
+  CognitoAuthorizer:
+    Type: AWS::ApiGateway::Authorizer
+    Properties:
+      Name: MVA-CRM-Cognito-Authorizer
+      Type: COGNITO_USER_POOLS
+      IdentitySource: method.request.header.Authorization
+      RestApiId: !Ref ExistingApiGatewayId
+      ProviderARNs:
+        - !Sub 'arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${ExistingUserPoolId}'
+
+  # Update existing Lambda function environment variables
+  LambdaEnvironmentUpdate:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: 'mva-inbound-posting-api'
+      Environment:
+        Variables:
+          USER_POOL_ID: !Ref ExistingUserPoolId
+          USER_POOL_CLIENT_ID: !Ref ExistingUserPoolClientId
+          ADMIN_EMAILS: 'george@contentkingpins.com,admin@contentkingpins.com,alex@contentkingpins.com'
+          FRONTEND_DOMAIN: 'https://main.d21xta9fg9b6w.amplifyapp.com'
+
+Outputs:
+  AuthorizerId:
+    Description: 'Cognito Authorizer ID'
+    Value: !Ref CognitoAuthorizer
+    Export:
+      Name: !Sub '${AWS::StackName}-AuthorizerId'
+      
+  Instructions:
+    Description: 'Next steps'
+    Value: 'Run update-api-gateway-methods.sh to apply authorizer to all API methods' 

@@ -1,0 +1,30 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Add Cognito Authorizer to existing MVA CRM API Gateway'
+
+Parameters:
+  ExistingApiGatewayId:
+    Type: String
+    Default: '9qtb4my1ij'
+    Description: 'Your existing API Gateway ID'
+  
+  ExistingUserPoolId:
+    Type: String  
+    Default: 'us-east-1_lhc964tLD'
+    Description: 'Your existing Cognito User Pool ID'
+
+Resources:
+  # Cognito Authorizer for API Gateway
+  CognitoAuthorizer:
+    Type: AWS::ApiGateway::Authorizer
+    Properties:
+      Name: MVA-CRM-Cognito-Authorizer
+      Type: COGNITO_USER_POOLS
+      IdentitySource: method.request.header.Authorization
+      RestApiId: !Ref ExistingApiGatewayId
+      ProviderARNs:
+        - !Sub 'arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${ExistingUserPoolId}'
+
+Outputs:
+  AuthorizerId:
+    Description: 'Cognito Authorizer ID to use in API Gateway methods'
+    Value: !Ref CognitoAuthorizer 

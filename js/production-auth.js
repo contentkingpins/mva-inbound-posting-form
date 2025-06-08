@@ -119,7 +119,6 @@ class ProductionAuthService {
     }
 
     const config = {
-      method: 'GET',
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -128,34 +127,19 @@ class ProductionAuthService {
       }
     };
 
-    // Handle body data for POST/PUT requests
-    if (options.body && typeof options.body === 'object') {
-      config.body = JSON.stringify(options.body);
-    }
-
-    console.log(`🌐 API Request: ${config.method} ${endpoint}`);
-    
     const response = await fetch(`${this.apiEndpoint}${endpoint}`, config);
 
     if (response.status === 401) {
-      console.log('🔄 Token expired, refreshing...');
       // Token expired, try refresh
       await this.refreshToken();
       // Retry with new token
       config.headers.Authorization = `Bearer ${this.getAuthToken()}`;
-      const retryResponse = await fetch(`${this.apiEndpoint}${endpoint}`, config);
-      
-      if (!retryResponse.ok) {
-        const error = await retryResponse.json().catch(() => ({}));
-        throw new Error(error.message || `HTTP ${retryResponse.status}`);
-      }
-      
-      return retryResponse.json();
+      return fetch(`${this.apiEndpoint}${endpoint}`, config);
     }
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      throw new Error(error.message || `HTTP ${response.status}: ${response.statusText}`);
+      throw new Error(error.message || `HTTP ${response.status}`);
     }
 
     return response.json();
