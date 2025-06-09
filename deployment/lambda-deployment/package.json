@@ -1,0 +1,16 @@
+{
+  "name": "mva-crm-api",
+  "version": "2.0.0",
+  "description": "MVA CRM API with authentication and lead management",
+  "main": "index.js",
+  "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.458.0",
+    "@aws-sdk/client-dynamodb": "^3.458.0",
+    "@aws-sdk/lib-dynamodb": "^3.458.0",
+    "jsonwebtoken": "^9.0.2",
+    "uuid": "^9.0.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
