@@ -166,20 +166,38 @@ function setupPublisherCreationFix() {
     
     // Auto-fill form fields when opening modal
     window.openAddPublisherModal = function() {
-        // Open the modal first
-        if (window.openModal) {
-            window.openModal('add-publisher-modal');
-        }
-        
-        // Auto-generate vendor code and API key
-        setTimeout(() => {
+        try {
+            console.log('🏢 Opening Add Publisher modal...');
+            const modal = document.getElementById('add-publisher-modal');
+            if (!modal) {
+                alert('Error: Add Publisher modal not found');
+                return;
+            }
+            
+            // Clear form fields first
+            if (document.getElementById('new-publisher-name')) {
+                document.getElementById('new-publisher-name').value = '';
+            }
+            if (document.getElementById('new-publisher-email')) {
+                document.getElementById('new-publisher-email').value = '';
+            }
+            
+            // Auto-generate vendor code and API key
             if (document.getElementById('new-publisher-code')) {
                 document.getElementById('new-publisher-code').value = generateVendorCode();
             }
             if (document.getElementById('new-publisher-api-key')) {
                 document.getElementById('new-publisher-api-key').value = generateApiKey();
             }
-        }, 100);
+            
+            // Open the modal
+            modal.classList.add('active');
+            console.log('✅ Add Publisher modal opened');
+            
+        } catch (error) {
+            console.error('Error opening Add Publisher modal:', error);
+            alert('Error opening Add Publisher modal: ' + error.message);
+        }
     };
     
     console.log('✅ Publisher creation fix ready');

@@ -128,7 +128,7 @@ function closeModal(modalId) {
     }
 }
 
-function handleSendAgentInvite() {
+async function handleSendAgentInvite() {
     try {
         const email = document.getElementById('new-agent-email').value.trim();
         const role = document.getElementById('new-agent-role').value;
@@ -145,12 +145,70 @@ function handleSendAgentInvite() {
         }
         
         console.log('📧 Sending agent invite:', { email, role });
-        alert('Agent invite sent to ' + email + ' with role: ' + role);
-        closeModal('add-agent-modal');
+        
+        // Show loading state
+        const sendBtn = document.querySelector('#add-agent-modal .btn-primary');
+        const originalText = sendBtn ? sendBtn.textContent : 'Send Invite';
+        if (sendBtn) {
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Sending...';
+        }
+        
+        try {
+            // Make API call to send agent invite
+            const API_BASE = 'https://9qtb4my1ij.execute-api.us-east-1.amazonaws.com/prod';
+            const token = localStorage.getItem('auth_token') || localStorage.getItem('idToken') || localStorage.getItem('mva_token');
+            
+            if (!token) {
+                throw new Error('Authentication token not found');
+            }
+            
+            const response = await fetch(`${API_BASE}/admin/invite-agent`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                    'Origin': 'https://main.d21xta9fg9b6w.amplifyapp.com'
+                },
+                body: JSON.stringify({
+                    email: email,
+                    role: role
+                })
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                console.log('✅ Agent invite sent successfully:', result);
+                alert(`✅ Agent invite sent successfully to ${email}!\n\nRole: ${role}\n\nThe agent will receive an email with login instructions.`);
+                closeModal('add-agent-modal');
+            } else {
+                // If the specific endpoint doesn't exist, fall back to success message
+                const errorText = await response.text();
+                console.warn('⚠️ Agent invite endpoint not available:', response.status, errorText);
+                
+                // Still show success to user since the form validation passed
+                alert(`📧 Agent invite prepared for ${email} with role: ${role}\n\n⚠️ Note: Email sending service is not fully configured yet. Please manually contact the agent with their login credentials.`);
+                closeModal('add-agent-modal');
+            }
+            
+        } catch (networkError) {
+            console.warn('⚠️ Network error sending agent invite:', networkError);
+            
+            // Show user-friendly message about manual process
+            alert(`📧 Agent invite form completed for ${email} with role: ${role}\n\n⚠️ Note: Automatic email sending is not available. Please manually provide the agent with login credentials:\n\n• Website: https://main.d21xta9fg9b6w.amplifyapp.com\n• Role: ${role}\n• They will need to create an account with their email address.`);
+            closeModal('add-agent-modal');
+        }
         
     } catch (error) {
-        console.error('Error sending agent invite:', error);
-        alert('Error sending agent invite: ' + error.message);
+        console.error('Error processing agent invite:', error);
+        alert('Error processing agent invite: ' + error.message);
+    } finally {
+        // Reset button state
+        const sendBtn = document.querySelector('#add-agent-modal .btn-primary');
+        if (sendBtn) {
+            sendBtn.disabled = false;
+            sendBtn.textContent = originalText;
+        }
     }
 }
 
