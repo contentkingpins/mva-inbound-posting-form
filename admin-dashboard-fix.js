@@ -43,37 +43,44 @@ async function loadVendors() {
     console.log('📊 Loading vendors...');
     const data = await apiCall('/vendors');
     
-    if (data && data.vendors) {
-        const vendors = data.vendors;
-        console.log(`✅ Loaded ${vendors.length} vendors`);
-        
-        // Update publisher count
-        const publisherCount = document.getElementById('publisher-count');
-        if (publisherCount) {
-            publisherCount.textContent = `${vendors.length} publishers`;
-        }
-        
-        // Update total publishers stat
-        const totalPublishers = document.getElementById('total-publishers');
-        if (totalPublishers) {
-            totalPublishers.textContent = vendors.length;
-        }
-        
-        // Count active publishers
-        const activeVendors = vendors.filter(v => v.status === 'active');
-        const activePublishers = document.getElementById('active-publishers');
-        if (activePublishers) {
-            activePublishers.textContent = activeVendors.length;
-        }
-        
-        // Populate vendors table
-        populateVendorsTable(vendors);
-        
-        return vendors;
+    // Handle both array response and object response formats
+    let vendors;
+    if (Array.isArray(data)) {
+        // Backend returns plain array (current format)
+        vendors = data;
+    } else if (data && data.vendors) {
+        // Backend returns object with vendors property (future format)
+        vendors = data.vendors;
     } else {
         console.error('No vendors data received');
         return [];
     }
+    
+    console.log(`✅ Loaded ${vendors.length} vendors`);
+    
+    // Update publisher count
+    const publisherCount = document.getElementById('publisher-count');
+    if (publisherCount) {
+        publisherCount.textContent = `${vendors.length} publishers`;
+    }
+    
+    // Update total publishers stat
+    const totalPublishers = document.getElementById('total-publishers');
+    if (totalPublishers) {
+        totalPublishers.textContent = vendors.length;
+    }
+    
+    // Count active publishers
+    const activeVendors = vendors.filter(v => v.status === 'active');
+    const activePublishers = document.getElementById('active-publishers');
+    if (activePublishers) {
+        activePublishers.textContent = activeVendors.length;
+    }
+    
+    // Populate vendors table
+    populateVendorsTable(vendors);
+    
+    return vendors;
 }
 
 // Populate vendors table

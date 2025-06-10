@@ -93,20 +93,31 @@ class ProductionPublisherManager {
       
       const response = await this.authService.apiRequest(endpoint);
       
-      if (response.vendors) {
-        if (resetPagination) {
-          this.currentPublishers = response.vendors;
-        } else {
-          this.currentPublishers = [...this.currentPublishers, ...response.vendors];
-        }
-
-        this.pagination = response.pagination || { hasMore: false, lastKey: null };
-        
-        console.log(`📊 Loaded ${response.vendors.length} publishers. Total: ${this.currentPublishers.length}`);
-        return response.vendors;
+      // Handle both array response and object response formats
+      let vendors, pagination;
+      
+      if (Array.isArray(response)) {
+        // Backend returns plain array (current format)
+        vendors = response;
+        pagination = { hasMore: false, lastKey: null };
+      } else if (response.vendors) {
+        // Backend returns object with vendors property (future format)
+        vendors = response.vendors;
+        pagination = response.pagination || { hasMore: false, lastKey: null };
       } else {
         throw new Error('Invalid response format from API');
       }
+      
+      if (resetPagination) {
+        this.currentPublishers = vendors;
+      } else {
+        this.currentPublishers = [...this.currentPublishers, ...vendors];
+      }
+
+      this.pagination = pagination;
+      
+      console.log(`📊 Loaded ${vendors.length} publishers. Total: ${this.currentPublishers.length}`);
+      return vendors;
     } catch (error) {
       console.error('❌ Error loading publishers:', error);
       
